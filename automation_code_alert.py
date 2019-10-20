@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+Created on Sun Oct 20 20:24:03 2019
+
+@author: ATeklesadik
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Mon Sep 23 13:07:45 2019
 
 @author: ATeklesadik
@@ -20,22 +27,7 @@ from datetime import timedelta
 
 ########################## check current active typhoons in PAR and send email alert 
 
-def sendemail(from_addr, to_addr_list, cc_addr_list,
-              subject, message,
-              login, password,
-              smtpserver='smtp.gmail.com:587'):
-    header  = 'From: %s\n' % from_addr
-    header += 'To: %s\n' % ','.join(to_addr_list)
-    header += 'Cc: %s\n' % ','.join(cc_addr_list)
-    header += 'Subject: %s\n\n' % subject
-    message = header + message
- 
-    server = smtplib.SMTP(smtpserver)
-    server.starttls()
-    server.login(login,password)
-    problems = server.sendmail(from_addr, to_addr_list, message)
-    server.quit()
-    return problems
+
 
 def retrieve_all_gdacs_events():
     """
@@ -80,6 +72,7 @@ polygon = Polygon(PAR) # create polygon
 event_tc=get_current_TC_events()
 Active_typhoon='False'
 Activetyphoon=[]
+
 for ind,row in event_tc.iterrows():
      p_cor=np.array(row['where']['coordinates'])
      point =Point(p_cor[0],p_cor[1])
@@ -108,13 +101,7 @@ for items in soup.find_all('div', class_='alert_section_auto'):
         #print(item)#.replace("<br/>", "\n").prettify())
 print(forecast_info)
 
-if not Activetyphoon==[]:
-    sendemail(from_addr  = 'partyphoon@gmail.com', 
-               to_addr_list = ['akliludin@gmail.com'], 
-               cc_addr_list = [''],  subject  = 'Typhoon in PAR please check for avilable forecast',
-               message= forecast_info, 
-               login  = 'partyphoon', 
-               password= '510typhoonModel')
+
 
 
 ##################download UCL DATA
@@ -137,9 +124,11 @@ stdout, stderr = p.communicate()
 
 kml_files=[]
 
+from lxml import etree
+parser = etree.XMLParser(recover=True)
+tree=etree.fromstring('C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\RodeKruis.xml', parser=parser)
 
-
-Pacific_basin=['wp','nwp','west pacific','north west pacific','northwest pacific']   
+Pacific_basin=['wp','nwp','NWP','west pacific','north west pacific','northwest pacific']   
 try:
     tree = ET.parse('C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\RodeKruis.xml')
     root = tree.getroot()
@@ -154,7 +143,7 @@ dict2={'WH':'windpast','GH':'gustpast','WF':'wind',
        'WP5':'5_TSprob','WP6':'6_TSprob','WP7':'7_TSprob'}
 
 fname=open("C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\batch_step2.bat",'w')
-
+TSRPRODUCT_FILENAMEs={}
 for members in root.findall('ActiveStorms/ActiveStorm'):
     basin=members.find('TSRBasinDesc').text    
     basin_check=basin.lower()
@@ -162,6 +151,7 @@ for members in root.findall('ActiveStorms/ActiveStorm'):
         print( basin_check)
         StormName=members.find('StormName').text
         StormID=members.find('StormID').text
+        TSRPRODUCT_FILENAMEs['%s' % StormID]=StormName
         AdvisoryDate=members.find('AdvisoryDate').text
         TSRProductAvailability=members.find('TSRProductAvailability').text
         TSRProductAvailability=TSRProductAvailability.split(',')
@@ -177,36 +167,48 @@ for members in root.findall('ActiveStorms/ActiveStorm'):
             #fname.write(line+'\n')
 fname.close()   
 
-    
-####################
+
+#################### download data
 p = Popen("batch_step2.bat", cwd=r"C:\documents\philipiness\Typhoons\model\new_model\input")
 stdout, stderr = p.communicate()
-#######################
-filename='C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\%s' %TSRPRODUCT_FILENAME
-filename1='C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\%s' %TSRPRODUCT_FILENAME[:-4]
 
+#######################
+import re
 import zipfile
-with zipfile.ZipFile(filename, 'r') as zip_ref:
-    zip_ref.extractall(filename1)
+
+for key, value in TSRPRODUCT_FILENAMEs.items():
+    print(value)
+    if value in Activetyphoon:
+        print(value)
+        files = [f for f in os.listdir('C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\') if re.match(r'%s+.*\.zip'% key, f)]
+
+with zipfile.ZipFile(os.path.join('C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input', files[0]), 'r') as zip_ref:
+    zip_ref.extractall(os.path.join('C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input', files[0][:-4]))
+
+filename1=os.path.join('C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input', files[0][:-4])
+
 
 import geopandas as gpd
 import fiona
 
-gust=filename1+'\\'+TSRPRODUCT_FILENAME[:-4]+'.shp'
-track=filename1+'\\'+TSRPRODUCT_FILENAME.split('_')[0]+'_forecasttrack_'+TSRPRODUCT_FILENAME.split('_')[2][:-4]+'.shp'
+gust=filename1+'\\'+files[0][:-4]+'.shp'
+track=filename1+'\\'+files[0].split('_')[0]+'_forecasttrack_'+files[0].split('_')[2][:-4]+'.shp'
 
 gust_shp = gpd.read_file(gust)
 track_shp = gpd.read_file(track)
 
 track_gust = gpd.sjoin(track_shp,gust_shp, how="inner", op='intersects')
-track_gust = track_gust.dissolve(by='201919W_fo', aggfunc='max')
+
+dissolve_key=files[0].split('_')[0]+'_fo'
+
+track_gust = track_gust.dissolve(by='%s' % dissolve_key, aggfunc='max')
 ucl_interval=[0,12,24,36,48,72,96,120]
 
-##############3333downlaod other tyhoon data
+
 
 date_object = datetime.strptime(TSRPRODUCT_FILENAME.split('_')[2][:-4], "%Y%m%d%H")
 date_list=[(date_object + timedelta(hours=i)).strftime("%Y%m%d%H00") for i in ucl_interval]    #s1 = date_object.strftime("%m/%d/%Y, %H:00:00")
-track_gust['YYYYMMDDHH']=date_list
+track_gust['YYYYMMDDHH']=date_list[:len(track_gust)]
 track_gust.index=track_gust['YYYYMMDDHH']
 track_gust['Lon']=track_gust['geometry'].apply(lambda p: p.x)
 track_gust['Lat']=track_gust['geometry'].apply(lambda p: p.y)
@@ -217,7 +219,7 @@ typhoon_fs[['LAT','LON','VMAX']]=track_gust[['Lat','Lon','vmax']]
 typhoon_fs['STORMNAME']=StormName
 typhoon_fs.to_csv(r'C:\\documents\\philipiness\\Typhoons\\model\\new_model\\new_typhoon.csv')
 
-
+###########download rainfall
 
 from ftplib import FTP
 import os
@@ -226,11 +228,10 @@ from datetime import date, timedelta
 def downloadFiles(destination, file_pattern='apcp_sfc_'):
     filelist = ftp.nlst()
     for file in filelist:
-      if file_pattern in file:
-              ftp.retrbinary("RETR " + file, open(os.path.join(destination,file),"wb").write)
+      if ((file_pattern in file) and file.endswith('.grib2')):
+              ftp.retrbinary("RETR " + file, open(os.path.join(destination,'rainfall_forecast.grib2'),"wb").write)
               print(file + " downloaded")
       return
-
 
 yesterday = date.today() 
 year_=str(yesterday.year)
@@ -245,5 +246,84 @@ ftp.cwd(path1_)
 folderlist = ftp.nlst()
 path2='%s/c00/latlon/' % folderlist[-1]  
 ftp.cwd(path2)
-downloadFiles('C:/documents/philipiness/temp')
+downloadFiles('C:/documents/philipiness/Typhoons/model/new_model')
 ftp.quit()
+
+
+
+
+#### Run IBF model 
+os.chdir('C:\\documents\\philipiness\\Typhoons\\model\\new_model')
+p = Popen("C:\\documents\\philipiness\\Typhoons\\model\\new_model\\run_typhoon_model.bat", cwd=r"C:\documents\philipiness\Typhoons\model\new_model")
+stdout, stderr = p.communicate()
+
+
+
+
+################################################################################
+#send email 
+from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
+
+# write the HTML part
+
+html = """\
+<html>
+<body>
+<h1>IBF model run result </h1>
+<p>Please find below a Table with data from the curret IBF model run</p>
+<img src="cid:exampleimage">
+</body>
+</html>
+"""
+message = MIMEMultipart()
+part = MIMEText(html, "html")
+message.attach(part)
+
+# We assume that the image file is in the same directory that you run your Python script from
+fp = open( os.path.join('C:\\documents\\philipiness\\Typhoons\\model\\new_model\\output\\','example.png'), 'rb')
+image = MIMEImage(fp.read())
+fp.close()
+# Specify the  ID according to the img src in the HTML part
+image.add_header('Content-ID', '<exampleimage>')
+message.attach(image)
+
+###############################read model result
+file_name_impact="Impact_"+date_list[0]+"_"+StormName+".csv"
+
+
+#file_data = open(os.path.join('C:\\documents\\philipiness\\Typhoons\\model\\new_model\\output\\',file_name_impact),'r')
+file_data = open(os.path.join('C:\\documents\\philipiness\\Typhoons\\model\\new_model\\output\\',"Impact_201908300600_MITAG.csv"),'r')
+data=file_data.read()
+file_data.close()
+
+
+part1 = MIMEText(data, "plain")
+message.attach(part1)
+
+def sendemail(from_addr, to_addr_list, cc_addr_list,
+          subject, message,
+          login, password,
+          smtpserver='smtp.gmail.com:587'):
+    header  = 'From: %s\n' % from_addr
+    header += 'To: %s\n' % ','.join(to_addr_list)
+    header += 'Cc: %s\n' % ','.join(cc_addr_list)
+    header += 'Subject: %s\n\n' % subject
+    message = message#+ header + 
+     
+    server = smtplib.SMTP(smtpserver)
+    server.starttls()
+    server.login(login,password)
+    problems = server.sendmail(from_addr, to_addr_list, message.as_string())# message)
+    server.quit()
+    return problems
+
+
+if not Activetyphoon==[]:
+    sendemail(from_addr  = 'partyphoon@gmail.com', 
+               to_addr_list = ['akliludin@gmail.com','fbf.techadvisor@grc-philippines.org','fbf1@grc-philippines.org'], 
+               cc_addr_list = ['patrciaaklilu@gmail.com'],  subject  = 'Typhoon in PAR please check for avilable forecast',
+               message= message, 
+               login  = 'partyphoon', 
+               password= '510typhoonModel')
