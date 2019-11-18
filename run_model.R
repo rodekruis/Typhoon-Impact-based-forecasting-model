@@ -31,15 +31,15 @@ library(plyr)
 library(lubridate)
 
 #------------------------- new typhoon ---------------------------------
-setwd(dirname(rstudioapi::getSourceEditorContext()$path))
+setwd('C:/documents/philipiness/Typhoons/model/new_model/input')
 # ------------------------ calculate  variables  -----------------------------------
-typhoon_events <- read.csv('forecast/typhoon_info_for_model.csv')
-grid_points_adm3<-read.csv("data-raw/grid_points_admin3.csv", sep=",")
+typhoon_events <- read.csv('C:/documents/philipiness/Typhoons/model/new_model/input/forecast/typhoon_info_for_model.csv')
+grid_points_adm3<-read.csv("C:/documents/philipiness/Typhoons/model/new_model/input/data-raw/grid_points_admin3.csv", sep=",")
 # ------------------------ import boundary layer   -----------------------------------
-php_admin3 <- st_read(dsn='data-raw',layer='phl_admin3_simpl2')
-php_admin1 <- st_read(dsn='data-raw',layer='phl_admin1_gadm_pcode')
+php_admin3 <- st_read(dsn='C:/documents/philipiness/Typhoons/model/new_model/input/data-raw',layer='phl_admin3_simpl2')
+php_admin1 <- st_read(dsn='C:/documents/philipiness/Typhoons/model/new_model/input/data-raw',layer='phl_admin1_gadm_pcode')
 
-source('prepare_typhoon_input.R')
+source('C:/documents/philipiness/Typhoons/model/new_model/input/prepare_typhoon_input.R')
 
 for(i in 1:nrow(typhoon_events)){
   
@@ -90,7 +90,7 @@ for(i in 1:nrow(typhoon_events)){
     
     ##
     
-    NOAA_rain <- brick("forecast/rainfall_forecast.grib2")
+    NOAA_rain <- brick("C:/documents/philipiness/Typhoons/model/new_model/input/forecast/rainfall_forecast.grib2")
     
     names(NOAA_rain) = paste("rain",outer(1:45,'0',paste,sep="-"),sep="-")
     
