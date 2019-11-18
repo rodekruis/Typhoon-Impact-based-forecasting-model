@@ -1,4 +1,5 @@
-# Project Name : Triggr model for Forecast-based Financing in the Philippines
+# Trigger Model Automation 
+Automation of Triggr model for Forecast-based Financing in the Philippines
 ## Description :
 Organize process of running priority models.
 The following steps have been implemented for the pilot Phase automation
