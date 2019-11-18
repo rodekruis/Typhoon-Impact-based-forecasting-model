@@ -252,11 +252,11 @@ Prediction is about completely damaged houses only\n",'Estimated time to Landfal
     # ------------------------ save to file   -----------------------------------
     
     ## save an image ("plot" mode)
-    tmap_save(map1, filename = paste0('forecast/Impact_',as.vector(TRACK_DATA[1,]$YYYYMMDDHH),'_',as.vector(TRACK_DATA[1,]$STORMNAME),'.png'))
-    write.csv(Impact, file = paste0('forecast/Impact_',as.vector(TRACK_DATA[1,]$YYYYMMDDHH),'_',as.vector(TRACK_DATA[1,]$STORMNAME),'.csv'))
+    tmap_save(map1, filename = paste0('C:/documents/philipiness/Typhoons/model/new_model/input/forecast/Impact_',as.vector(TRACK_DATA[1,]$YYYYMMDDHH),'_',as.vector(TRACK_DATA[1,]$STORMNAME),'.png'))
+    write.csv(Impact, file = paste0('C:/documents/philipiness/Typhoons/model/new_model/input/forecast/Impact_',as.vector(TRACK_DATA[1,]$YYYYMMDDHH),'_',as.vector(TRACK_DATA[1,]$STORMNAME),'.csv'))
     
-    file_names<- c(paste0('forecast/Impact_',as.vector(TRACK_DATA[1,]$YYYYMMDDHH),'_',as.vector(TRACK_DATA[1,]$STORMNAME),'.png'),
-                   paste0('forecast/Impact_',as.vector(TRACK_DATA[1,]$YYYYMMDDHH),'_',as.vector(TRACK_DATA[1,]$STORMNAME),'.csv'))
+    file_names<- c(paste0('C:/documents/philipiness/Typhoons/model/new_model/input/forecast/Impact_',as.vector(TRACK_DATA[1,]$YYYYMMDDHH),'_',as.vector(TRACK_DATA[1,]$STORMNAME),'.png'),
+                   paste0('C:/documents/philipiness/Typhoons/model/new_model/input/forecast/Impact_',as.vector(TRACK_DATA[1,]$YYYYMMDDHH),'_',as.vector(TRACK_DATA[1,]$STORMNAME),'.csv'))
     
     write.table(file_names, file = 'forecast/file_names.csv',append=TRUE, col.names = FALSE)
     
@@ -272,7 +272,7 @@ Prediction is about completely damaged houses only\n",'Estimated time to Landfal
     
     
     
-    write.table(file_names, file = 'forecast/file_names.csv',append=TRUE, col.names = FALSE)
+    write.table(file_names, file = 'C:/documents/philipiness/Typhoons/model/new_model/input/forecast/file_names.csv',append=TRUE, col.names = FALSE)
     
     
   }
