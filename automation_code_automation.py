@@ -111,13 +111,15 @@ for ind,row in event_tc.iterrows():
 
 #download UCL DATA
          
-
-
-old_files=os.listdir("C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast\\")         #########remove old files also remove the 
-
+#########remove old files also remove the 
+old_files=os.listdir("C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast\\")        
 for item in old_files:
-    os.remove(os.path.join("C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast\\", item))
- 
+    item2=os.path.join("C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast\\", item)
+    if os.path.isdir(item2):
+        shutil.rmtree(item2)
+    else:
+        os.remove(os.path.join("C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast\\", item))
+
 #shutil.rmtree("C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast\\")
  
 mytsr_username="RodeKruis"
