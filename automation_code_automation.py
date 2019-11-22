@@ -102,7 +102,8 @@ for ind,row in event_tc.iterrows():
      if point.within(polygon):
          Active_typhoon='True'
          eventid=row['gdacs_eventid']
-         Activetyphoon.append(row['gdacs_eventname'].split('-')[0])
+         #Activetyphoon.append(row['gdacs_eventname'].split('-')[0])
+         Activetyphoon.append(row['gdacs_eventname'][:row['gdacs_eventname'].rfind('-')])
          print(row['gdacs_eventname'].split('-')[0])      
 
 
