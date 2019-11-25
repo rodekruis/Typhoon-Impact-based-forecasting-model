@@ -3,7 +3,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 # Set up basics
 RUN apt-get update
-RUN apt-get install -y software-properties-common nano sudo
+RUN apt-get install -y software-properties-common nano sudo wget
 RUN apt-get install -y python3-pip
 RUN apt-get update && apt-get install -y libspatialindex-dev
 
@@ -17,8 +17,7 @@ WORKDIR /home/fbf/
 
 # prerequisite script for R-package 'tmap'
 COPY tmap_ubuntu_installation_18.sh  /home/fbf/
-RUN chmod +x tmap_ubuntu_installation_18.sh
-RUN bash -c "./tmap_ubuntu_installation_18.sh"
+RUN chmod +x tmap_ubuntu_installation_18.sh && bash -c "./tmap_ubuntu_installation_18.sh"
 
 # install R and R-packages
 RUN apt install -y apt-transport-https software-properties-common

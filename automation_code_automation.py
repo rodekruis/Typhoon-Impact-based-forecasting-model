@@ -88,6 +88,12 @@ def get_current_TC_events():
     flood_events = get_specific_events(current_events, 'TC')
     return flood_events
 
+############################
+# Start Script 
+############################
+print('---------------------AUTOMATION SCRIPT STARTED---------------------------------')
+print(str(datetime.datetime.now()))
+
 PAR=np.array([[145, 35], [145, 5], [115, 5], [115, 35],[145, 35]])  # PAR area
 polygon = Polygon(PAR) # create polygon
 
