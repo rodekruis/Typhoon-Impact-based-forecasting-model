@@ -17,6 +17,7 @@ WORKDIR /home/fbf/
 
 # prerequisite script for R-package 'tmap'
 COPY tmap_ubuntu_installation_18.sh  /home/fbf/
+RUN chmod +x tmap_ubuntu_installation_18.sh
 RUN bash -c "./tmap_ubuntu_installation_18.sh"
 
 # install R and R-packages
@@ -63,6 +64,13 @@ RUN Rscript -e "install.packages('readr', repos='http://cran.us.r-project.org')"
 # install python dependencies
 COPY requirements.txt /home/fbf/
 RUN pip install -r requirements.txt
+
+# set up cronjob
+# COPY pipeline/crontab /etc/cron.d/crontab
+# RUN chmod 0644 /etc/cron.d/crontab
+# RUN crontab /etc/cron.d/crontab
+# RUN touch /var/log/cron.log
+# CMD cron && tail -f /var/log/cron.log
 
 
 
