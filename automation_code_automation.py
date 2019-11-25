@@ -367,5 +367,9 @@ if not lanfall_typhones==[]:
                password= '510typhoonModel')
 
 
+print('---------------------AUTOMATION SCRIPT FINISHED---------------------------------')
+print(str(datetime.now()))
+
+
 
  
