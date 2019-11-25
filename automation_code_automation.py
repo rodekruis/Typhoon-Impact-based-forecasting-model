@@ -113,6 +113,8 @@ for ind,row in event_tc.iterrows():
 #download UCL DATA
          
 #########remove old files also remove the 
+if not os.path.exists("/home/fbf/forecast"):
+    os.makedirs("/home/fbf/forecast")
 old_files=os.listdir("/home/fbf/forecast")        
 for item in old_files:
     item2=os.path.join("/home/fbf/forecast", item)
@@ -267,8 +269,8 @@ folderlist = ftp.nlst()
 path1_='%s/' % folderlist[-1]  
 ftp.cwd(path1_)
 folderlist = ftp.nlst()
-#path2='%s/c00/latlon/' % folderlist[-1]  
-path2='%s/c00/latlon/' % folderlist[-2]  #ADJUST!!!
+path2='%s/c00/latlon/' % folderlist[-1]  
+#path2='%s/c00/latlon/' % folderlist[-2]  #ADJUST!!!
 ftp.cwd(path2)
 downloadFiles('/home/fbf/forecast/')
 ftp.quit()
