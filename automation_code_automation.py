@@ -92,7 +92,7 @@ def get_current_TC_events():
 # Start Script 
 ############################
 print('---------------------AUTOMATION SCRIPT STARTED---------------------------------')
-print(str(datetime.datetime.now()))
+print(str(datetime.now()))
 
 PAR=np.array([[145, 35], [145, 5], [115, 5], [115, 35],[145, 35]])  # PAR area
 polygon = Polygon(PAR) # create polygon
