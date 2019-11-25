@@ -1,7 +1,6 @@
 #!/usr/bin/env Rscript
 library(stringr)
 library(ggplot2)
-library(dplyr)
 library(tidyr)
 library(gridExtra)
 library(tmap)
@@ -27,10 +26,13 @@ library(MASS)
 library(glmnet)
 library(MLmetrics)
 library(plyr)
+library(dplyr)
 
 library(lubridate)
+library(readr)
 
-setwd(dirname(rstudioapi::getSourceEditorContext()$path))
+#setwd(dirname(rstudioapi::getSourceEditorContext()$path))
+setwd('/home/fbf')
 
 landmask <- readr::read_csv("data-raw/landseamask_ph1.csv",col_names = c("longitude", "latitude", "land")) %>%
   dplyr::mutate(land = factor(land, levels = c(1, 0), labels = c("land", "water")))

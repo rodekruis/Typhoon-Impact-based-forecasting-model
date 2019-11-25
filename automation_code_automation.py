@@ -1,3 +1,4 @@
+#!/bin/sh
 # -*- coding: utf-8 -*-
 """
 Created on Wed Nov 13 16:40:17 2019
@@ -36,7 +37,7 @@ from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
-from email.MIMEBase import MIMEBase
+# from email.MIMEBase import MIMEBase
 from email import encoders
 import smtplib
 from smtplib import SMTP_SSL as SMTP
@@ -102,8 +103,8 @@ for ind,row in event_tc.iterrows():
      if point.within(polygon):
          Active_typhoon='True'
          eventid=row['gdacs_eventid']
-         Activetyphoon.append(row['gdacs_eventname'].split('-')[0])
-         print(row['gdacs_eventname'].split('-')[0])      
+         Activetyphoon.append(row['gdacs_eventname'][:row['gdacs_eventname'].rfind('-')])
+         print(row['gdacs_eventname'][:row['gdacs_eventname'].rfind('-')])      
 
 
 #############################################################################################33
@@ -112,15 +113,13 @@ for ind,row in event_tc.iterrows():
 #download UCL DATA
          
 #########remove old files also remove the 
-old_files=os.listdir("C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast\\")        
+old_files=os.listdir("/home/fbf/forecast")        
 for item in old_files:
-    item2=os.path.join("C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast\\", item)
+    item2=os.path.join("/home/fbf/forecast", item)
     if os.path.isdir(item2):
         shutil.rmtree(item2)
     else:
-        os.remove(os.path.join("C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast\\", item))
-
-#shutil.rmtree("C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast\\")
+        os.remove(os.path.join("/home/fbf/forecast", item))
  
 mytsr_username="RodeKruis"
 mytsr_password="TestRK1"
@@ -128,14 +127,13 @@ tsrlink='https://www.tropicalstormrisk.com/business/checkclientlogin.php?script=
 
 lin1='wget --no-check-certificate --keep-session-cookies --save-cookies tsr_cookies.txt --post-data "user=%s&pass=%s" -O loginresult.txt "%s"' %(mytsr_username,mytsr_password,tsrlink)
 lin2='wget --no-check-certificate -c --load-cookies tsr_cookies.txt -O RodeKruis.xml "https://www.tropicalstormrisk.com/business/include/dlxml.php?f=RodeKruis.xml"'
-fname=open("C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast\\batch_step1.bat",'w')
+fname=open("/home/fbf/forecast/batch_step1.sh",'w')
 fname.write(lin1+'\n')
 fname.write(lin2+'\n')
 fname.close()
 
-
-os.chdir('C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast')
-p = Popen("batch_step1.bat", cwd=r"C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast")
+os.chdir('/home/fbf/forecast')
+p = Popen(["sh","./batch_step1.sh"])
 stdout, stderr = p.communicate()
 
  
@@ -143,24 +141,25 @@ stdout, stderr = p.communicate()
 from lxml import etree
 
 parser = etree.XMLParser(recover=True)
-tree=etree.fromstring('C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast\\RodeKruis.xml', parser=parser)
+tree=etree.fromstring('/home/fbf/forecast/RodeKruis.xml', parser=parser)
 
 Pacific_basin=['wp','nwp','NWP','west pacific','north west pacific','northwest pacific']   
 try:
-    tree = ET.parse('C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast\\RodeKruis.xml')
+    tree = ET.parse('/home/fbf/forecast/RodeKruis.xml')
     root = tree.getroot()
     #model_name=root.find('header/generatingApplication/model/name').text 
+    update=root.find('ActiveStorms/LatestUpdate').text
+    print(update)
 except:
     pass        
-update=root.find('ActiveStorms/LatestUpdate').text
-print(update)
+
 dict2={'WH':'windpast','GH':'gustpast','WF':'wind',
        'GF':'gust','WP0':'0_TSprob','WP1':'1_TSprob',
        'WP2':'2_TSprob','WP3':'3_TSprob','WP4':'4_TSprob',
        'WP5':'5_TSprob','WP6':'6_TSprob','WP7':'7_TSprob'}
 
 kml_files=[]
-fname=open("C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast\\batch_step2.bat",'w')
+fname=open("/home/fbf/forecast/batch_step2.sh",'w')
 TSRPRODUCT_FILENAMEs={}
 for members in root.findall('ActiveStorms/ActiveStorm'):
     basin=members.find('TSRBasinDesc').text    
@@ -190,28 +189,30 @@ fname.close()
 # download data from UCL
 
 
-p = Popen("batch_step2.bat", cwd=r"C:\documents\philipiness\Typhoons\model\new_model\input\forecast")
+p = Popen(["sh","./batch_step2.sh"])
 stdout, stderr = p.communicate()
 
  
 #############################################################3################
 filname1=[]
 filname1_={}
+
 for key, value in TSRPRODUCT_FILENAMEs.items():   # check for the storm name make this for all 
     if value in Activetyphoon:
         print(value)
-        files = [f for f in os.listdir('C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast\\') if re.match(r'%s+.*\.zip'% key, f)]
+        files = [f for f in os.listdir('/home/fbf/forecast') if re.match(r'%s+.*\.zip'% key, f)]
         print(files)
-        with zipfile.ZipFile(os.path.join('C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast', files[0]), 'r') as zip_ref:
-            zip_ref.extractall(os.path.join('C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast', value))
-        filname1.append(os.path.join('C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast', value))
-        filname1_['%s' %key]=os.path.join('C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast',value )
+        with zipfile.ZipFile(os.path.join('/home/fbf/forecast', files[0]), 'r') as zip_ref:
+            zip_ref.extractall(os.path.join('/home/fbf/forecast', value))
+        filname1.append(os.path.join('/home/fbf/forecast', value))
+        filname1_['%s' %key]=os.path.join('/home/fbf/forecast',value )
+        
 
-#filename1=os.path.join('C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast', files[0][:-4])
+#filename1=os.path.join('/home/fbf/forecast', files[0][:-4])
  
 #date_time_obj = datetime.strptime(update, '%H UT, %D %b %Y')
 
-fname=open("C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast\\typhoon_info_for_model.csv",'w')
+fname=open("/home/fbf/forecast/typhoon_info_for_model.csv",'w')
 fname.write('filename,event'+'\n')
 for key,value in filname1_.items():
     ile_names = [fn for fn in os.listdir(value) if any(fn.endswith(ext) for ext in ['.shp'])]
@@ -235,8 +236,10 @@ for key,value in filname1_.items():
     typhoon_fs=pd.DataFrame()
     typhoon_fs[['LAT','LON','VMAX']]=track_gust[['Lat','Lon','vmax']]
     typhoon_fs['STORMNAME']=StormName
-    typhoon_fs.to_csv( os.path.join(value,'%s_typhoon.csv' % value.split('\\')[-1]))
-    line=value.replace('\\','/')+'/%s_typhoon.csv' % value.split('\\')[-1]+','+ value.split('\\')[-1]
+    # typhoon_fs.to_csv( os.path.join(value,'%s_typhoon.csv' % value.split('\\')[-1]))
+    # line=value.replace('\\','/')+'/%s_typhoon.csv' % value.split('\\')[-1]+','+ value.split('\\')[-1]
+    typhoon_fs.to_csv( os.path.join(value,'%s_typhoon.csv' % value.split('/')[-1]))
+    line=value+'/%s_typhoon.csv' % value.split('/')[-1]+','+ value.split('/')[-1]
     fname.write(line+'\n')
 
 fname.close()
@@ -258,15 +261,16 @@ year_=str(download_day.year)
 ftp = FTP('ftp.cdc.noaa.gov')
 ftp.login(user='anonymous', passwd = 'anonymous')
 #path1='/Projects/Reforecast2/%s/%s/' %(year_,md)
-path1='/Projects/Reforecast2/%s/'% year_
+path1='/Projects/Reforecast2/%s/' % year_
 ftp.cwd(path1)
 folderlist = ftp.nlst()
 path1_='%s/' % folderlist[-1]  
 ftp.cwd(path1_)
 folderlist = ftp.nlst()
-path2='%s/c00/latlon/' % folderlist[-1]  
+#path2='%s/c00/latlon/' % folderlist[-1]  
+path2='%s/c00/latlon/' % folderlist[-2]  #ADJUST!!!
 ftp.cwd(path2)
-downloadFiles('C:/documents/philipiness/Typhoons/model/new_model/input/forecast/')
+downloadFiles('/home/fbf/forecast/')
 ftp.quit()
 
 
@@ -275,8 +279,8 @@ ftp.quit()
 
 
 
-os.chdir('C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input')
-p = Popen("C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\run_typhoon_model.bat", cwd=r"C:\documents\philipiness\Typhoons\model\new_model\\input")
+os.chdir('/home/fbf')
+p = Popen(["sh","/home/fbf/run_typhoon_model.sh"], cwd=r"/home/fbf")
 stdout, stderr = p.communicate()
 
 
@@ -285,15 +289,16 @@ stdout, stderr = p.communicate()
 ################################################################################
 #send email 
 lanfall_typhones=[]
-fname2=open("C:\\documents\\philipiness\\Typhoons\\model\\new_model\\input\\forecast\\file_names.csv",'r')
-for lines in fname2.readlines():
-    if (lines.split(' ')[1].split('_')[0]) !='"Nolandfall':
-        if lines.split(' ')[1] not in lanfall_typhones:
-            lanfall_typhones.append(lines.split(' ')[1])
-        
-fname2.close()    
-image_filename=lanfall_typhones[0]
-data_filename=lanfall_typhones[1]
+try:
+    fname2=open("/home/fbf/forecast/file_names.csv",'r')
+    for lines in fname2.readlines():
+        print(lines)
+        if (lines.split(' ')[1].split('_')[0]) !='"Nolandfall':
+            if lines.split(' ')[1] not in lanfall_typhones:
+                lanfall_typhones.append(lines.split(' ')[1])
+    fname2.close()
+except:
+    pass
 
 
 
@@ -321,7 +326,8 @@ def sendemail(from_addr, to_addr_list, cc_addr_list, subject, login, password, s
     msg.attach(part)
     # attaching text file to email body
     fp = open(data_filename[1:-2], 'rb')
-    msg1 = MIMEBase('multipart', 'plain')
+    # msg1 = MIMEBase('multipart','plain')
+    msg1 = MIMEMultipart('plain')
     msg1.set_payload(fp.read())
     fp.close()
     encoders.encode_base64(msg1)
@@ -342,6 +348,8 @@ def sendemail(from_addr, to_addr_list, cc_addr_list, subject, login, password, s
 
 
 if not lanfall_typhones==[]:
+    image_filename=lanfall_typhones[0]
+    data_filename=lanfall_typhones[1]
     sendemail(from_addr  = 'partyphoon@gmail.com', 
                to_addr_list = ['akliludin@gmail.com','fbf.techadvisor@grc-philippines.org','leonardo.ebajo@redcross.org.ph','ana.mariquina@redcross.org.ph','c.marinas@redcross.org.ph','fbf1@grc-philippines.org'], 
                cc_addr_list = ['patrciaaklilu@gmail.com'],  

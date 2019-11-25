@@ -1,0 +1,1 @@
+Rscript "/home/fbf/run_model.R"

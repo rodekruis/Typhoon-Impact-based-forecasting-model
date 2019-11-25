@@ -80,3 +80,17 @@ import fiona
 from ftplib import FTP
 import shutil
 
+
+## Instructions to Run
+
+Prerequisite: 
+* Docker: version X
+* Docker-settings: set memory of containers to at least 2GB
+
+Run:
+
+  docker build -t fbf-ph .
+  docker run --name=fbf-ph -v ${PWD}:/home/fbf -it fbf-ph
+
+
+

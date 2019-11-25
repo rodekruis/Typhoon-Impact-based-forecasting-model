@@ -1,2 +1,0 @@
-wget --no-check-certificate -c --load-cookies tsr_cookies.txt -O 201926W_gust_2019101600.zip "https://www.tropicalstormrisk.com/business/include/dl.php?y=2019&b=NWP&p=GF&f=201926W_gust_2019101600.zip"
-wget --no-check-certificate -c --load-cookies tsr_cookies.txt -O 201927W_gust_2019101600.zip "https://www.tropicalstormrisk.com/business/include/dl.php?y=2019&b=NWP&p=GF&f=201927W_gust_2019101600.zip"

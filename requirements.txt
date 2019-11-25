@@ -1,0 +1,6 @@
+pandas==0.24.2
+feedparser==5.2.1
+shapely==1.6.4
+geopandas==0.6.2
+lxml==4.4.1
+rtree==0.8.3
