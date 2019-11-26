@@ -47,6 +47,9 @@ import geopandas as gpd
 import fiona
 from ftplib import FTP
 import shutil
+
+from settings import *
+from secrets import *
  
 
 
@@ -129,8 +132,8 @@ for item in old_files:
     else:
         os.remove(os.path.join("/home/fbf/forecast", item))
  
-mytsr_username="RodeKruis"
-mytsr_password="TestRK1"
+mytsr_username=UCL_USERNAME
+mytsr_password=UCL_PASSWORD
 tsrlink='https://www.tropicalstormrisk.com/business/checkclientlogin.php?script=true'
 
 lin1='wget --no-check-certificate --keep-session-cookies --save-cookies tsr_cookies.txt --post-data "user=%s&pass=%s" -O loginresult.txt "%s"' %(mytsr_username,mytsr_password,tsrlink)
@@ -267,7 +270,7 @@ def downloadFiles(destination, file_pattern='apcp_sfc_'):
 download_day = datetime.today() #date.today() 
 year_=str(download_day.year)
 ftp = FTP('ftp.cdc.noaa.gov')
-ftp.login(user='anonymous', passwd = 'anonymous')
+ftp.login(user=FTP_LOGIN, passwd = FTP_PASSWORD)
 #path1='/Projects/Reforecast2/%s/%s/' %(year_,md)
 path1='/Projects/Reforecast2/%s/' % year_
 ftp.cwd(path1)
@@ -359,16 +362,18 @@ if not lanfall_typhones==[]:
     image_filename=lanfall_typhones[0]
     data_filename=lanfall_typhones[1]
     sendemail(from_addr  = 'partyphoon@gmail.com', 
-               to_addr_list = ['akliludin@gmail.com','fbf.techadvisor@grc-philippines.org','leonardo.ebajo@redcross.org.ph','ana.mariquina@redcross.org.ph','c.marinas@redcross.org.ph','fbf1@grc-philippines.org'], 
-               cc_addr_list = ['patrciaaklilu@gmail.com'],  
+               to_addr_list = EMAIL_LIST, 
+               cc_addr_list = CC_LIST,  
                subject  = 'Updated impact map for a new Typhoon in PAR',
                #message= message, 
-               login  = 'partyphoon', 
-               password= '510typhoonModel')
+               login  = EMAIL_LOGIN, 
+               password= EMAIL_PASSWORD)
 
 
 print('---------------------AUTOMATION SCRIPT FINISHED---------------------------------')
 print(str(datetime.now()))
+
+
 
 
 

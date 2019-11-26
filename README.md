@@ -21,76 +21,36 @@ Send an automated email with information on forecasted impact of the new typhoon
 ### Step 7: 
 Repeat the above steps 1 to 6 every 6 hours – until landfall.
 
-## Installation requirments:
-package and library required:
-### R packages:
-Version 3.6.1 is used for development 
-library(stringr)
-library(ggplot2)
-library(dplyr)
-library(tidyr)
-library(gridExtra)
-library(tmap)
-library(viridis)
-library(maps)
-library(ggmap)
-library(httr)
-library(sf)
-library(raster)
-library(rgdal)  
-library(ranger)
-library(caret)
-library(randomForest)
-library(rlang)
-library(RFmarkerDetector)
-library(AUCRF)
-library(kernlab)
-library(ROCR)
-library(MASS)
-library(glmnet)
-library(MLmetrics)
-library(plyr)
-library(lubridate)
 
-### python libraries:
-python 2.7 was used for development.It works with python 3.5 
-import os
-import pandas as pd
-import xml.etree.ElementTree as ET
-from subprocess import Popen
-import feedparser
-import numpy as np
-from shapely.geometry import Point
-from shapely.geometry.polygon import Polygon
-import smtplib
-from datetime import datetime
-from datetime import timedelta
-from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
-from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
-from email.MIMEBase import MIMEBase
-from email import encoders
-import smtplib
-from smtplib import SMTP_SSL as SMTP
-import re
-import zipfile
-import geopandas as gpd
-import fiona
-from ftplib import FTP
-import shutil
+# Instructions to Run
 
-
-## Instructions to Run
-
-Prerequisite: 
-* Docker: version X
+Prerequisites 
+* Docker installed
 * Docker-settings: set memory of containers to at least 2GB
 
-Run:
+Retrieve code and move in repository:
+
+  git clone https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model.git
+  cd Typhoon-Impact-based-forecasting-model
+
+Copy secrets-file: 
+
+  cp secrets.py.template secrets.py
+
+.. and retrieve the correct credentials from someone who knows. 
+
+Start up application:
 
   docker build -t fbf-ph .
   docker run --name=fbf-ph -v ${PWD}:/home/fbf -it fbf-ph
+
+If entering the container a 2nd time or later:
+
+  docker exec -it fbf-ph /bin/bash
+
+To start code manually from inside container
+
+  python3 automation_code_automation.py
 
 
 

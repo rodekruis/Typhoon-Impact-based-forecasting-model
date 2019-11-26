@@ -214,7 +214,7 @@ if (dim(typhoon_events)[1]>0) {
       
       
       
-      subtitle =paste0("Predicted damage per Manucipality
+      subtitle =paste0("Predicted damage per Municipality for ", Typhoon_stormname, ".
   Source of wind speed forecast Tropical Storm Risk (UCL)
   Only municipalities within 100km of forecasted typhoon track are included
   Prediction is about completely damaged houses only\n",'Estimated time to Landfall: ',dt,' PST (',time_for_landfall,' hrs)')
