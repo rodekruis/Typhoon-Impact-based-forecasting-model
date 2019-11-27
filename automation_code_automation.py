@@ -313,7 +313,7 @@ except:
 
 
 
-def sendemail(from_addr, to_addr_list, cc_addr_list, subject, login, password, smtpserver='smtp.gmail.com:587'):
+def sendemail(from_addr, to_addr_list, cc_addr_list, subject, login, password, smtpserver=SMTP_SERVER):
     header  = 'From: %s\n' % from_addr
     header += 'To: %s\n' % ','.join(to_addr_list)
     header += 'Cc: %s\n' % ','.join(cc_addr_list)
@@ -335,7 +335,7 @@ def sendemail(from_addr, to_addr_list, cc_addr_list, subject, login, password, s
     """
     part = MIMEText(html, "html")
     msg.attach(part)
-    # attaching text file to email body
+    attaching text file to email body
     fp = open(data_filename[1:-2], 'rb')
     # msg1 = MIMEBase('multipart','plain')
     msg1 = MIMEMultipart('plain')
@@ -353,7 +353,7 @@ def sendemail(from_addr, to_addr_list, cc_addr_list, subject, login, password, s
     server = smtplib.SMTP(smtpserver)
     server.starttls()
     server.login(login,password)
-    problems = server.sendmail(from_addr, to_addr_list, msg.as_string())# message)
+    problems = server.sendmail(from_addr, to_addr_list, msg.as_string())
     server.quit()
     return problems
 
@@ -372,8 +372,6 @@ if not lanfall_typhones==[]:
 
 print('---------------------AUTOMATION SCRIPT FINISHED---------------------------------')
 print(str(datetime.now()))
-
-
 
 
 
