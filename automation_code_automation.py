@@ -303,11 +303,7 @@ except:
     pass
 
 
-
-def sendemail(from_addr, to_addr_list, cc_addr_list, subject, login, password, smtpserver=SMTP_SERVER):
-    header  = 'From: %s\n' % from_addr
-    header += 'To: %s\n' % ','.join(to_addr_list)
-    header += 'Cc: %s\n' % ','.join(cc_addr_list)
+def message(subject,textfile,image):
     msg = MIMEMultipart()
     msg['Date'] =  datetime.now().strftime('%d/%m/%Y %H:%M')
     msg['Subject'] = subject
@@ -323,23 +319,31 @@ def sendemail(from_addr, to_addr_list, cc_addr_list, subject, login, password, s
     part = MIMEText(html, "html")
     msg.attach(part)
     # attaching text file to email body
-    fp = open(data_filename[1:-2], 'rb')
-    msg1 = MIMEMultipart('plain')
-    msg1.set_payload(fp.read())
-    fp.close()
-    encoders.encode_base64(msg1)
-    msg1.add_header('Content-Disposition','attachment', filename="impact.csv")
-    msg.attach(msg1)
+    if textfile:
+        fp = open(data_filename[1:-2], 'rb')
+        msg1 = MIMEMultipart('plain')
+        msg1.set_payload(fp.read())
+        fp.close()
+        encoders.encode_base64(msg1)
+        msg1.add_header('Content-Disposition','attachment', filename="impact.csv")
+        msg.attach(msg1)
     # attaching image to email body
-    fp = open(image_filename[1:-2], 'rb')
-    image = MIMEImage(fp.read())
-    fp.close()
-    image.add_header('Content-Disposition','attachment', filename="impact.png")
-    msg.attach(image)
+    if image:
+        fp = open(image_filename[1:-2], 'rb')
+        image = MIMEImage(fp.read())
+        fp.close()
+        image.add_header('Content-Disposition','attachment', filename="impact.png")
+        msg.attach(image)
+    return msg.as_string()
+
+def sendemail(from_addr, to_addr_list, cc_addr_list, message, login, password, smtpserver=SMTP_SERVER):
+    header  = 'From: %s\n' % from_addr
+    header += 'To: %s\n' % ','.join(to_addr_list)
+    header += 'Cc: %s\n' % ','.join(cc_addr_list)
     server = smtplib.SMTP(smtpserver)
     server.starttls()
     server.login(login,password)
-    problems = server.sendmail(from_addr, to_addr_list, msg.as_string())
+    problems = server.sendmail(from_addr, to_addr_list, message)
     server.quit()
     return problems
 
@@ -347,11 +351,14 @@ def sendemail(from_addr, to_addr_list, cc_addr_list, subject, login, password, s
 if not lanfall_typhones==[]:
     image_filename=lanfall_typhones[0]
     data_filename=lanfall_typhones[1]
-    sendemail(from_addr  = EMAIL_FROM, 
-               to_addr_list = EMAIL_LIST, 
-               cc_addr_list = CC_LIST,  
-               subject  = 'Updated impact map for a new Typhoon in PAR',
-               login  = EMAIL_LOGIN, 
+    sendemail(from_addr  = EMAIL_FROM,
+               to_addr_list = EMAIL_LIST,
+               cc_addr_list = CC_LIST,
+               message = message(
+                   subject='Updated impact map for a new Typhoon in PAR',
+                   textfile=True,
+                   image=True),
+               login  = EMAIL_LOGIN,
                password= EMAIL_PASSWORD)
 
 
@@ -359,5 +366,13 @@ print('---------------------AUTOMATION SCRIPT FINISHED--------------------------
 print(str(datetime.now()))
 
 
-
+# sendemail(from_addr  = EMAIL_FROM, 
+#             to_addr_list = ['jannisvisser@redcross.nl'], 
+#             cc_addr_list = [],  
+#             message = message(
+#                 subject='Test',
+#                 textfile=False,
+#                 image=False),
+#             login  = EMAIL_LOGIN, 
+#             password= EMAIL_PASSWORD)
  
