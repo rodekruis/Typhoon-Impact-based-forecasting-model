@@ -37,7 +37,6 @@ from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
-# from email.MIMEBase import MIMEBase
 from email import encoders
 import smtplib
 from smtplib import SMTP_SSL as SMTP
@@ -67,8 +66,7 @@ def retrieve_all_gdacs_events():
     return events_out
 
 # https://www.gdacs.org/datareport/resources/TC/1000604/
-    
-#https://www.gdacs.org/gts.aspx?eventid=1000605&eventtype=TC
+# https://www.gdacs.org/gts.aspx?eventid=1000605&eventtype=TC
  
 
 
@@ -158,7 +156,6 @@ Pacific_basin=['wp','nwp','NWP','west pacific','north west pacific','northwest p
 try:
     tree = ET.parse('/home/fbf/forecast/RodeKruis.xml')
     root = tree.getroot()
-    #model_name=root.find('header/generatingApplication/model/name').text 
     update=root.find('ActiveStorms/LatestUpdate').text
     print(update)
 except:
@@ -192,7 +189,6 @@ for members in root.findall('ActiveStorms/ActiveStorm'):
             kml_files.append(TSRPRODUCT_FILENAME)
             line1='wget --no-check-certificate -c --load-cookies tsr_cookies.txt -O %s "https://www.tropicalstormrisk.com/business/include/dl.php?y=%s&b=NWP&p=%s&f=%s"' %(TSRPRODUCT_FILENAME,YYYY,items,TSRPRODUCT_FILENAME)
             print(line1)
-            #fname.write(line+'\n')
 fname.close()   
 
 
@@ -217,11 +213,7 @@ for key, value in TSRPRODUCT_FILENAMEs.items():   # check for the storm name mak
             zip_ref.extractall(os.path.join('/home/fbf/forecast', value))
         filname1.append(os.path.join('/home/fbf/forecast', value))
         filname1_['%s' %key]=os.path.join('/home/fbf/forecast',value )
-        
 
-#filename1=os.path.join('/home/fbf/forecast', files[0][:-4])
- 
-#date_time_obj = datetime.strptime(update, '%H UT, %D %b %Y')
 
 fname=open("/home/fbf/forecast/typhoon_info_for_model.csv",'w')
 fname.write('filename,event'+'\n')
@@ -236,9 +228,9 @@ for key,value in filname1_.items():
     dissolve_key=key+'_fo'
     track_gust = track_gust.dissolve(by='%s' % dissolve_key, aggfunc='max')
     ucl_interval=[0,12,24,36,48,72,96,120]
-    date_object =datetime.strptime(update, '%H:%M UT, %d %b %Y') # datetime.strptime(TSRPRODUCT_FILENAME.split('_')[2][:-4], "%Y%m%d%H")
+    date_object =datetime.strptime(update, '%H:%M UT, %d %b %Y')
 
-    date_list=[(date_object + timedelta(hours=i)).strftime("%Y%m%d%H00") for i in ucl_interval]    #s1 = date_object.strftime("%m/%d/%Y, %H:00:00")
+    date_list=[(date_object + timedelta(hours=i)).strftime("%Y%m%d%H00") for i in ucl_interval]
     track_gust['YYYYMMDDHH']=date_list[:len(track_gust)]
     track_gust.index=track_gust['YYYYMMDDHH']
     track_gust['Lon']=track_gust['geometry'].apply(lambda p: p.x)
@@ -254,10 +246,12 @@ for key,value in filname1_.items():
     fname.write(line+'\n')
 
 fname.close()
+
+
+
+
 #############################################################3################
 #download rainfall
-
-
 
 def downloadFiles(destination, file_pattern='apcp_sfc_'):
     filelist = ftp.nlst()
@@ -267,11 +261,10 @@ def downloadFiles(destination, file_pattern='apcp_sfc_'):
               print(file + " downloaded")
       return
 
-download_day = datetime.today() #date.today() 
+download_day = datetime.today()
 year_=str(download_day.year)
 ftp = FTP('ftp.cdc.noaa.gov')
 ftp.login(user=FTP_LOGIN, passwd = FTP_PASSWORD)
-#path1='/Projects/Reforecast2/%s/%s/' %(year_,md)
 path1='/Projects/Reforecast2/%s/' % year_
 ftp.cwd(path1)
 folderlist = ftp.nlst()
@@ -287,8 +280,6 @@ ftp.quit()
 
 
 #### Run IBF model 
-
-
 
 os.chdir('/home/fbf')
 p = Popen(["sh","/home/fbf/run_typhoon_model.sh"], cwd=r"/home/fbf")
@@ -317,12 +308,8 @@ def sendemail(from_addr, to_addr_list, cc_addr_list, subject, login, password, s
     header  = 'From: %s\n' % from_addr
     header += 'To: %s\n' % ','.join(to_addr_list)
     header += 'Cc: %s\n' % ','.join(cc_addr_list)
-    #header += 'Subject: %s\n' % subject
     msg = MIMEMultipart()
-    #msg['From'] = from_addr
-    #msg['To'] = to_addr_list
     msg['Date'] =  datetime.now().strftime('%d/%m/%Y %H:%M')
-    #msg['Date'] = formatdate(localtime = True)
     msg['Subject'] = subject
     html = """\
     <html>
@@ -335,16 +322,15 @@ def sendemail(from_addr, to_addr_list, cc_addr_list, subject, login, password, s
     """
     part = MIMEText(html, "html")
     msg.attach(part)
-    attaching text file to email body
+    # attaching text file to email body
     fp = open(data_filename[1:-2], 'rb')
-    # msg1 = MIMEBase('multipart','plain')
     msg1 = MIMEMultipart('plain')
     msg1.set_payload(fp.read())
     fp.close()
     encoders.encode_base64(msg1)
     msg1.add_header('Content-Disposition','attachment', filename="impact.csv")
     msg.attach(msg1)
-    #msg.attach(part) 
+    # attaching image to email body
     fp = open(image_filename[1:-2], 'rb')
     image = MIMEImage(fp.read())
     fp.close()
@@ -365,7 +351,6 @@ if not lanfall_typhones==[]:
                to_addr_list = EMAIL_LIST, 
                cc_addr_list = CC_LIST,  
                subject  = 'Updated impact map for a new Typhoon in PAR',
-               #message= message, 
                login  = EMAIL_LOGIN, 
                password= EMAIL_PASSWORD)
 
