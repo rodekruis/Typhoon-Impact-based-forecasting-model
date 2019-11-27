@@ -361,7 +361,7 @@ def sendemail(from_addr, to_addr_list, cc_addr_list, subject, login, password, s
 if not lanfall_typhones==[]:
     image_filename=lanfall_typhones[0]
     data_filename=lanfall_typhones[1]
-    sendemail(from_addr  = 'partyphoon@gmail.com', 
+    sendemail(from_addr  = EMAIL_FROM, 
                to_addr_list = EMAIL_LIST, 
                cc_addr_list = CC_LIST,  
                subject  = 'Updated impact map for a new Typhoon in PAR',
