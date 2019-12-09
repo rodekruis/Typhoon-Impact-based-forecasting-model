@@ -8,7 +8,6 @@ library(broom)
 library(tidyr)
 library(stringr)
 
-
 clean_typhoon_data <- function() {
   #-------------------------Examine final dataset---------------------------------
 
