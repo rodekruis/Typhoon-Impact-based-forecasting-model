@@ -65,11 +65,11 @@ COPY requirements.txt /home/fbf/
 RUN pip install -r requirements.txt
 
 # set up cronjob
-COPY crontab /etc/cron.d/crontab
-RUN chmod 0644 /etc/cron.d/crontab
-RUN crontab /etc/cron.d/crontab
-RUN touch /var/log/cron.log
-CMD cron && tail -f /var/log/cron.log
+# COPY crontab /etc/cron.d/crontab
+# RUN chmod 0644 /etc/cron.d/crontab
+# RUN crontab /etc/cron.d/crontab
+# RUN touch /var/log/cron.log
+# CMD cron && tail -f /var/log/cron.log
 
 
 

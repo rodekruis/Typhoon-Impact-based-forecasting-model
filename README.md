@@ -29,28 +29,39 @@ Prerequisites
 * Docker-settings: set memory of containers to at least 2GB
 
 Retrieve code and move in repository:
-
-  git clone https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model.git
-  cd Typhoon-Impact-based-forecasting-model
-
+```
+git clone https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model.git
+cd Typhoon-Impact-based-forecasting-model
+```
 Copy secrets-file: 
-
-  cp secrets.py.template secrets.py
-
+```
+cp secrets.py.template secrets.py
+```
 .. and retrieve the correct credentials from someone who knows. 
 
 Start up application:
-
-  docker build -t fbf-ph .
-  docker run --name=fbf-ph -v ${PWD}:/home/fbf -it fbf-ph
-
+```
+docker build -t fbf-ph .
+docker run --name=fbf-ph -v ${PWD}:/home/fbf -it fbf-ph
+```
 If entering the container a 2nd time or later:
-
-  docker exec -it fbf-ph /bin/bash
+```
+docker exec -it fbf-ph /bin/bash
+```
+or (if unstarted)
+```
+docker start -i fbf-ph
+```
 
 To start code manually from inside container
+```
+python3 automation_code_automation.py
+```
 
-  python3 automation_code_automation.py
-
+To inspect the logs (e.g. when getting an email about errors), run from inside the container:
+```
+nano /var/log/cron.log
+```
+(Scroll down with Ctrl+V) 
 
 
