@@ -103,7 +103,7 @@ def message(subject,html,textfile,image):
     msg.attach(part)
     # attaching text file to email body
     if textfile:
-        fp = open(data_filename[1:-2], 'rb')
+        fp = open(textfile[1:-2], 'rb')
         msg1 = MIMEMultipart('plain')
         msg1.set_payload(fp.read())
         fp.close()
@@ -112,7 +112,7 @@ def message(subject,html,textfile,image):
         msg.attach(msg1)
     # attaching image to email body
     if image:
-        fp = open(image_filename[1:-2], 'rb')
+        fp = open(image[1:-2], 'rb')
         image = MIMEImage(fp.read())
         fp.close()
         image.add_header('Content-Disposition','attachment', filename="impact.png")
@@ -129,6 +129,37 @@ def sendemail(from_addr, to_addr_list, cc_addr_list, message, login, password, s
     problems = server.sendmail(from_addr, to_addr_list, message)
     server.quit()
     return problems
+
+def delete_old_files():
+    if not os.path.exists("/home/fbf/forecast"):
+        os.makedirs("/home/fbf/forecast")
+    old_files=os.listdir("/home/fbf/forecast")        
+    for item in old_files:
+        item2=os.path.join("/home/fbf/forecast", item)
+        if os.path.isdir(item2):
+            shutil.rmtree(item2)
+        else:
+            os.remove(os.path.join("/home/fbf/forecast", item))
+
+def create_ucl_metadata():
+    mytsr_username=UCL_USERNAME
+    mytsr_password=UCL_PASSWORD
+    tsrlink='https://www.tropicalstormrisk.com/business/checkclientlogin.php?script=true'
+
+    lin1='wget --no-check-certificate --keep-session-cookies --save-cookies tsr_cookies.txt --post-data "user=%s&pass=%s" -O loginresult.txt "%s"' %(mytsr_username,mytsr_password,tsrlink)
+    lin2='wget --no-check-certificate -c --load-cookies tsr_cookies.txt -O RodeKruis.xml "https://www.tropicalstormrisk.com/business/include/dlxml.php?f=RodeKruis.xml"'
+    fname=open("/home/fbf/forecast/batch_step1.sh",'w')
+    fname.write(lin1+'\n')
+    fname.write(lin2+'\n')
+    fname.close()
+
+    os.chdir('/home/fbf/forecast')
+    try:
+        p = subprocess.check_call(["sh","./batch_step1.sh"])
+    except subprocess.CalledProcessError as e:
+        raise ValueError(str(e))
+    # p = subprocess.Popen(["sh","./batch_step1.sh"])
+    # stdout, stderr = p.communicate()
 
 ############################
 # Start Main Script 
@@ -164,35 +195,10 @@ def run_main_script():
     ### download metadata from UCL
     ##############################################################################
 
-    if not os.path.exists("/home/fbf/forecast"):
-        os.makedirs("/home/fbf/forecast")
-    old_files=os.listdir("/home/fbf/forecast")        
-    for item in old_files:
-        item2=os.path.join("/home/fbf/forecast", item)
-        if os.path.isdir(item2):
-            shutil.rmtree(item2)
-        else:
-            os.remove(os.path.join("/home/fbf/forecast", item))
+    delete_old_files()
+    create_ucl_metadata()
+    # Activetyphoon=['KAMMURI']
     
-    mytsr_username=UCL_USERNAME
-    mytsr_password=UCL_PASSWORD
-    tsrlink='https://www.tropicalstormrisk.com/business/checkclientlogin.php?script=true'
-
-    lin1='wget --no-check-certificate --keep-session-cookies --save-cookies tsr_cookies.txt --post-data "user=%s&pass=%s" -O loginresult.txt "%s"' %(mytsr_username,mytsr_password,tsrlink)
-    lin2='wget --no-check-certificate -c --load-cookies tsr_cookies.txt -O RodeKruis.xml "https://www.tropicalstormrisk.com/business/include/dlxml.php?f=RodeKruis.xml"'
-    fname=open("/home/fbf/forecast/batch_step1.sh",'w')
-    fname.write(lin1+'\n')
-    fname.write(lin2+'\n')
-    fname.close()
-
-    os.chdir('/home/fbf/forecast')
-    try:
-        p = subprocess.check_call(["sh","./batch_step1.sh"])
-    except subprocess.CalledProcessError as e:
-        raise ValueError(str(e))
-    # p = subprocess.Popen(["sh","./batch_step1.sh"])
-    # stdout, stderr = p.communicate()
-
     parser = etree.XMLParser(recover=True)
     tree=etree.fromstring('/home/fbf/forecast/RodeKruis.xml', parser=parser)
 
@@ -241,7 +247,7 @@ def run_main_script():
     ##############################################################################
 
     try:
-        p = subprocess.check_call(["sh","./batch_step2.sh"])
+        p = subprocess.check_call(["sh","./batch_step2.sh"], cwd=r"/home/fbf/forecast")
     except subprocess.CalledProcessError as e:
         raise ValueError(str(e))
     # p = subprocess.Popen(["sh","./batch_step2.sh"])
@@ -308,7 +314,7 @@ def run_main_script():
     ftp.cwd(path1_)
     folderlist = ftp.nlst()
     path2='%s/c00/latlon/' % folderlist[-1]  
-    #path2='%s/c00/latlon/' % folderlist[-2]  #ADJUST!!!
+    # path2='%s/c00/latlon/' % folderlist[-2]  #ADJUST!!!
     ftp.cwd(path2)
     downloadRainfallFiles('/home/fbf/forecast/',ftp)
     ftp.quit()
@@ -360,8 +366,8 @@ def run_main_script():
                 message = message(
                     subject='Updated impact map for a new Typhoon in PAR',
                     html=html,
-                    textfile=True,
-                    image=True),
+                    textfile=data_filename,
+                    image=image_filename),
                 login  = EMAIL_LOGIN,
                 password= EMAIL_PASSWORD)
 
