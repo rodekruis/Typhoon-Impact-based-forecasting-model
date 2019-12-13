@@ -313,8 +313,14 @@ def run_main_script():
     path1_='%s/' % folderlist[-1]  
     ftp.cwd(path1_)
     folderlist = ftp.nlst()
-    path2='%s/c00/latlon/' % folderlist[-1]  
-    # path2='%s/c00/latlon/' % folderlist[-2]  #ADJUST!!!
+    try:
+        path2='%s/c00/latlon/' % folderlist[-1]  
+    except:
+        pass
+    try:
+        path2='%s/c00/latlon/' % folderlist[-2]
+    except:
+        pass
     ftp.cwd(path2)
     downloadRainfallFiles('/home/fbf/forecast/',ftp)
     ftp.quit()
