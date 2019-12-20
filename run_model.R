@@ -105,7 +105,7 @@ if (dim(typhoon_events)[1]>0) {
         
         # Get the data
         for (i in 2:length(head(model.parameters$pred,n=72))){
-          # grib.info <- GribGrab(urls.out[2], model.parameters$pred[i], levels, variables,local.dir = "/home/fbf/forecast/rainfall")
+          grib.info <- GribGrab(urls.out[2], model.parameters$pred[i], levels, variables,local.dir = "/home/fbf/forecast/rainfall")
         }
         file_list <- list.files(path="/home/fbf/forecast/rainfall")
         xx <- raster::stack()   # Read each grib file to a raster and stack it to xx  
