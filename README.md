@@ -65,3 +65,22 @@ nano /var/log/cron.log
 (Scroll down with Ctrl+V) 
 
 
+## Imitate typhoon-scenario
+
+Most times, there will be no ongoing typhoon. If you want to simulate a typhoon-scenario for testing/development purposes, you can change the following lines in automation_code_automation.py:
+```
+  delete_old_files()
+  create_ucl_metadata()
+  # Activetyphoon=['KAMMURI']
+```
+to
+```
+  # delete_old_files()
+  # create_ucl_metadata()
+  Activetyphoon=['KAMMURI']
+```
+and run
+```
+  cp Rodekruis-example.xml forecast/Rodekruis.xml
+```
+

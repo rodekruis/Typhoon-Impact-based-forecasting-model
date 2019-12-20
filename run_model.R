@@ -1,34 +1,35 @@
 #!/usr/bin/env Rscript
-library(stringr)
-library(ggplot2)
-library(dplyr)
-library(tidyr)
-library(gridExtra)
-library(tmap)
-library(viridis)
-library(maps)
-library(ggmap)
-library(httr)
-library(sf)
+options(warn=-1)
+suppressMessages(library(stringr))
+suppressMessages(library(ggplot2))
+suppressMessages(library(dplyr))
+suppressMessages(library(tidyr))
+suppressMessages(library(gridExtra))
+suppressMessages(library(tmap))
+suppressMessages(library(viridis))
+suppressMessages(library(maps))
+suppressMessages(library(ggmap))
+suppressMessages(library(httr))
+suppressMessages(library(sf))
+suppressMessages(library(raster))
+suppressMessages(library(rgdal))
+suppressMessages(library(ranger))
+suppressMessages(library(caret))
+suppressMessages(library(randomForest))
+suppressMessages(library(rlang))
+suppressMessages(library(RFmarkerDetector))
+suppressMessages(library(AUCRF))
+suppressMessages(library(kernlab))
+suppressMessages(library(ROCR))
+suppressMessages(library(MASS))
+suppressMessages(library(glmnet))
+suppressMessages(library(MLmetrics))
+suppressMessages(library(plyr))
+suppressMessages(library(lubridate))
+suppressMessages(library(rNOMADS))
 
-library(raster)
-library(rgdal)  ## 
-################################
-
-library(ranger)
-library(caret)
-library(randomForest)
-library(rlang)
-library(RFmarkerDetector)
-library(AUCRF)
-library(kernlab)
-library(ROCR)
-library(MASS)
-library(glmnet)
-library(MLmetrics)
-library(plyr)
-
-library(lubridate)
+args = commandArgs(trailingOnly=TRUE)
+rainfall_error = args[1]
 
 #------------------------- new typhoon ---------------------------------
 #setwd('/home/fbf')
@@ -92,66 +93,52 @@ if (dim(typhoon_events)[1]>0) {
       e <- extent(110,150,5,40) # clip data to polygon around PAR
       # track wind should have a unit of knots
       
+      if(rainfall_error=='True'){
+        
+        print('--------------NOTE: Using Rainfall Backup')
+
+        urls.out <- CrawlModels(abbrev = "gfs_0p25", depth = 2) # to avoid error if GFS model out put is not yet uploaded we use GFS model results for previous time step
+        model.parameters <- ParseModelPage(urls.out[2])  #Get a list of forecasts, variables and levels
+        levels <- c("surface") #What region of the atmosphere to get data for
+        variables <- c("PRATE")  #What data to return
+        dir.create(file.path("/home/fbf/forecast", "rainfall"), showWarnings = FALSE)
+        
+        # Get the data
+        for (i in 2:length(head(model.parameters$pred,n=72))){
+          # grib.info <- GribGrab(urls.out[2], model.parameters$pred[i], levels, variables,local.dir = "/home/fbf/forecast/rainfall")
+        }
+        file_list <- list.files(path="/home/fbf/forecast/rainfall")
+        xx <- raster::stack()   # Read each grib file to a raster and stack it to xx  
       
-      ##
+        for (files in file_list)  {
+          fn <- file.path("/home/fbf/forecast/rainfall", files)
+          r2 <- raster(fn)
+          x1 <- crop(r2, e)
+          xx <- raster::stack(xx, x1)
+        }     
+        xx[xx < 0] <- NA  # Remove noise from the data
+
+        NOAA_rain<-xx*3600*3 # unit conversion kg/m2/s to mm/3hr
+        names(NOAA_rain) = paste("rain",outer(1:length(file_list),'0',paste,sep="-"),sep="-")
+        rainfall <-extract(NOAA_rain, y=wshade, method='bilinear',fun=max,df=TRUE,sp=TRUE) 
+        rainfall_<-rainfall@data %>%
+          dplyr::mutate(Mun_Code=adm3_pcode,rainfall_24h=rain.1.0 + rain.2.0 + rain.3.0 + rain.4.0 + rain.5.0 + rain.6.0+rain.7.0 + rain.8.0 + rain.9.0 + rain.10.0 + rain.11.0 + rain.12.0) %>%
+          dplyr::select(Mun_Code,rainfall_24h)
+      } else {
+        
+        print('--------------NOTE: Using Rainfall Original')
+
+        NOAA_rain <- brick("/home/fbf/forecast/rainfall_forecast.grib2")
+        names(NOAA_rain) = paste("rain",outer(1:45,'0',paste,sep="-"),sep="-")
+        NOAA_rain <- crop(NOAA_rain, e)
+        rainfall <-extract(NOAA_rain, y=wshade, method='bilinear',fun=max,df=TRUE,sp=TRUE) 
+        rainfall_<-rainfall@data %>%
+          dplyr::mutate(Mun_Code=adm3_pcode,rainfall_24h=rain.1.0 + rain.2.0 + rain.3.0 + rain.4.0 + rain.5.0 + rain.6.0+rain.7.0 + rain.8.0 + rain.9.0 + rain.10.0 + rain.11.0 + rain.12.0) %>%
+          dplyr::select(Mun_Code,rainfall_24h)
+      }
       
-      #library(rNOMADS)
-      #urls.out <- CrawlModels(abbrev = "gfs_0p25", depth = 2) # to avoid error if GFS model out put is not yet uploaded we use GFS model results for previous time step
-
-     
-      #model.parameters <- ParseModelPage(urls.out[2])  #Get a list of forecasts, variables and levels
-
       
 
-    #  levels <- c("surface") #What region of the atmosphere to get data for
-     
-
-    #  variables <- c("PRATE")  #What data to return
-    #  dir.create(file.path("/home/fbf/forecast", "rainfall"), showWarnings = FALSE)
-      #Get the data
-    #  for (i in 2:length(head(model.parameters$pred,n=72))){
-    #    print(items)
-    #    grib.info <- GribGrab(urls.out[2], model.parameters$pred[i], levels, variables,local.dir = "/home/fbf/forecast/rainfall")      }
-
-    #  file_list <- list.files(path="/home/fbf/forecast/rainfall")
-
-      # Load list of files 
-     # xx <- raster::stack()   # Read each grib file to a raster and stack it to xx  
-     
-      #for (files in file_list)  {
-      #  fn <- file.path("/home/fbf/forecast/rainfall", files)
-      #  r2 <- raster(fn)
-      #  x1 <- crop(r2, e)
-      #  xx <- raster::stack(xx, x1)      }
-
-     
-    #  xx[xx < 0] <- NA  # Remove noise from the data
-
-
-
-    #  NOAA_rain<-xx*3600*3 # unit conversion kg/m2/s to mm/3hr 
-    #  names(NOAA_rain) = paste("rain",outer(1:length(file_list),'0',paste,sep="-"),sep="-")
-
-    #  rainfall <-extract(NOAA_rain, y=wshade, method='bilinear',fun=max,df=TRUE,sp=TRUE) 
-
-     # rainfall_<-rainfall@data %>%
-     #   dplyr::mutate(Mun_Code=adm3_pcode,rainfall_24h=rain.1.0 + rain.2.0 + rain.3.0 + rain.4.0 + rain.5.0 + rain.6.0+rain.7.0 + rain.8.0 + rain.9.0 + rain.10.0 + rain.11.0 + rain.12.0) %>%
-     #   dplyr::select(Mun_Code,rainfall_24h)
-
-
-      
-      NOAA_rain <- brick("/home/fbf/forecast/rainfall_forecast.grib2")
-      
-      names(NOAA_rain) = paste("rain",outer(1:45,'0',paste,sep="-"),sep="-")
-      
-          
-      NOAA_rain <- crop(NOAA_rain, e)
-      
-      rainfall <-extract(NOAA_rain, y=wshade, method='bilinear',fun=max,df=TRUE,sp=TRUE) 
-      
-      rainfall_<-rainfall@data %>%
-        dplyr::mutate(Mun_Code=adm3_pcode,rainfall_24h=rain.1.0 + rain.2.0 + rain.3.0 + rain.4.0 + rain.5.0 + rain.6.0+rain.7.0 + rain.8.0 + rain.9.0 + rain.10.0 + rain.11.0 + rain.12.0) %>%
-        dplyr::select(Mun_Code,rainfall_24h)
       
       
       

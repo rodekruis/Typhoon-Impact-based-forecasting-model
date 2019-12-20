@@ -250,8 +250,6 @@ def run_main_script():
         p = subprocess.check_call(["sh","./batch_step2.sh"], cwd=r"/home/fbf/forecast")
     except subprocess.CalledProcessError as e:
         raise ValueError(str(e))
-    # p = subprocess.Popen(["sh","./batch_step2.sh"])
-    # stdout, stderr = p.communicate()
 
     filname1=[]
     filname1_={}
@@ -291,8 +289,6 @@ def run_main_script():
         typhoon_fs=pd.DataFrame()
         typhoon_fs[['LAT','LON','VMAX']]=track_gust[['Lat','Lon','vmax']]
         typhoon_fs['STORMNAME']=StormName
-        # typhoon_fs.to_csv( os.path.join(value,'%s_typhoon.csv' % value.split('\\')[-1]))
-        # line=value.replace('\\','/')+'/%s_typhoon.csv' % value.split('\\')[-1]+','+ value.split('\\')[-1]
         typhoon_fs.to_csv( os.path.join(value,'%s_typhoon.csv' % value.split('/')[-1]))
         line=value+'/%s_typhoon.csv' % value.split('/')[-1]+','+ value.split('/')[-1]
         fname.write(line+'\n')
@@ -310,19 +306,17 @@ def run_main_script():
     path1='/Projects/Reforecast2/%s/' % year_
     ftp.cwd(path1)
     folderlist = ftp.nlst()
-    path1_='%s/' % folderlist[-1]  
+    path1_='%s/' % folderlist[-1]
     ftp.cwd(path1_)
     folderlist = ftp.nlst()
     try:
-        path2='%s/c00/latlon/' % folderlist[-1]  
+        path2='%s/c00/latlon/' % folderlist[-1]
+        ftp.cwd(path2)
+        downloadRainfallFiles('/home/fbf/forecast/',ftp)
+        rainfall_error=False
     except:
+        rainfall_error=True
         pass
-    try:
-        path2='%s/c00/latlon/' % folderlist[-2]
-    except:
-        pass
-    ftp.cwd(path2)
-    downloadRainfallFiles('/home/fbf/forecast/',ftp)
     ftp.quit()
 
     #############################################################
@@ -331,11 +325,9 @@ def run_main_script():
 
     os.chdir('/home/fbf')
     try:
-        p = subprocess.check_call(["Rscript", "/home/fbf/run_model.R"])
+        p = subprocess.check_call(["Rscript", "/home/fbf/run_model.R", str(rainfall_error)])
     except subprocess.CalledProcessError as e:
         raise ValueError(str(e))
-    #p = subprocess.Popen(["sh","/home/fbf/run_typhoon_model.sh"], cwd=r"/home/fbf")
-    #stdout, stderr = p.communicate()
 
 
     #############################################################

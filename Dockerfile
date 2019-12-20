@@ -59,6 +59,8 @@ RUN Rscript -e "install.packages('MLmetrics', repos='http://cran.us.r-project.or
 RUN Rscript -e "install.packages('plyr', repos='http://cran.us.r-project.org')"
 RUN Rscript -e "install.packages('lubridate', repos='http://cran.us.r-project.org')"
 RUN Rscript -e "install.packages('readr', repos='http://cran.us.r-project.org')"
+RUN Rscript -e "install.packages('rNOMADS', repos='http://cran.us.r-project.org')"
+
 
 # install python dependencies
 COPY requirements.txt /home/fbf/
