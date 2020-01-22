@@ -1,0 +1,90 @@
+/* Variable definitions */
+
+/*Light theme colors*/
+:root {
+  --col_human_grey: #6c6d70;
+  --col_human_blue: #5091cd;
+  --col_human_orange: #f16c52;
+}
+
+/* Logo stuff*/
+.logo_div {
+  padding-top: 3px;
+  padding-bottom: 3px;
+  margin-right: 10px;
+}
+
+
+#main_top_row {
+  height: 100%;
+  width: 100%;
+}
+
+#infographic_column {
+  height: 100%;
+}
+
+#colored_humans {
+  float: left;
+  width: 30%;
+}
+
+#toprow_text {
+  float: right;
+  width: 70%;
+}
+
+
+#infographic_toprow {
+  height: 225px;
+}
+
+#infographic_middlerow {
+  height: 225px;
+}
+
+#infographic_bottomrow {
+  height: 150px;
+}
+
+#nr_div_people_in_affected,
+#nr_div_people_in_worst_affected,
+#nr_div_vulnerable_people {
+  width: 33%;
+  display: table-cell;
+}
+
+.big_number {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+#nr_span_people_in_affected {
+  color: var(--col_human_grey);
+}
+#nr_span_people_in_worst_affected {
+  color: var(--col_human_blue);
+}
+#nr_span_vulnerable_people {
+  color: var(--col_human_orange);
+}
+
+.fa_male {
+  font-size: 20px;
+}
+
+.human_icon_div {
+  padding: 10px;
+}
+
+.icon_human_grey {
+  color: var(--col_human_grey);
+}
+
+.icon_human_blue {
+  color: var(--col_human_blue);
+}
+
+.icon_human_orange {
+  color: var(--col_human_orange);
+}

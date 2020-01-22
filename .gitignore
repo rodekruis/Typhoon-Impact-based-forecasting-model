@@ -1,3 +1,4 @@
 __pycache__/
 forecast/*
 secrets.py
+.Rproj.user
