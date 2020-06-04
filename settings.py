@@ -1,5 +1,5 @@
 EMAIL_LIST = [
-    # 'akliludin@gmail.com',
+    # 'ateklesadik@redcross.nl,
     # 'fbf.techadvisor@grc-philippines.org',
     # 'leonardo.ebajo@redcross.org.ph',
     # 'ana.mariquina@redcross.org.ph',
@@ -8,7 +8,7 @@ EMAIL_LIST = [
     'jannisvisser@redcross.nl'
     ]
 CC_LIST = [
-    # 'patrciaaklilu@gmail.com'
+    # 'akliludin@gmail.com'
     ]
 EMAIL_LIST_ERROR = [
     'jannisvisser@redcross.nl',
