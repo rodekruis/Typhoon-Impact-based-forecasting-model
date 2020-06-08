@@ -1,4 +1,4 @@
-EMAIL_LIST = [
+eMAIL_LIST = [
     # 'ateklesadik@redcross.nl,
     # 'fbf.techadvisor@grc-philippines.org',
     # 'leonardo.ebajo@redcross.org.ph',
@@ -7,10 +7,10 @@ EMAIL_LIST = [
     # 'fbf1@grc-philippines.org',
     'jannisvisser@redcross.nl'
     ]
-CC_LIST = [
+cC_LIST = [
     # 'akliludin@gmail.com'
     ]
-EMAIL_LIST_ERROR = [
+eMAIL_LIST_ERROR = [
     'jannisvisser@redcross.nl',
     # 'akliludin@gmail.com',
     # 'ateklesadik@redcross.nl'

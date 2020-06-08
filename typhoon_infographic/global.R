@@ -6,6 +6,7 @@ library(readr)
 library(shiny)
 library(shinydashboard)
 library(stringr)
+library(leaflet)
 
 # Load all R functions in the resources folder
 for (file in list.files('r_resources')){
@@ -14,6 +15,7 @@ for (file in list.files('r_resources')){
 
 # Load in the data that should be globally available
 df_raw <- read_csv(file.path('data', 'table_mockup_data.csv'))
+impact <- sf::read_sf('C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/typhoon_infographic/shapes/php_adminboundaries_3.shp')
 
 
 
