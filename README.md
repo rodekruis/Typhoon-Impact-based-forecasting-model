@@ -26,7 +26,7 @@ Send an automated email with information on forecasted impact of the new typhoon
 Repeat the above steps 1 to 6 every 6 hours – until landfall.
 
 
-# Instructions to Run
+# Instructions to Run # udapte the path for the directory 
 
 Prerequisites 
 * Docker installed
@@ -37,7 +37,7 @@ Retrieve code and move in repository:
 git clone https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model.git
 cd Typhoon-Impact-based-forecasting-model
 ```
-Copy secrets-file: 
+Copy secrets-file: # secrets file has been updated to variables.py 
 ```
 cp secrets.py.template secrets.py
 ```
