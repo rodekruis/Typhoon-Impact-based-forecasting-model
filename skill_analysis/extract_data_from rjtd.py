@@ -57,6 +57,7 @@ for data in file_list:
     #root = tree.getroot()
     print(len(list_failed1))
     prod_center=root.find('header/productionCenter').text
+    baseTime=root.find('header/baseTime').text
      
     for members in root.findall('data'):
         Mtype=members.get('type')
@@ -79,8 +80,10 @@ for data in file_list:
                     tem_dic['lon']= [name.text for name in members3.findall('longitude')]                
                     tem_dic['vhr']=[members3.get('hour')]
                     validt=members2.get('ID').split('_')[0]
-                    date_object = datetime.strptime(validt, "%Y%m%d%H")
-                    s1 = date_object.strftime("%m/%d/%Y, %H:00:00")
+                    #date_object = datetime.strptime(validt, "%Y%m%d%H")
+                    #s1 = date_object.strftime("%m/%d/%Y, %H:00:00")
+                    baseTime = datetime.strptime(baseTime,"%Y-%m-%dT%H:%M:%SZ")
+                    s1 = baseTime.strftime("%m/%d/%Y, %H:00:00")
                     tem_dic['validt2']=[s1]  
                     #tem_dic1 = dict( [(k,v) for k,v in tem_dic.items() if len(v)>0])
                     tem_dic1 = dict( [(k,''.join(str(e) for e in v)) for k,v in tem_dic.items()])
@@ -106,7 +109,8 @@ for data in file_list:
                 tem_dic['vhr']=[members2.get('hour')]
                 validt=members2.get('ID').split('_')[0]
                 date_object = datetime.strptime(validt, "%Y%m%d%H")
-                s1 = date_object.strftime("%m/%d/%Y, %H:00:00")
+                baseTime = datetime.strptime(baseTime,"%Y-%m-%dT%H:%M:%SZ")
+                s1 = baseTime.strftime("%m/%d/%Y, %H:00:00")
                 tem_dic['validt2']=[s1]  
                 tem_dic1 = dict( [(k,''.join(str(e) for e in v)) for k,v in tem_dic.items()])
                 #tem_dic1 = dict( [(k,v) for k,v in tem_dic.items() if len(v)>0])
