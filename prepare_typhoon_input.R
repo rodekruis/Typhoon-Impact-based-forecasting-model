@@ -49,7 +49,8 @@ degrees_to_radians<- function(degrees){
 }
 
 create_full_track <- function(hurr_track, tint = 3){ 
-  
+
+  typhoon_name <- as.vector(hurr_track$STORMNAME[1])
 
   hurr_track <- hurr_track %>%
     dplyr::mutate(
@@ -89,7 +90,7 @@ create_full_track <- function(hurr_track, tint = 3){
   
   vmax_spline <- stats::glm(vmax ~ splines::ns(date, df = interp_df),    data = hurr_track)
   interp_vmax <- stats::predict.glm(vmax_spline, newdata = interp_date)
-  typhoon_name <- as.vector(TRACK_DATA1$STORMNAME[1])
+  
   full_track <- data.frame(typhoon_name=typhoon_name,date = interp_date, tclat = interp_tclat, tclon = interp_tclon, vmax = interp_vmax)
   return(full_track)
 }
