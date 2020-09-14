@@ -43,13 +43,13 @@ from os import listdir
 from os.path import isfile, join
 from pybufrkit.decoder import Decoder
 from pybufrkit.renderer import FlatTextRenderer
-
+from sys import platform
 decoder = Decoder()
 
  
 #%% define functions 
 path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/'
-
+#path='home/fbf'
 Pacific_basin=['wp','nwp','NWP','west pacific','north west pacific','northwest pacific']  
 dict2={'WH':'windpast','GH':'gustpast','WF':'wind',
     'GF':'gust','WP0':'0_TSprob','WP1':'1_TSprob',
@@ -174,6 +174,7 @@ def check_for_active_typhoon_in_PAR():
     #Tropical Cyclone Advisory Domain(TCAD) 4°N 114°E, 28°N 114°E, 28°N 145°E and 4°N 145°N.
     
    # PAR=np.array([[145, 35], [145, 5], [115, 5], [115, 35],[145, 35]])  # PAR area
+    #TCDA=np.array([[155, 38], [155, 4], [100, 5], [100, 48],[155, 48]])  # TCDA area
     TCDA=np.array([[145, 28], [145, 4], [114, 5], [114, 28],[145, 28]])  # TCDA area
     Pacific_basin=['wp','nwp','NWP','west pacific','north west pacific','northwest pacific']   
 
@@ -198,7 +199,8 @@ def download_rainfall_nomads(Input_folder,path,Alternative_data_point):
     download rainfall 
     
     """
-    #os.makedirs(os.path.join(Input_folder,'rainfall/'))
+    if not os.path.exists(os.path.join(Input_folder,'rainfall/')):
+        os.makedirs(os.path.join(Input_folder,'rainfall/'))
     
     rainfall_path=os.path.join(Input_folder,'rainfall/')
  
@@ -218,8 +220,12 @@ def download_rainfall_nomads(Input_folder,path,Alternative_data_point):
         rainfall_06=[base_url_hour+'06hf0%s'%t for t in time_step_list]
         rainfall_24.extend(rainfall_06)
         for rain_file in rainfall_24:
+            print(rain_file)
             output_file= os.path.join(relpath(rainfall_path,path),rain_file.split('/')[-1]+'.grib2')
+            #output_file= os.path.join(rainfall_path,rain_file.split('/')[-1]+'.grib2')
             batch_ex="wget -O %s %s" %(output_file,rain_file)
+            os.chdir(path)
+            print(batch_ex)
             p = subprocess.call(batch_ex ,cwd=path)
     except:
         base_url=listFD(url2, ext='')[-1]
@@ -229,8 +235,11 @@ def download_rainfall_nomads(Input_folder,path,Alternative_data_point):
         rainfall_06=[base_url_hour+'06hf0%s'%t for t in time_step_list]
         rainfall_24.extend(rainfall_06)
         for rain_file in rainfall_24:
+            #output_file= os.path.join(rainfall_path,rain_file.split('/')[-1]+'.grib2')
             output_file= os.path.join(relpath(rainfall_path,path),rain_file.split('/')[-1]+'.grib2')
             batch_ex="wget -O %s %s" %(output_file,rain_file)
+            os.chdir(path)
+            print(batch_ex)
             p = subprocess.call(batch_ex ,cwd=path)
         
     rain_files = [f for f in listdir(rainfall_path) if isfile(join(rainfall_path, f))]
@@ -255,10 +264,11 @@ def download_rainfall(Input_folder):
     download rainfall 
     
     """
-    os.makedirs(os.path.join(Input_folder,'rainfall/'))
+    #s.makedirs(os.path.join(Input_folder,'rainfall/'))
+    if not os.path.exists(os.path.join(Input_folder,'rainfall/')):
+        os.makedirs(os.path.join(Input_folder,'rainfall/'))
     
-    rainfall_path=os.path.join(Input_folder,'rainfall/')
-    
+    rainfall_path=os.path.join(Input_folder,'rainfall/')      
     download_day = datetime.today()
     year_=str(download_day.year)
     ftp = FTP('ftp.cdc.noaa.gov')
@@ -299,21 +309,17 @@ def jtcw_data(Input_folder):
                 for li in item.find_all('li'):
                     for href_li in li.find_all('a',href=True):
                         if href_li.text =='TC Warning Text ':
-                            output.append(href_li['href'])
-        
+                            output.append(href_li['href'])        
         jtwc_content = BeautifulSoup(requests.get(output[0]).content,'html.parser')#parser=parser,features="lxml")#'html.parser')
         jtwc_=re.sub(' +', ' ', jtwc_content.text)
         listt=jtwc_.split('\r\n')
-        listt=listt[listt.index(' WARNING POSITION:'):]
-        
+        listt=listt[listt.index(' WARNING POSITION:'):]        
         for i in index_list:
-            index_list_id.append(listt[listt.index(i)+1].replace("NEAR ", "").replace("---", ","))
-            
+            index_list_id.append(listt[listt.index(i)+1].replace("NEAR ", "").replace("---", ","))            
         for i in listt:
             if (' '.join(i.split()[0:3])=='MAX SUSTAINED WINDS'):
                 i_l=i.replace(",", "").split()
-                index_list_wd.append(','.join([i_l[-5],i_l[-2]]))
-              
+                index_list_wd.append(','.join([i_l[-5],i_l[-2]]))              
         jtwc_df = pd.DataFrame(index_list_id)
         jtwc_df['wind']=index_list_wd
         #jtwc_.split('\r\n')[2].strip('/')  name of the event 
@@ -324,7 +330,6 @@ def jtcw_data(Input_folder):
 #%% 
 def HK_data(Input_folder):
     HKfeed =  BeautifulSoup(requests.get('https://www.weather.gov.hk/wxinfo/currwx/tc_list.xml').content,parser=parser,features="lxml")#'html.parser')
-    
     trac_data=[]
     try:
         HK_track =  BeautifulSoup(requests.get(HKfeed.find('tropicalcycloneurl').text).content,parser=parser,features="lxml")#'html.parser')    
@@ -346,7 +351,8 @@ def download_ecmwf(Input_folder,filepatern):
     """
     Reads ecmwf forecast data and save to folder
     """    
-    os.mkdir(os.path.join(Input_folder,'ecmwf/'))
+    if not os.path.exists(os.path.join(Input_folder,'ecmwf/')):
+        os.makedirs(os.path.join(Input_folder,'ecmwf/'))
     path_ecmwf=os.path.join(Input_folder,'ecmwf/')
     ftp=FTP("dissemination.ecmwf.int")
     ftp.login("wmo","essential")
@@ -358,93 +364,9 @@ def download_ecmwf(Input_folder,filepatern):
         if filepatern in files:
             ftp.retrbinary("RETR " +files,open(os.path.join(path_ecmwf,files),'wb').write)
             
-#%%
 
-path_ecmwf=os.path.join(path,'forecast/ecmwf/')
-
- 
- 
-ecmwf_files = [f for f in listdir(path_ecmwf) if isfile(join(path_ecmwf, f))]
 #%%
-for ecmwf_file in ecmwf_files:
-    with open(os.path.join(path_ecmwf,ecmwf_file), 'rb') as bin_file:
-        bufr_message = decoder.process(bin_file.read())
-        text_data = FlatTextRenderer().render(bufr_message)
-    f_name='ECMWF_'+ ecmwf_file.split('_')[4]  
-    index_list_idd=[]
-    list2=text_data.split('\n')
-    try:
-        for j in range(1,2):
-            list3=list2[list2.index('###### subset %s of 52 ######'% j)+1:list2.index('###### subset %s of 52 ######'% str(j+1) )]
-            list_hol=[]
-            list_hol2=[]
-            list_hol3=[]
-            for elmen in list3:
-                list_hol.append(elmen[6:13].strip(' '))
-                list_hol2.append(elmen[12:70])
-                list_hol3.append(elmen[-20:].strip(' '))
-        ecmwf_df = pd.DataFrame(data={'name_code': list_hol, 'name': list_hol2,'1': list_hol3})
-        for j in range(2,52):
-            list3=list2[list2.index('###### subset %s of 52 ######'% j)+1:list2.index('###### subset %s of 52 ######'% str(j+1) )]
-            list_hol=[]
-            for elmen in list3:
-                list_hol.append(elmen[-20:].strip(' '))
-            #print(list_hol)
-            ecmwf_df[str(j)]=list_hol
-        #ecmwf_df.to_csv(os.path.join(path,f_name+'.csv'),index=False)
-        #ecmwf_df.to_csv(os.path.join(path,f_name+'.csv'),index=False)
-        TIME_PERIOD_OR_DISPLACEMENT=ecmwf_df[ecmwf_df['name_code']=='004024']
-        LATITUDE=ecmwf_df[ecmwf_df['name_code']=='005002']
-        LONGITUDE=ecmwf_df[ecmwf_df['name_code']=='006002']
-        METEOROLOGICAL_ATTRIBUTE_SIGNIFICANCE=ecmwf_df[ecmwf_df['name_code']=='008005']
-        YEAR=ecmwf_df[ecmwf_df['name_code']=='004001']['1'].values
-        MONTH=ecmwf_df[ecmwf_df['name_code']=='004002']['1'].values
-        DAY=ecmwf_df[ecmwf_df['name_code']=='004003']['1'].values
-        HOUR=ecmwf_df[ecmwf_df['name_code']=='004004']['1'].values 
-        STORMNAME=ecmwf_file.split('_')[8] #ecmwf_df[ecmwf_df['name_code']=='001027']['1'].values 
-        
-      
-        LATITUDE['loction']=METEOROLOGICAL_ATTRIBUTE_SIGNIFICANCE['1'].values
-        LONGITUDE['loction']=METEOROLOGICAL_ATTRIBUTE_SIGNIFICANCE['1'].values
-        LONGITUDE['time']=np.insert(np.repeat(TIME_PERIOD_OR_DISPLACEMENT['20'].values, 2), [0], [0,0,0])
-        LONGITUDE['lon']=LONGITUDE.loc[:, '1':'51'].replace('None', 'NAN').astype('float',errors='ignore').mean(axis=1,skipna = 'TRUE')
-        LATITUDE['time']=np.insert(np.repeat(TIME_PERIOD_OR_DISPLACEMENT['20'].values, 2), [0], [0,0,0])
-        LATITUDE['lat']=LATITUDE.loc[:, '1':'51'].replace('None', 'NAN').astype('float',errors='ignore').mean(axis=1,skipna = 'TRUE')
-        
-        WIND=ecmwf_df[ecmwf_df['name_code']=='011012']
-        WIND['time']=np.insert(TIME_PERIOD_OR_DISPLACEMENT['20'].values, [0], [0])
-        WIND['wind_kmh']=WIND.loc[:, '1':'51'].replace('None', 'NAN').astype('float',errors='ignore').mean(axis=1,skipna = 'TRUE')
-        #WIND[['time','wind_kmh']].to_csv(os.path.join(path_input,f_name+'_wind.csv'),index=False)
-        #LATITUDE[['time','loction','lat']].to_csv(os.path.join(path_input,f_name+'_latitude.csv'),index=False)
-        #LONGITUDE[['time','loction','lon']].to_csv(os.path.join(path_input,f_name+'_longitude.csv'),index=False)
-    
-        date_object ='%04d%02d%02d%02d'%(int(YEAR[0]),int(MONTH[0]),int(DAY[0]),int(HOUR[0]))
-        date_object=datetime.strptime(date_object, "%Y%m%d%H%M")
-        
-        wind=WIND[['time','wind_kmh']] 
-        wind['time']=wind.time.astype(int)
-        wind['YYYYMMDDHH']=wind['time'].apply(lambda x: (date_object + timedelta(hours=x)).strftime("%Y%m%d%H%M") )
-        
-        lon=LONGITUDE[['time','loction','lon']]
-        lon['time']=lon.time.astype(int)
-        lon['YYYYMMDDHH']=lon['time'].apply(lambda x: (date_object + timedelta(hours=x)).strftime("%Y%m%d%H%M") )
-        lon=lon[lon['loction'].isin(['1','4'])]
-        lon=lon[~((lon.time == 0) & (lon.loction=='4'))]
-        
-        lat=LATITUDE[['time','loction','lat']]
-        lat['time']=lat.time.astype(int)
-        lat['YYYYMMDDHH']=lat['time'].apply(lambda x: (date_object + timedelta(hours=x)).strftime("%Y%m%d%H%M") )
-        lat=lat[lat['loction'].isin(['1','4'])]
-        lat=lat[~((lat.time == 0) & (lat.loction=='4'))]
-        
-        df_forecast=lon[['lon','YYYYMMDDHH']].set_index('YYYYMMDDHH').join(lat[['lat','YYYYMMDDHH']].set_index('YYYYMMDDHH'), on='YYYYMMDDHH').join(wind[['wind_kmh','YYYYMMDDHH']].set_index('YYYYMMDDHH'),on='YYYYMMDDHH')
-        df_forecast=df_forecast.rename(columns={"lat": "LAT", "lon": "LON", "wind_kmh": "VMAX"})
-        df_forecast['STORMNAME']=STORMNAME
-        #df_forecast.to_csv(os.path.join(Input_folder,'ECMWF_%s_%s.csv'%(Input_folder.split('/')[-3],Input_folder.split('/')[-4])),index=True)  
-    except:
-        pass
-#%%
-def pre_process_ecmwf(path,Input_folder):
+def pre_process_ecmwf(Input_folder):
     """
     preprocess ecmwf forecast data downloaded above
     """
@@ -534,10 +456,17 @@ def create_ucl_metadata(path):
     mytsr_username=uCL_USERNAME
     mytsr_password=uCL_PASSWORD
     tsrlink='https://www.tropicalstormrisk.com/business/checkclientlogin.php?script=true'
+    try:
+        os.remove(os.path.join(path,"forecast/RodeKruis.xml"))        
+        os.remove(os.path.join(path,"forecast/batch_ucl_metadata_download.bat"))
+        os.remove(os.path.join(path,"forecast/batch_ucl_download.bat"))
+        
+    except:
+        pass
 
     lin1='wget --no-check-certificate --keep-session-cookies --save-cookies tsr_cookies.txt --post-data "user=%s&pass=%s" -O loginresult.txt "%s"' %(mytsr_username,mytsr_password,tsrlink)
     lin2='wget --no-check-certificate -c --load-cookies tsr_cookies.txt -O RodeKruis.xml "https://www.tropicalstormrisk.com/business/include/dlxml.php?f=RodeKruis.xml"'
-    fname=open(os.path.join(path,"forecast/batch_step1.bat"),'w')
+    fname=open(os.path.join(path,"forecast/batch_ucl_metadata_download.bat"),'w')
     #fname=open("forecast/batch_step1.bat",'w')
     fname.write(lin1+'\n')
     fname.write(lin2+'\n')
@@ -546,7 +475,7 @@ def create_ucl_metadata(path):
     #os.chdir('forecast')
     try:
         #p = subprocess.check_call(["sh","./batch_step1.sh"])
-        p = subprocess.Popen("%s/forecast/batch_step1.bat" % path,cwd=os.path.join(path,"forecast/"))
+        p = subprocess.Popen("%sforecast/batch_ucl_metadata_download.bat" % path,cwd=os.path.join(path,"forecast/"))
         stdout, stderr = p.communicate()
     except:    #except  subprocess.CalledProcessError as e:
         pass
@@ -560,13 +489,18 @@ def download_ucl_data(path,Input_folder):
     """
     download ucl data
     """
+ 
     create_ucl_metadata(path)
-    path_input=Input_folder
+    if not os.path.exists(os.path.join(Input_folder,'UCL/')):
+        os.makedirs(os.path.join(Input_folder,'UCL/'))
+    
+    
+    #path_input=os.path.join(Input_folder,'UCL/') #Input_folder
     # parser = etree.XMLParser(recover=True) 
     parser2 = ET2.XMLParser(recover=True)#lxml is better in handling error in xml files 
     
     try:
-        tree = ET2.parse(os.path.join(path_metadata,'forecast/RodeKruis.xml'),parser=parser2)
+        tree = ET2.parse(os.path.join(path,'forecast/RodeKruis.xml'),parser=parser2)
         root = tree.getroot()
         update=root.find('ActiveStorms/LatestUpdate').text
         print(update)
@@ -574,7 +508,8 @@ def download_ucl_data(path,Input_folder):
         pass        
     kml_files=[]
     #fname=open("forecast/batch_step2.bat",'w')
-    fname=open(os.path.join(path,"forecast/batch_step2.bat"),'w')
+    fname=open(os.path.join(path,"forecast/batch_ucl_download.bat"),'w')  
+    fname.write(':: runfile'+'\n')
     TSRPRODUCT_FILENAMEs={}
     ucl_path=relpath(Input_folder, os.path.join(path,'forecast/')).replace('\\','/')
     
@@ -608,57 +543,58 @@ def download_ucl_data(path,Input_folder):
     
     try:
         #p = subprocess.check_call("batch_step2.bat" ,cwd=r"forecast")
-        os.mkdir(os.path.join(Input_folder,'UCL/'))
-        p = subprocess.call(line ,cwd=os.path.join(path,"forecast"))
+        #p = subprocess.call(line ,cwd=os.path.join(path,"forecast"))
+        p = subprocess.Popen("%sforecast/batch_ucl_download.bat" % path,cwd=os.path.join(path,"forecast/"))
        
         #p = subprocess.Popen("batch_step2.bat",cwd=os.path.join(Input_folder,"UCL"))
      
     except: # stderr as e: #except subprocess.CalledProcessError as e:
-        p = subprocess.call("%s/forecast/batch_step2.bat" % path,cwd=os.path.join(path,"forecast"))
+        #p = subprocess.call("%s/forecast/batch_step3.bat" % path,cwd=os.path.join(path,"forecast"))
+        p = subprocess.Popen("%sforecast/batch_ucl_download.bat" % path,cwd=os.path.join(path,"forecast/"))
         pass
         #raise ValueError(str(e))
     
     filname1=[]
     filname1_={}
-    
-    zip_files = [f for f in listdir(os.path.join(Input_folder,'UCL/')) if '.zip' in f][0]
-    for key, value in TSRPRODUCT_FILENAMEs.items():   # check for the storm name make this for all 
-        with zipfile.ZipFile(os.path.join(Input_folder,'UCL/',zip_files), 'r') as zip_ref:
-            zip_ref.extractall(os.path.join(Input_folder,'UCL/%s'%zip_files.strip('.zip')))
-            
-        filname1.append(os.path.join(Input_folder,'UCL/%s/'%TSRPRODUCT_FILENAME_O.strip('.zip')))
-        filname1_['%s' %value]=os.path.join(Input_folder,'UCL/%s/'%TSRPRODUCT_FILENAME_O.strip('.zip') )
-    
-    #fname=open(os.path.join(path,'forecast/Input/',"typhoon_info_for_model2.csv"),'w')
-    #fname.write('filename,event'+'\n')
-    for key,value in filname1_.items():
-        ile_names = [fn for fn in os.listdir(value) if any(fn.endswith(ext) for ext in ['.shp'])]
-        gust=os.path.join(value, [f for f in ile_names if f.split('_')[1]=='gust'][0])
-        track=os.path.join(value, [f for f in ile_names if f.split('_')[1]=='forecasttrack'][0])
-        gust_shp = gpd.read_file(gust)
-        track_shp = gpd.read_file(track)
-        track_gust = gpd.sjoin(track_shp,gust_shp, how="inner", op='intersects')
-        dissolve_key=track_gust.columns[0] #key+'_fo' 
-        track_gust = track_gust.dissolve(by='%s' % dissolve_key, aggfunc='max')
-        ucl_interval=[0,12,24,36,48,72,96,120]
-        date_object =datetime.strptime(update, '%H:%M UT, %d %b %Y')
-    
-        date_list=[(date_object + timedelta(hours=i)).strftime("%Y%m%d%H00") for i in ucl_interval]
-        track_gust['YYYYMMDDHH']=date_list[:len(track_gust)]
-        track_gust.index=track_gust['YYYYMMDDHH']
-        track_gust['Lon']=track_gust['geometry'].apply(lambda p: p.x)
-        track_gust['Lat']=track_gust['geometry'].apply(lambda p: p.y)
-        track_gust['vmax']=track_gust['gust'].apply(lambda p: int(p.split(' ')[0]))*0.868976 #convert mph to knots
-        typhoon_fs=pd.DataFrame()
-        typhoon_fs[['LAT','LON','VMAX']]=track_gust[['Lat','Lon','vmax']]
-        typhoon_fs['STORMNAME']=StormName
-        #typhoon_fs.to_csv( os.path.join(value,'%s_typhoon.csv' % value.split('/')[-1]))
-        typhoon_fs.to_csv( os.path.join(Input_folder,'UCL_%s_%s.csv' % (Input_folder.split('/')[-3],Input_folder.split('/')[-4])))
-        #typhoon_fs.to_csv( os.path.join(Input_folder,'UCL_%s_%s.csv' % (AdvisoryDate,StormName)))
-        line_=value+'/%s_typhoon.csv' % value.split('/')[-1]+','+ value.split('/')[-1] #StormName #
-        #fname.write(line_+'\n')
-    
-    #fname.close()
+    if not listdir(os.path.join(Input_folder,'UCL/'))==[]:
+        zip_files = [f for f in listdir(os.path.join(Input_folder,'UCL/')) if '.zip' in f][0]
+        for key, value in TSRPRODUCT_FILENAMEs.items():   # check for the storm name make this for all 
+            with zipfile.ZipFile(os.path.join(Input_folder,'UCL/',zip_files), 'r') as zip_ref:
+                zip_ref.extractall(os.path.join(Input_folder,'UCL/%s'%zip_files.strip('.zip')))
+                
+            filname1.append(os.path.join(Input_folder,'UCL/%s/'%TSRPRODUCT_FILENAME_O.strip('.zip')))
+            filname1_['%s' %value]=os.path.join(Input_folder,'UCL/%s/'%TSRPRODUCT_FILENAME_O.strip('.zip') )
+        
+        #fname=open(os.path.join(path,'forecast/Input/',"typhoon_info_for_model2.csv"),'w')
+        #fname.write('filename,event'+'\n')
+        for key,value in filname1_.items():
+            ile_names = [fn for fn in os.listdir(value) if any(fn.endswith(ext) for ext in ['.shp'])]
+            gust=os.path.join(value, [f for f in ile_names if f.split('_')[1]=='gust'][0])
+            track=os.path.join(value, [f for f in ile_names if f.split('_')[1]=='forecasttrack'][0])
+            gust_shp = gpd.read_file(gust)
+            track_shp = gpd.read_file(track)
+            track_gust = gpd.sjoin(track_shp,gust_shp, how="inner", op='intersects')
+            dissolve_key=track_gust.columns[0] #key+'_fo' 
+            track_gust = track_gust.dissolve(by='%s' % dissolve_key, aggfunc='max')
+            ucl_interval=[0,12,24,36,48,72,96,120]
+            date_object =datetime.strptime(update, '%H:%M UT, %d %b %Y')
+        
+            date_list=[(date_object + timedelta(hours=i)).strftime("%Y%m%d%H00") for i in ucl_interval]
+            track_gust['YYYYMMDDHH']=date_list[:len(track_gust)]
+            track_gust.index=track_gust['YYYYMMDDHH']
+            track_gust['Lon']=track_gust['geometry'].apply(lambda p: p.x)
+            track_gust['Lat']=track_gust['geometry'].apply(lambda p: p.y)
+            track_gust['vmax']=track_gust['gust'].apply(lambda p: int(p.split(' ')[0]))*0.868976 #convert mph to knots
+            typhoon_fs=pd.DataFrame()
+            typhoon_fs[['LAT','LON','VMAX']]=track_gust[['Lat','Lon','vmax']]
+            typhoon_fs['STORMNAME']=StormName
+            #typhoon_fs.to_csv( os.path.join(value,'%s_typhoon.csv' % value.split('/')[-1]))
+            typhoon_fs.to_csv( os.path.join(Input_folder,'UCL_%s_%s.csv' % (Input_folder.split('/')[-3],Input_folder.split('/')[-4])))
+            #typhoon_fs.to_csv( os.path.join(Input_folder,'UCL_%s_%s.csv' % (AdvisoryDate,StormName)))
+            line_=value+'/%s_typhoon.csv' % value.split('/')[-1]+','+ value.split('/')[-1] #StormName #
+            #fname.write(line_+'\n')
+        
+        #fname.close()
 
 
 
@@ -671,37 +607,38 @@ def download_ucl_data(path,Input_folder):
 # Start Main Script 
 ############################
 
-def run_main_script():
+def run_main_script(path):
     print('---------------------AUTOMATION SCRIPT STARTED---------------------------------')
     print(str(datetime.now()))
     Activetyphoon=check_for_active_typhoon_in_PAR()
-    
+    forecast_available_fornew_typhoon= False#'False'
     ##############################################################################
     ### download metadata from UCL
     ##############################################################################
     if not Activetyphoon==[]:
-        Active_typhoon='True'
+        Active_typhoon=True#'True'
         #delete_old_files()
+        
 
         
-        for typhoons in Active_typhoon:                
+        for typhoons in Activetyphoon:                
             # Activetyphoon=['KAMMURI']
             #############################################################
             #### make input output directory for model 
             #############################################################
-            fname=open(os.path.join(path,'forecast/Input/',"typhoon_info_for_model2.csv"),'w')
+            fname=open(os.path.join(path,'forecast/Input/',"typhoon_info_for_model.csv"),'w')
             fname.write('source,filename,event,time'+'\n')
 
             Alternative_data_point=(datetime.strptime(datetime.now().strftime("%Y%m%d%H"), "%Y%m%d%H")-timedelta(hours=24)).strftime("%Y%m%d")
-            
-            try:
-                Input_folder=os.path.join(path,'forecast/%s/%s/Input/'%(typhoons,datetime.now().strftime("%Y%m%d%H")))
-                Output_folder=os.path.join(path,'forecast/%s/%s/Output/'%(typhoons,datetime.now().strftime("%Y%m%d%H")))
-                os.makedirs(Output_folder)
-                os.makedirs(Input_folder)
                  
-            except:
-                pass
+            Input_folder=os.path.join(path,'forecast/Input/%s/%s/Input/'%(typhoons,datetime.now().strftime("%Y%m%d%H")))
+            Output_folder=os.path.join(path,'forecast/Output/%s/%s/Output/'%(typhoons,datetime.now().strftime("%Y%m%d%H")))
+            
+            if not os.path.exists(Input_folder):
+                os.makedirs(Input_folder)
+            if not os.path.exists(Output_folder):
+                os.makedirs(Output_folder)             
+           
             #############################################################
             #### download ecmwf
             #############################################################
@@ -721,11 +658,17 @@ def run_main_script():
             #rainfall_path=Input_folder
             download_rainfall_nomads(Input_folder,path,Alternative_data_point)
             #download_rainfall(Input_folder)
-            line_='UCL,'+'%s/UCL_%s_%s.csv' % (Input_folder,Input_folder.split('/')[-3],typhoons )+','+ typhoons + ',' + datetime.now().strftime("%Y%m%d%H") #StormName #
-            fname.write(line_+'\n')
-            line_='ECMWF,'+'%s/ECMWF_%s_%s.csv' % (Input_folder,Input_folder.split('/')[-3],typhoons )+','+ typhoons + ',' + datetime.now().strftime("%Y%m%d%H")  #StormName #
-            fname.write(line_+'\n')
-            line_='Rainfall,'+'%s/Rainfall/' % Input_folder +','+ typhoons + ',' + datetime.now().strftime("%Y%m%d%H") #StormName #
+            line_='UCL,'+'%sUCL_%s_%s.csv' % (Input_folder,Input_folder.split('/')[-3],typhoons )+','+ typhoons + ',' + datetime.now().strftime("%Y%m%d%H") #StormName #
+            if os.path.exists('%sUCL_%s_%s.csv' % (Input_folder,Input_folder.split('/')[-3],typhoons )):
+                fname.write(line_+'\n')
+                forecast_available_fornew_typhoon=True#'True'
+            
+            line_='ECMWF,'+'%sECMWF_%s_%s.csv' % (Input_folder,Input_folder.split('/')[-3],typhoons )+','+ typhoons + ',' + datetime.now().strftime("%Y%m%d%H")  #StormName #
+            if os.path.exists('%sECMWF_%s_%s.csv' % (Input_folder,Input_folder.split('/')[-3],typhoons )):
+                fname.write(line_+'\n')
+                forecast_available_fornew_typhoon=True#'True'
+            line_='Rainfall,'+'%sRainfall' % Input_folder +','+ typhoons + ',' + datetime.now().strftime("%Y%m%d%H")  #StormName #
+            #line_='Rainfall,'+'%sRainfall/' % Input_folder +','+ typhoons + ',' + datetime.now().strftime("%Y%m%d%H") #StormName #
             fname.write(line_+'\n')
             
             #############################################################
@@ -745,58 +688,67 @@ def run_main_script():
             #fname.write(line_+'\n')
     
             fname.close()
- 
+
     
             #############################################################
             #### Run IBF model 
             #############################################################
+            if forecast_available_fornew_typhoon and Active_typhoon:
+                os.chdir(path)
+                
+                if platform == "linux" or platform == "linux2": #check if running on linux or windows os
+                    # linux
+                    try:
+                        p = subprocess.check_call(["Rscript", "run_model.R", str(rainfall_error)])
+                    except subprocess.CalledProcessError as e:
+                        raise ValueError(str(e))
+                elif platform == "win32": #if OS is windows edit the path for Rscript
+                    try:
+                        p = subprocess.check_call(["C:/Program Files/R/R-3.6.3/bin/Rscript", "run_model.R", str(rainfall_error)])
+                    except subprocess.CalledProcessError as e:
+                        raise ValueError(str(e))
+                    
     
-            os.chdir(path)
-            
-            try:
-                p = subprocess.check_call(["Rscript", "run_model.R", str(rainfall_error)])
-            except subprocess.CalledProcessError as e:
-                raise ValueError(str(e))
-    
-    
-            #############################################################
-            ### send email in case of landfall-typhoon
-            #############################################################
-    
-            landfall_typhones=[]
-            try:
-                fname2=open("forecast/%s_file_names.csv" % typhoons,'r')
-                for lines in fname2.readlines():
-                    print(lines)
-                    if (lines.split(' ')[1].split('_')[0]) !='"Nolandfall':
-                        if lines.split(' ')[1] not in landfall_typhones:
-                            landfall_typhones.append(lines.split(' ')[1])
-                fname2.close()
-            except:
-                pass
-            
-            if not landfall_typhones==[]:
-                image_filename=landfall_typhones[0]
-                data_filename=landfall_typhones[1]
-                html = """\
-                <html>
-                <body>
-                <h1>IBF model run result </h1>
-                <p>Please find below a map and data with updated model run</p>
-                <img src="cid:Impact_Data">
-                </body>
-                </html>
-                """
-                sendemail(from_addr  = eMAIL_FROM,
-                        to_addr_list = eMAIL_LIST,
-                        cc_addr_list = cC_LIST,
-                        message = message(
-                            subject='Updated impact map for a new Typhoon in PAR',
-                            html=html,
-                            textfile=data_filename,
-                            image=image_filename),
-                        login  = EMAIL_LOGIN,
-                        password= EMAIL_PASSWORD)
+        
+        
+                #############################################################
+                ### send email in case of landfall-typhoon
+                #############################################################
+        
+                landfall_typhones=[]
+                try:
+                    fname2=open("forecast/%s_file_names.csv" % typhoons,'r')
+                    for lines in fname2.readlines():
+                        print(lines)
+                        if (lines.split(' ')[1].split('_')[0]) !='"Nolandfall':
+                            if lines.split(' ')[1] not in landfall_typhones:
+                                landfall_typhones.append(lines.split(' ')[1])
+                    fname2.close()
+                except:
+                    pass
+                
+                if not landfall_typhones==[]:
+                    image_filename=landfall_typhones[0]
+                    data_filename=landfall_typhones[1]
+                    html = """\
+                    <html>
+                    <body>
+                    <h1>IBF model run result </h1>
+                    <p>Please find below a map and data with updated model run</p>
+                    <img src="cid:Impact_Data">
+                    </body>
+                    </html>
+                    """
+                    sendemail(from_addr  = eMAIL_FROM,
+                            to_addr_list = eMAIL_LIST,
+                            cc_addr_list = cC_LIST,
+                            message = message(
+                                subject='Updated impact map for a new Typhoon in PAR',
+                                html=html,
+                                textfile=data_filename,
+                                image=image_filename),
+                            login  = EMAIL_LOGIN,
+                            password= EMAIL_PASSWORD)
 
 
     print('---------------------AUTOMATION SCRIPT FINISHED---------------------------------')
@@ -807,9 +759,9 @@ def run_main_script():
 ###################
 # Run Main Script #
 ###################
-
+path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/'
 try:
-    run_main_script()
+    run_main_script(path)
 except Exception as e:
     # Send email in case of error
     print(e)
