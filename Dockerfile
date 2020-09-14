@@ -19,6 +19,9 @@ WORKDIR /home/fbf/
 COPY tmap_ubuntu_installation_18.sh  /home/fbf/
 RUN chmod +x tmap_ubuntu_installation_18.sh && bash -c "./tmap_ubuntu_installation_18.sh"
 
+COPY ncdf4_1.13.tar.gz  /home/fbf/
+R CMD INSTALL /home/fbf/ncdf4_1.9.tar.gz
+
 # install R and R-packages
 RUN apt install -y apt-transport-https software-properties-common
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9
@@ -60,6 +63,7 @@ RUN Rscript -e "install.packages('plyr', repos='http://cran.us.r-project.org')"
 RUN Rscript -e "install.packages('lubridate', repos='http://cran.us.r-project.org')"
 RUN Rscript -e "install.packages('readr', repos='http://cran.us.r-project.org')"
 RUN Rscript -e "install.packages('rNOMADS', repos='http://cran.us.r-project.org')"
+RUN Rscript -e "install.packages('ncdf4', repos='http://cran.us.r-project.org')"
 
 
 # install python dependencies

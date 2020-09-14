@@ -4,3 +4,6 @@ shapely==1.6.4
 geopandas==0.6.2
 lxml==4.4.1
 rtree==0.8.3
+requests==2.22.0
+pybufrkit==0.2.16
+Fiona==1.8.4

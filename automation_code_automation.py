@@ -739,9 +739,9 @@ def run_main_script(path):
                     </body>
                     </html>
                     """
-                    sendemail(from_addr  = eMAIL_FROM,
-                            to_addr_list = eMAIL_LIST,
-                            cc_addr_list = cC_LIST,
+                    sendemail(from_addr  = EMAIL_FROM,
+                            to_addr_list = EMAIL_LIST,
+                            cc_addr_list = CC_LIST,
                             message = message(
                                 subject='Updated impact map for a new Typhoon in PAR',
                                 html=html,
@@ -768,16 +768,16 @@ except Exception as e:
     html = """<html><body><p>Look in Docker logs on server for more info.</p><p>""" + \
         str(e) + \
         """</p></body></html>""" 
-    sendemail_gmail(from_addr  = eMAIL_FROM,
-            to_addr_list = eMAIL_LIST_ERROR,
+    sendemail_gmail(from_addr  = EMAIL_FROM,
+            to_addr_list = EMAIL_LIST_ERROR,
             cc_addr_list = [],
             message = message(
                 subject='Error in PHL Typhoon script',
                 html=html,
                 textfile=False,
                 image=False),
-            login  = eMAIL_LOGIN,
-            password= eMAIL_PASSWORD)
+            login  = EMAIL_LOGIN,
+            password= EMAIL_PASSWORD)
 
 
 
