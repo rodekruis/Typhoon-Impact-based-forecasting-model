@@ -1,5 +1,6 @@
 __pycache__/
 forecast/*
+typhoon_infographic/*
 secrets.py
 variables.py
 .Rproj.user
