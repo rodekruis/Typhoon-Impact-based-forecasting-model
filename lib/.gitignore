@@ -1,0 +1,7 @@
+__pycache__/
+forecast/*
+secrets.py
+settings.py
+variables.py
+.Rproj.user
+home/*

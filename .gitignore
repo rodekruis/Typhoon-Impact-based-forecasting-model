@@ -1,7 +1,8 @@
 __pycache__/
-forecast/*
-typhoon_infographic/*
+forecast/ 
+typhoon_infographic/ 
+old_scripts/ 
 secrets.py
 variables.py
 .Rproj.user
-home/*
+home/ 
