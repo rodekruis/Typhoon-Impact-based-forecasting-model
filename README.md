@@ -51,29 +51,35 @@ Retrieve code and move in repository:
 git clone https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model.git
 cd Typhoon-Impact-based-forecasting-model
 ```
-Copy secrets-file: # secrets file has been updated to variables.py 
+create a lib/setting.py -file: # s
 ```
-cp secrets.py.template secrets.py
+sudo vim lib/setting.py cp 
 ```
 .. and retrieve the correct credentials from someone who knows. 
 
 Start up application:
 ```
-docker build -t fbf-ph .
-docker run --name=fbf-ph -v ${PWD}:/home/fbf -it fbf-ph
+docker build -t fbf-phv2 .
+docker run --rm --name=fbf-phv2 -v ${PWD}:/home/fbf -it fbf-phv2 bash
 ```
 If entering the container a 2nd time or later:
 ```
-docker exec -it fbf-ph /bin/bash
+docker exec -it fbf-phv2 /bin/bash
 ```
 or (if unstarted)
 ```
-docker start -i fbf-ph
+docker start -i fbf-phv2
 ```
+To edit files within the container first install vim 
+```
+apt-get update
+apt-get install vim
+```
+
 
 To start code manually from inside container
 ```
-python3 automation_code_automation.py
+python3 main.py
 ```
 
 To inspect the logs (e.g. when getting an email about errors), run from inside the container:
@@ -85,16 +91,14 @@ nano /var/log/cron.log
 
 ## Imitate typhoon-scenario
 
-Most times, there will be no ongoing typhoon. If you want to simulate a typhoon-scenario for testing/development purposes, you can change the following lines in automation_code_automation.py:
+Most times, there will be no ongoing typhoon. If you want to simulate a typhoon-scenario for testing/development purposes, you can change the following lines in main.py:
 ```
-  delete_old_files()
-  create_ucl_metadata()
+ 
   # Activetyphoon=['KAMMURI']
 ```
 to
 ```
-  # delete_old_files()
-  # create_ucl_metadata()
+ 
   Activetyphoon=['KAMMURI']
 ```
 and run
