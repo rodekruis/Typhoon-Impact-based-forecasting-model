@@ -9,6 +9,8 @@ import requests
 from os import listdir
 from os.path import isfile, join
 from sys import platform
+import xml.etree.ElementTree as ET
+import lxml.etree as ET2
 
 def jtcw_data(Input_folder):
     parser = ET2.XMLParser(recover=True)#
