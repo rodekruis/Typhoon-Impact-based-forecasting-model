@@ -18,7 +18,7 @@ import requests
 from os import listdir
 from os.path import isfile, join
 from sys import platform
-from settings import fTP_LOGIN, fTP_PASSWORD, uCL_USERNAME, uCL_PASSWORD
+#from settings import fTP_LOGIN, fTP_PASSWORD, uCL_USERNAME, uCL_PASSWORD
 import time
 import subprocess
 import geopandas as gpd
@@ -26,8 +26,14 @@ import pandas as pd
 from datetime import datetime
 from datetime import timedelta
 
+path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/'
+##Path='home/fbf/'
+
+sys.path.insert(0, path+'lib')
+os.chdir(path)
+from settings import fTP_LOGIN, fTP_PASSWORD, uCL_USERNAME, uCL_PASSWORD
 Pacific_basin=['wp','nwp','NWP','west pacific','north west pacific','northwest pacific'] 
-php_admin3 = gpd.read_file(path+'data-raw/phl_admin3_simpl2.shp')
+
 dict2={'WH':'windpast','GH':'gustpast','WF':'wind',
     'GF':'gust','WP0':'0_TSprob','WP1':'1_TSprob',
     'WP2':'2_TSprob','WP3':'3_TSprob','WP4':'4_TSprob',
@@ -158,6 +164,7 @@ def extract_ucl_data(Input_folder):
 def process_ucl_data(path,Input_folder,uCL_USERNAME,uCL_PASSWORD):
     update=download_ucl_data(path,Input_folder,uCL_USERNAME,uCL_PASSWORD)
     time.sleep(10)
+    php_admin3 = gpd.read_file(path+'data-raw/phl_admin3_simpl2.shp')
     filname1_=extract_ucl_data(Input_folder)
     for key,value in filname1_.items():
         ile_names = [fn for fn in os.listdir(value) if any(fn.endswith(ext) for ext in ['.shp'])]

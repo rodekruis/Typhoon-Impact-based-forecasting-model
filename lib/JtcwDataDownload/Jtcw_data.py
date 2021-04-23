@@ -9,11 +9,14 @@ import requests
 from os import listdir
 from os.path import isfile, join
 from sys import platform
+import xml.etree.ElementTree as ET
+import lxml.etree as ET2
+import pandas as pd
 
 def jtcw_data(Input_folder):
     parser = ET2.XMLParser(recover=True)#
     output=[] 
-    index_list=[' WARNING POSITION:',' 12 HRS, VALID AT:',' 24 HRS, VALID AT:',' 36 HRS, VALID AT:',' 48 HRS, VALID AT:',' 72 HRS, VALID AT:']
+    index_list=[' WARNING POSITION:',' 12 HRS, VALID AT:',' 24 HRS, VALID AT:',' 36 HRS, VALID AT:',' 48 HRS, VALID AT:',' 72 HRS, VALID AT:',' 96 HRS, VALID AT:',' 120 HRS, VALID AT:']
     index_list_id=[]
     index_list_wd=[]
     
@@ -29,8 +32,9 @@ def jtcw_data(Input_folder):
         jtwc_=re.sub(' +', ' ', jtwc_content.text)
         listt=jtwc_.split('\r\n')
         listt=listt[listt.index(' WARNING POSITION:'):]        
-        for i in index_list:
-            index_list_id.append(listt[listt.index(i)+1].replace("NEAR ", "").replace("---", ","))            
+        for i in index_list:            
+            if i in listt:
+                index_list_id.append(listt[listt.index(i)+1].replace("NEAR ", "").replace("---", ","))            
         for i in listt:
             if (' '.join(i.split()[0:3])=='MAX SUSTAINED WINDS'):
                 i_l=i.replace(",", "").split()
@@ -42,3 +46,8 @@ def jtcw_data(Input_folder):
         #jtwc_df.to_csv('C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/philipiness/jtwc_df.csv',index=False)
     except:
         pass
+
+#%%
+ 
+
+ 

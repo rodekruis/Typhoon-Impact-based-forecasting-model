@@ -1,5 +1,6 @@
 #!/usr/bin/env Rscript
 #options(warn=-1)
+rm(list=ls())
 suppressMessages(library(stringr))
 suppressMessages(library(ggplot2))
 suppressMessages(library(dplyr))
@@ -37,10 +38,32 @@ path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Imp
 
 setwd(path)
 
-source('settings.R')
-source('data_cleaning_forecast.R')
-source('prepare_typhoon_input.R')
 
+main_directory<-path
+
+####################################################################################################
+
+
+
+
+###########################################################################
+# ------------------------ import DATA  -----------------------------------
+setwd(path)
+source('lib_r/settings.R')
+source('lib_r/data_cleaning_forecast.R')
+source('lib_r/prepare_typhoon_input.R')
+
+source('lib_r/prepare_typhoon_input.R')
+source('lib_r/track_interpolation.R')
+source('lib_r/Read_rainfall_v2.R')
+source('lib_r/Model_input_processing.R')
+source('lib_r/run_prediction_model.R')
+source('lib_r/Make_maps.R')
+
+source('lib_r/Check_landfall_time.R')
+
+
+ 
 #source('home/fbf/prepare_typhoon_input.R')
 #source('home/fbf/settings.R')
 #source('home/fbf/data_cleaning_forecast.R')
@@ -320,16 +343,24 @@ run_prediction_model<-function(data){
 
 ####################################################################################################
 
-Make_maps<-function(php_admin1,php_admin3_,my_track,tc_tracks,TYF,Typhoon_stormname){
+Make_maps<-function(php_admin1,php_admin3_,my_track,tc_tracks,TYF,Typhoon_stormname,Landfall_check1=0){
   
   ################################### Make maps #########
+ 
   
-  Landfall_check <- st_intersection(php_admin1, my_track)
-  Landfall_point<-Landfall_check[1,]
+  if  (Landfall_check1!=0) {
+    Landfall_check <- st_intersection(php_admin1, my_track)
+    Landfall_point <- Landfall_check[1,]
+    Landfall_check_1<-nrow(Landfall_point)
+  }else {
+    Landfall_point=NA 
+    Landfall_check_1=0
+  }
   
-  Landfall_check_1 <- st_intersection(php_admin1,my_track[1,])
   
-  if (nrow(Landfall_check_1) == 0){
+ 
+  
+  if (Landfall_check_1 > 0){
     dt<-lubridate::with_tz(lubridate::ymd_hms(format(Landfall_check$date[1], format="%Y-%m-%d %H:%M:%S"),tz="UTC"), tz="Asia/Manila")
     
     dt1<-lubridate::with_tz(lubridate::ymd_hm(format(TRACK_DATA$YYYYMMDDHH[1], format="%Y%m%d%H%M"),tz="UTC"), tz="Asia/Manila")
@@ -358,7 +389,7 @@ Make_maps<-function(php_admin1,php_admin3_,my_track,tc_tracks,TYF,Typhoon_stormn
   #######################################################################
   # caculate time for landfll
   
-  php_admin4 <- php_admin3_ %>%  dplyr::mutate(dam_perc_comp_prediction_lm_quantile = ntile_na(impact,5)) %>% filter(WEA_dist_track < 300)
+  php_admin4 <- php_admin3_ %>%  dplyr::mutate(dam_perc_comp_prediction_lm_quantile = ntile_na(impact,5)) %>% filter(WEA_dist_track < 600)
   
   region2<-extent(php_admin4)
   
@@ -367,11 +398,14 @@ Make_maps<-function(php_admin1,php_admin3_,my_track,tc_tracks,TYF,Typhoon_stormn
   #region<- st_bbox(php_admin3[1,])
   #typhoon_region = st_bbox(c(xmin = region[["xmin"]]-2, xmax = 2+region[["xmax"]],  ymin = region[["ymin"]]-2, ymax =2+ region[["ymax"]]),     crs = st_crs(php_admin1)) %>% st_as_sfc()
   
-  typhoon_region = st_bbox(c(xmin =as.vector(region2@xmin), xmax = as.vector(region2@xmax),
-                             ymin = as.vector(region2@ymin), ymax =as.vector(region2@ymax)),
-                           crs = st_crs(php_admin1)) %>% st_as_sfc()
+ 
+
+    typhoon_region = st_bbox(c(xmin =as.vector(region2@xmin), xmax = as.vector(region2@xmax),
+                                ymin = as.vector(region2@ymin), ymax =as.vector(region2@ymax)),
+                              crs = st_crs(php_admin1))%>% st_as_sfc()
+ 
   
-  
+ 
   model_run_time<-lubridate::with_tz(lubridate::force_tz(Sys.time()), tz="Asia/Manila")
   
   subtitle =paste0("Predicted damage per Municipality for ", Typhoon_stormname,'\n',
@@ -385,18 +419,18 @@ Make_maps<-function(php_admin1,php_admin3_,my_track,tc_tracks,TYF,Typhoon_stormn
   
   impact_map=tm_shape(php_admin4) + 
     tm_fill(col = "impact",showNA=FALSE, border.col = "black",lwd = 3,lyt='dotted',
-            breaks = c(0,0.1,1,2,5,9.5,10),
+            breaks =c(0,1,5,7,9.5,60),
             title='Predicted % of Damaged ',
-            labels=c(' No Damage',' < 1%',' 1 to 2%',' 2 to 5%',' 5 to 10%',' > 10%'),
-            palette = c('#ffffff','#fdd0a2','#fdae6b','#fd8d3c','#e6550d','#a63603')) + #,style = "cat")+
+            labels=c(' No Damage',' < 5%',' 5 to 7%',' 7 to 10%',' > 10%'),
+            palette = c('#fff7bc','#fdd0a2','#fd8d3c','#e6550d','#a63603')) + #,style = "cat")+'#fdae6b',
     
     tm_borders(col = NA, lwd = .25, lty = "solid", alpha = .25, group = NA) +
     
-    tm_shape(tc_tracks) + tm_symbols(col='Data_Provider',size=0.1,border.alpha = .25) +
+    tm_shape(tc_tracks) + tm_symbols(size=0.1,border.alpha = .25) +
     
     #tm_layout(legend.show = TRUE, legend.position=c("left", "top"))#, main.title=subtitle, main.title.size=.8,asp=.8)
     
-    tm_shape(Landfall_point) + tm_symbols(size=0.25,border.alpha = .25,col="red") +  
+    #tm_shape(Landfall_point) + tm_symbols(size=0.25,border.alpha = .25,col="red") +  
     tm_compass(type = "8star", position = c("right", "top")) +
     tm_scale_bar(breaks = c(0, 100, 200), text.size = .5,
                  color.light = "#f0f0f0",
@@ -409,25 +443,23 @@ Make_maps<-function(php_admin1,php_admin3_,my_track,tc_tracks,TYF,Typhoon_stormn
   impact_map2=tm_shape(php_admin4) + 
     
     tm_fill(col = "impact",showNA=FALSE, border.col = "black",lwd = 3,lyt='dotted',
-            breaks = c(0,0.1,1,2,5,9.5,10),
+            breaks = c(0,1,5,7,9.5,60),
             title='Predicted % of Damaged ',
-            labels=c(' No Damage',' < 1%',' 1 to 2%',' 2 to 5%',' 5 to 10%',' > 10%'),
-            palette = c('#ffffff','#fdd0a2','#fdae6b','#fd8d3c','#e6550d','#a63603')) +
+            labels=c(' No Damage',' < 5%',' 5 to 7%',' 7 to 10%',' > 10%'),
+            palette = c('#fff7bc','#fdd0a2','#fd8d3c','#e6550d','#a63603')) +
     tm_shape(tc_tracks) + tm_symbols(col='Data_Provider',size=0.1,border.alpha = .25) +
     tm_layout(legend.only = TRUE, legend.position=c("left", "top"))#, main.title=subtitle, main.title.size=.8,asp=.8)
   
   ph_map = tm_shape(php_admin1) + tm_polygons(border.col = "black",lwd = 0.1,lyt='dotted',alpha =0.2) +
     tm_shape(typhoon_region) + tm_borders(lwd = 2,col='red') +
-    #tm_credits("The maps used do not imply \nthe expression of any opinion on \nthe part of the International Federation\n of the Red Cross and Red Crescent Societies\n concerning the legal status of a\n territory or of its authorities.",
-    # position = c("left", "BOTTOM"),size = 0.9) +
     tm_layout(legend.show = FALSE)#inner.margins=c(.04,.03, .04, .04)) 
-  #inner.margins=c(.04,.03, .02, .01), 
+
   
   
   ph_map2 = tm_shape(php_admin1)+ tm_polygons(border.col = "white",lwd = 0.01,lyt='dotted',alpha =0.2) +
-    #tm_shape(typhoon_region) +# tm_borders(lwd = 2,col='red') +
+    #tm_shape(typhoon_region) + tm_borders(lwd = 2,col='red') +
     tm_credits( subtitle,position = c("left", "top"),size = 0.7) +
-    tm_logo('combined_logo.png',#https://www.510.global/wp-content/uploads/2017/07/510-LOGO-WEBSITE-01.png', 
+    tm_logo('./logos/combined_logo.png',#https://www.510.global/wp-content/uploads/2017/07/510-LOGO-WEBSITE-01.png', 
             height=3, position = c("right", "top"))+
     tm_layout(legend.show = FALSE)
   
@@ -442,7 +474,7 @@ Make_maps<-function(php_admin1,php_admin3_,my_track,tc_tracks,TYF,Typhoon_stormn
 
 dir.create(file.path(paste0(main_directory,'typhoon_infographic/shapes/', Typhoon_stormname)), showWarnings = FALSE)
 
-typhoon_events<-c(UCL_directory,ECMWF_directory,HK_directory,JTCW_directory)
+typhoon_events<-c(ECMWF_directory,JTCW_directory,UCL_directory)
 
 ftrack_geodb=paste0(main_directory,'typhoon_infographic/shapes/',Typhoon_stormname, '/',Typhoon_stormname,'1_',forecast_time,'_track.gpkg')
 
@@ -461,8 +493,9 @@ if (!is.null(typhoon_events)) {
     }else {
       TYF= 'NA'
     }
-    if(!is.na(forecaster)){  TRACK_DATA<-ifelse(file.exists(forecaster),read.csv(forecaster),NA)
-    
+    if(file.exists(forecaster)){  
+      #TRACK_DATA<-ifelse(file.exists(forecaster),read.csv(forecaster),NA)
+      TRACK_DATA<-read.csv(forecaster)
     my_track <- track_interpolation(TRACK_DATA) %>% dplyr::mutate(Data_Provider=TYF)
     st_write(obj = my_track,
              dsn = paste0(main_directory,'typhoon_infographic/shapes/',Typhoon_stormname, '/',Typhoon_stormname,'1_',forecast_time,'_track.gpkg'),
@@ -472,9 +505,23 @@ if (!is.null(typhoon_events)) {
 
 
 #really good Job - jannis and we are getting closer and closer to the nice visuals that Orla use during co-design 
+if  (file.exists(ftrack_geodb)) {
+  tc_tracks=st_read(ftrack_geodb)
+}else {
+  tc_tracks=NA 
+}
+
+####################################################################################################
+# map
+####################################################################################################
 
 
-tc_tracks<-ifelse(file.exists(ftrack_geodb),st_read(ftrack_geodb),NA) 
+tmap_mode(mode = "view")
+tm_shape(php_admin1) + tm_polygons(border.col = "black",lwd = 0.1,lyt='dotted',alpha =0.2) +
+  tm_shape(tc_tracks) + tm_symbols(col='Data_Provider',size=0.1,border.alpha = .25) +
+  tm_layout(legend.only = TRUE, legend.position=c("left", "top"))#, main.title=subtitle, main.title.size=.8,asp=.8)
+
+
 
 ####################################################################################################
 # FOR EACH FORECASTER RUN IMPACT DMODEL , FOR NOW HK AND JTCW ARE EXCLUDED 
@@ -483,7 +530,7 @@ tc_tracks<-ifelse(file.exists(ftrack_geodb),st_read(ftrack_geodb),NA)
 
 if (!is.null(typhoon_events)) {
   for(forecaster in (typhoon_events)){
-    forecaster=typhoon_events[1]
+    #forecaster=typhoon_events[1]
     if (grepl('UCL_20', forecaster, fixed = TRUE)) {  TYF= 'UCL'    } 
     else if (grepl('ECMWF_20', forecaster, fixed = TRUE)) {      TYF= 'ECMWF'    } 
     else if  (grepl('HK_20', forecaster, fixed = TRUE)) {      TYF= 'HK'    }
@@ -491,7 +538,8 @@ if (!is.null(typhoon_events)) {
     else {  TYF= 'NA'    }
     
     if(!is.na(forecaster)){
-      TRACK_DATA<-ifelse(file.exists(forecaster),read.csv(forecaster),NA)
+      #TRACK_DATA<-ifelse(file.exists(forecaster),read.csv(forecaster),NA)
+      TRACK_DATA<-read.csv(forecaster)%>%dplyr::mutate(VMAX=VMAX*1.05)
       my_track <- track_interpolation(TRACK_DATA)
       
       
@@ -499,9 +547,21 @@ if (!is.null(typhoon_events)) {
       # check if there is a landfall
       
       print("chincking landfall")
-      Landfall_check <- st_intersection(php_admin1, my_track)
+
+   
+      Landfall_check1=0    #nrow(Landfall_check)
       
-      if (nrow(Landfall_check) > 0){
+ 
+      if  (Landfall_check1!=0) {
+        Landfall_check <- st_intersection(php_admin1, my_track)
+        Landfall_point <- Landfall_check[1,]
+      }else {
+        Landfall_point=NA 
+      }
+      
+      
+      
+      if (Landfall_check1> -1){
         print("claculating data")
         new_data<-Model_input_processing(TRACK_DATA,my_track,TYF,Typhoon_stormname)
         
@@ -509,37 +569,38 @@ if (!is.null(typhoon_events)) {
         print("running modesl")
         
         FORECASTED_IMPACT<-run_prediction_model(data=new_data)
-        php_admin3<-php_admin3 %>% mutate(GEN_mun_code=adm3_pcode) %>%  left_join(FORECASTED_IMPACT,by="GEN_mun_code")
-        php_admin3_<-php_admin3 %>% dplyr::arrange(WEA_dist_track) %>%
-          dplyr::mutate(impact=ifelse(WEA_dist_track> 100,NA,impact),
-                        impact_threshold_passed =ifelse(WEA_dist_track > 100,NA,impact_threshold_passed))
+        php_admin3_<-php_admin3 %>% mutate(GEN_mun_code=adm3_pcode) %>% left_join(FORECASTED_IMPACT,by="GEN_mun_code")
+       
+         php_admin3_<-php_admin3_ %>% dplyr::arrange(WEA_dist_track) %>%
+          dplyr::mutate(impact=ifelse(WEA_dist_track> 300,NA,impact),
+                        impact_threshold_passed =ifelse(WEA_dist_track > 300,NA,impact_threshold_passed))
         
         Impact<-php_admin3_  %>%   dplyr::select(GEN_mun_code,impact,impact_threshold_passed,WEA_dist_track) %>% st_set_geometry(NULL)
-        php_admin4 <- php_admin3_ %>%  dplyr::mutate(dam_perc_comp_prediction_lm_quantile = ntile_na(impact,5)) %>% filter(WEA_dist_track < 300)
+        php_admin4 <- php_admin3_ %>%  dplyr::mutate(dam_perc_comp_prediction_lm_quantile = ntile_na(impact,5)) #%>% filter(WEA_dist_track < 300)
         
-        region2<-extent(php_admin4)
+        #region2<-extent(php_admin4)
         
         #php_admin3_<-php_admin3_ %>% arrange(WEA_dist_track)
         #region<- st_bbox(php_admin3[1,])
         #typhoon_region = st_bbox(c(xmin = region[["xmin"]]-2, xmax = 2+region[["xmax"]],  ymin = region[["ymin"]]-2, ymax =2+ region[["ymax"]]),     crs = st_crs(php_admin1)) %>% st_as_sfc()
         
-        typhoon_region = st_bbox(c(xmin =as.vector(region2@xmin), xmax = as.vector(region2@xmax),
-                                   ymin = as.vector(region2@ymin), ymax =as.vector(region2@ymax)),
-                                 crs = st_crs(php_admin1)) %>% st_as_sfc()
+     
+       # Landfall_point<-Check_landfall_time(php_admin1, my_track)[1]
+ 
         
         #Impact2<-php_admin3 %>%  left_join(Impact %>% mutate(imp_thr=impact_threshold_passed,adm3_pcode=GEN_mun_code)%>% dplyr::select(adm3_pcode,impact,imp_thr),by = "adm3_pcode")
-        st_write(obj = php_admin4,
-                 dsn = paste0(main_directory,'typhoon_infographic/shapes/',Typhoon_stormname, '/',Typhoon_stormname,'_',forecast_time,'_impact.gpkg'),
-                 layer =TYF,
-                 update = TRUE)
-        Landfall_point<-Check_landfall_time(php_admin1, my_track)[1]
-        time_for_landfall<- Check_landfall_time(php_admin1, my_track)[2]
-        etimated_landfall_time<- Check_landfall_time(php_admin1, my_track)[3]
+       # st_write(obj = php_admin4, dsn = paste0(main_directory,'typhoon_infographic/shapes/',Typhoon_stormname, '/',Typhoon_stormname,'_',forecast_time,'_impact.gpkg'),
+        #         layer =TYF, update = TRUE)
+        
+        
+        
+        #time_for_landfall<- Check_landfall_time(php_admin1, my_track)[2]
+        #etimated_landfall_time<- Check_landfall_time(php_admin1, my_track)[3]
         
         ####################################################################################################
         print("make mapsl")
         #call map function 
-        map1<-Make_maps(php_admin1,php_admin3_,my_track,tc_tracks,TYF,Typhoon_stormname)
+        map1<-Make_maps(php_admin1,php_admin3_,my_track,tc_tracks,TYF,Typhoon_stormname,Landfall_check1=Landfall_check1)
         tmap_save(map1, 
                   filename = paste0(main_directory,'forecast/Output/',Typhoon_stormname,'/Impact_',TYF,'_',forecast_time,'_',  Typhoon_stormname,'.png'),
                   width=20, height=24,dpi=600,
@@ -564,4 +625,16 @@ if (!is.null(typhoon_events)) {
     } 
   } ############################ if forecaster loop end here 
 }  ################## close the typhone loop 
+
+
+tmap_mode(mode = "view")
+tm_shape(php_admin1) + tm_polygons(border.col = "black",lwd = 0.1,lyt='dotted',alpha =0.2) +
+  tm_shape(php_admin3%>%filter(adm3_pcode %in% c('PH021523000','PH021514000','PH023121000','PH023111000'))) + tm_polygons(border.col = "red",lwd = 0.4,lyt='dotted',alpha =0.8) +
+  tm_shape(tc_tracks) + tm_symbols(col='Data_Provider',size=0.1,border.alpha = .25) +
+  tm_layout(legend.only = TRUE, legend.position=c("left", "top"))#, main.title=subtitle, main.title.size=.8,asp=.8)
+
+
+
+
+
 

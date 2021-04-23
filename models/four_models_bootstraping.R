@@ -1,4 +1,4 @@
-
+rm(list=ls())
 source('C://documents//philipiness//Typhoons//model//new_model//data_source.R')
 
 library(boot)
@@ -12,6 +12,7 @@ library(MLmetrics)
 # function to obtain bootstrapped stat coefficients and determine significance 
 
 ############# ------------------------ linear regression -----------------------------------
+
 OLS_coef_bootstrap <- function(data, bootstrap_iterations)
 { 
   bootstrapped_coefs <- boot(data, statistic=stat_coef, R=bootstrap_iterations)
@@ -105,6 +106,7 @@ df <- data %>%
 seed= 123
 i<- 1
 # grid search 
+
 for(i in 1:nrow(hyper_grid3)) {
   output <- NULL
   # train model  check ranger documentation 
@@ -113,18 +115,11 @@ for(i in 1:nrow(hyper_grid3)) {
   df_train <- df[df$GEN_typhoon_name!=typ,] %>% dplyr::select(-GEN_typhoon_name,-GEO_n_households)
   
   df_val <- df[df$GEN_typhoon_name ==typ,] %>% dplyr::select(-GEN_typhoon_name,-GEO_n_households)
-  
- 
-  
-
-  
-  
   x <- df_train %>% dplyr::select(-more_than_10_perc_damage) %>% data.matrix()
   y <- df_train$more_than_10_perc_damage
 
   cvfit <- cv.glmnet(x,y,alpha=hyper_grid3$alpha_t[i],family=as.vector(hyper_grid3$family_t[i]),type.measure="mae")
   
-
   hyper_grid3$lamda_min[i]<- cvfit$lambda.min
   
   hyper_grid3$mae[i]<- min(cvfit$cvm)
@@ -147,6 +142,7 @@ for(i in 1:nrow(hyper_grid3)) {
 write.table(hyper_grid_llr,"C:/documents/philipiness/Typhoons/Journal_paper_ibf/hypergrid_linear_regression.csv")
 
 
+
 #############--------------random forest reggression-----------------
 # function to obtain bootstrapped stat coefficients and determine significance 
 OLS_coef_bootstrap4 <- function(data, bootstrap_iterations)
@@ -162,6 +158,7 @@ OLS_coef_bootstrap4 <- function(data, bootstrap_iterations)
   rownames(output) <- c("Original","Bootstrapped","1%","50%","95%","99%")
   colnames(output) <-  c('R2_','RMSE_','NRMSE','MAE_','MAPE','MBE_','SMAPE')
   return(output)}
+
 stat_coef4 <- function(data, indices) {
   
   d <- data[indices,] 
@@ -277,6 +274,7 @@ for(i in 1:nrow(hyper_grid_r))
 
 # write result of hypergrid parameter search
 write.table(hyper_grid_r,"C:/documents/philipiness/Typhoons/Journal_paper_ibf/hypergrid_forest_reg.csv")
+
 
 
 ############ --------------------- Lasso logistic regression ------------------------------
@@ -443,6 +441,10 @@ write.table(hyper_grid_llr,"C:/documents/philipiness/Typhoons/Journal_paper_ibf/
 
 
 
+
+
+
+
 ############--------------------- RANDOM FOREST classfication ------------------------------
 # function to obtain bootstrapped stat coefficients and determine significance 
 OLS_coef_bootstrap3 <- function(data, bootstrap_iterations)
@@ -547,6 +549,7 @@ hyper_grid <- expand.grid(
   auc=0)
 
  
+
 for(i in 1:nrow(hyper_grid)) 
 {
   print("random forest -classification")

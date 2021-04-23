@@ -71,33 +71,34 @@ ntile_na <- function(x,n){
 
 ####################################################################################################
 # load the rr model
+
 mode_classification <- readRDS(paste0(main_directory,"models/final_model.rds"))
 mode_continious <- readRDS(paste0(main_directory,"models/final_model_regression.rds"))
-
-
 
 # load forecast data
 typhoon_info_for_model <- read.csv(paste0(main_directory,"/forecast/Input/typhoon_info_for_model.csv"))
 #typhoon_events <- read.csv(paste0(main_directory,'/forecast/Input/typhoon_info_for_model.csv')) 
+wshade <- php_admin3
 
 rain_directory<-as.character(typhoon_info_for_model[typhoon_info_for_model$source=='Rainfall',]$filename)
+
 UCL_<-as.character(typhoon_info_for_model[typhoon_info_for_model$source=='UCL',]$filename)
 ECMWF_<-as.character(typhoon_info_for_model[typhoon_info_for_model$source=='ECMWF',]$filename)
-#HK_<-as.character(typhoon_info_for_model[typhoon_info_for_model$source=='HK',]$filename)
-#JTCW_<-as.character(typhoon_info_for_model[typhoon_info_for_model$source=='JTCW',]$filename)
+HK_<-as.character(typhoon_info_for_model[typhoon_info_for_model$source=='HK',]$filename)
+JTCW_<-as.character(typhoon_info_for_model[typhoon_info_for_model$source=='JTCW',]$filename)
+RSMC_<-as.character(typhoon_info_for_model[typhoon_info_for_model$source=='RSMC',]$filename)
 
-Typhoon_stormname<-as.character(typhoon_info_for_model[typhoon_info_for_model$source=='UCL',]$event)
-
-forecast_time<-as.character(typhoon_info_for_model[typhoon_info_for_model$source=='UCL',]$time)
+Typhoon_stormname<-as.character(unique(typhoon_info_for_model$event))#[typhoon_info_for_model$source=='UCL',]$event)
+#Typhoon_stormname='VAMCO'
+forecast_time<-as.character(unique(typhoon_info_for_model$time))#as.character(typhoon_info_for_model[typhoon_info_for_model$source=='UCL',]$time)
 forecast_time<-str_remove_all(forecast_time, "'")
 
 rain_directory<-ifelse(identical(character(0), rain_directory),NULL,rain_directory)
 UCL_directory<-ifelse(identical(character(0), UCL_),NA,UCL_)
 ECMWF_directory<-ifelse(identical(character(0), ECMWF_),NA,ECMWF_)
-#HK_directory<-ifelse(identical(character(0), HK_),NA,HK_)
-#JTCW_directory<-ifelse(identical(character(0), JTCW_),NA,JTCW_)
-
-
+HK_directory<-ifelse(identical(character(0), HK_),NA,HK_)
+JTCW_directory<-ifelse(identical(character(0), JTCW_),NA,JTCW_)
+RSMC_directory<-ifelse(identical(character(0), RSMC_),NA,RSMC_)
 
 ############################################################################
 # FOR EACH FORECASTER interpolae track data
@@ -105,10 +106,11 @@ ECMWF_directory<-ifelse(identical(character(0), ECMWF_),NA,ECMWF_)
 
 dir.create(file.path(paste0(main_directory,'typhoon_infographic/shapes/', Typhoon_stormname)), showWarnings = FALSE)
 
-typhoon_events<-c(UCL_directory,ECMWF_directory)#,HK_directory,JTCW_directory)
+typhoon_events<-c(UCL_directory,ECMWF_directory,JTCW_directory,RSMC_directory,HK_directory)
+
 
 ftrack_geodb=paste0(main_directory,'typhoon_infographic/shapes/',Typhoon_stormname, '/',Typhoon_stormname,'1_',forecast_time,'_track.gpkg')
-UCL_DATA
+
 ####################################################################################################
 
 if (file.exists(ftrack_geodb)){ 
@@ -117,6 +119,7 @@ if (file.exists(ftrack_geodb)){
 
 ####################################################################################################
 for(forecaster in (typhoon_events)){
+  if (file.exists(forecaster)){
   
   #TRACK_DATA<-ECMWF_ECEP %>% filter(ENSAMBLE==1) #ECMWF_ECEP %>% filter(ENSAMBLE==ensambles)
     TRACK_DATA<-read.csv(forecaster)
@@ -130,6 +133,7 @@ for(forecaster in (typhoon_events)){
   my_track <- track_interpolation(TRACK_DATA) %>% dplyr::mutate(Data_Provider=TYF)
   st_write(obj = my_track, dsn = paste0(main_directory,'typhoon_infographic/shapes/',Typhoon_stormname, '/',Typhoon_stormname,'1_',forecast_time,'_track.gpkg'),
            layer ='tc_tracks', append = TRUE)
+  }
 }
 
 ####################################################################################################
@@ -142,6 +146,7 @@ if (file.exists(ftrack_geodb)){
 # FOR EACH FORECASTER RUN IMPACT DMODEL , FOR NOW HK AND JTCW ARE EXCLUDED 
 ####################################################################################################
 
+typhoon_events<-c(JTCW_directory)#,HK_directory)
 
 if (!is.null(typhoon_events)) {
   for(forecaster in (typhoon_events))
@@ -169,7 +174,7 @@ if (!is.null(typhoon_events)) {
       
       print("chincking landfall")
       Landfall_check <- st_intersection(php_admin1, my_track)
-      cn_rows<-1#nrow(Landfall_check)
+      cn_rows<-nrow(Landfall_check)
       
       if (cn_rows > 0){
         print("claculating data")

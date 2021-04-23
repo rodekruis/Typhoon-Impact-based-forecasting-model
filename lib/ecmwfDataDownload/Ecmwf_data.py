@@ -64,7 +64,7 @@ def ecmwf_data_process(Input_folder,filepatern):
     """
     preprocess ecmwf forecast data downloaded above
     """
-    decoder = Decoder()
+ 
     #ecmwf_data_download(Input_folder,filepatern)
     
     path_ecmwf=os.path.join(Input_folder,'ecmwf/')
@@ -82,7 +82,7 @@ def ecmwf_data_process(Input_folder,filepatern):
         with open(os.path.join(path_ecmwf,ecmwf_file), 'rb') as bin_file:
             bufr_message = decoder.process(bin_file.read())
             text_data = FlatTextRenderer().render(bufr_message)
-        STORMNAME=ecmwf_file.split('_')[8]
+        STORMNAME=typhoon_name #ecmwf_file.split('_')[8]  
         date_object ='%04d%02d%02d%02d'%(int([line.split()[-1] for line in StringIO(text_data) if line[6:17]=="004001 YEAR" ][0]),
                              int([line.split()[-1] for line in StringIO(text_data) if line[6:18]=="004002 MONTH" ][0]),
                              int([line.split()[-1] for line in StringIO(text_data) if line[6:16]=="004003 DAY" ][0]),
@@ -92,6 +92,7 @@ def ecmwf_data_process(Input_folder,filepatern):
 
         val_t = [int(line.split()[-1]) for num, line in enumerate(StringIO(text_data), 1) if line[6:40]=="004024 TIME PERIOD OR DISPLACEMENT"]# and link.endswith(('.html', '.xml'))]
         val_wind = [line.split()[-1] for num, line in enumerate(StringIO(text_data), 1) if line[6:12]=="011012" ]#and num > ind_x[0]]# and link.endswith(('.html', '.xml'))]
+        val_pre = [line.split()[-1] for num, line in enumerate(StringIO(text_data), 1) if line[6:12]=="010051" ]#and num > ind_x[0]]# and link.endswith(('.html', '.xml'))]
         val_lat = [line.split()[-1] for num, line in enumerate(StringIO(text_data), 1) if line[6:12]=="005002" ]#and num > ind_x[0]]# and link.endswith(('.html', '.xml'))]
         val_lon = [line.split()[-1] for num, line in enumerate(StringIO(text_data), 1) if line[6:12]=="006002" ]#and num > ind_x[0]]# and link.endswith(('.html', '.xml'))]
         val_ens = [line.split()[-1] for num, line in enumerate(StringIO(text_data), 1) if line[6:12]=="001091" ]#and num > ind_x[0]]# and link.endswith(('.html', '.xml'))]
@@ -113,39 +114,117 @@ def ecmwf_data_process(Input_folder,filepatern):
                                 'lon':ecmwf_center['lon'].values,
                                 'lat':ecmwf_center['lat'].values,
                                 'windsped':val_wind, 
+                                'pressure':val_pre, 
                                 'ens': val_ensamble})
         ecmwf_df2['YYYYMMDDHH']=ecmwf_df2['time'].apply(lambda x: (date_object + timedelta(hours=x)).strftime("%Y%m%d%H%M") )
         dict1=[]
         ecmwf_df2=ecmwf_df2.replace(['None'],np.nan)
 
         typhoon_df=pd.DataFrame()
-        typhoon_df[['YYYYMMDDHH','LAT','LON','VMAX','STORMNAME','ENSAMBLE']]=ecmwf_df2[['YYYYMMDDHH','lat','lon','windsped','STORMNAME','ens']]
+        typhoon_df[['YYYYMMDDHH','LAT','LON','VMAX','PRESSURE','STORMNAME','ENSAMBLE']]=ecmwf_df2[['YYYYMMDDHH','lat','lon','windsped','pressure','STORMNAME','ens']]
         typhoon_df[['LAT','LON','VMAX']] = typhoon_df[['LAT','LON','VMAX']].apply(pd.to_numeric)
-        typhoon_df['VMAX'] = typhoon_df['VMAX'].apply(lambda x: x*1.94384449) #convert to knotes
-        typhoon_df.to_csv(os.path.join(Input_folder,'ECMWF_%s_%s_%s.csv'%(Input_folder.split('/')[-3],Input_folder.split('/')[-4],model_name)),index=False) 
-        for it,group in ecmwf_df2.groupby(['ens','YYYYMMDDHH']):
-            dff=pd.DataFrame({'YYYYMMDDHH':it[1],
-                              'STORMNAME':Input_folder.split('/')[-4],
-                              'LON':aggregateF(df=group,col='lon')['xmean'],
-                              'LAT':aggregateF(df=group,col='lat')['xmean'],
-                              'Lat_min':aggregateF(df=group,col='lat')['xmin'],
-                              'VMAX':aggregateF(df=group,col='windsped')['xmean'] ,
-                              'Lat_max': aggregateF(df=group,col='lat')['xmax']},index=[it[1]] )
-            dict1.append(dff)
-        ecmwf_df3 = pd.concat(dict1)  
-        ecmwf_df3['model_name']=model_name
-        list_df.append(ecmwf_df3)
-        typhoon_fss=ecmwf_df3[['YYYYMMDDHH','LAT','LON','VMAX','STORMNAME']]
-        typhoon_fss['VMAX'] = typhoon_fss['VMAX'].apply(lambda x: x*1.94384449) #convert to knotes
-        #typhoon_fss.to_csv(os.path.join(Input_folder,'ECMWF_%s_%s_%s.csv'%(Input_folder.split('/')[-3],Input_folder.split('/')[-4],model_name)),index=False) 
-    if len(list_df)>1:
-        df_forecast = pd.concat(list_df)
-    else:
-        df_forecast = list_df[0]
-    typhoon_fs=pd.DataFrame()  #
-    typhoon_fs[['YYYYMMDDHH','LAT','LON','VMAX','STORMNAME','model_name']]=df_forecast[['YYYYMMDDHH','LAT','LON','VMAX','STORMNAME','model_name']]
-    typhoon_fs['VMAX'] = typhoon_fs['VMAX'].apply(lambda x: x*1.94384449) #convert to knotes
-    #typhoon_fs.to_csv( os.path.join(value,'%s_typhoon.csv' % value.split('/')[-1]))
-    #typhoon_fs.to_csv( os.path.join(Input_folder,'UCL_%s_%s.csv' % (Input_folder.split('/')[-3],Input_folder.split('/')[-4])))
-    typhoon_fs.to_csv(os.path.join(Input_folder,'ECMWF_%s_%s.csv'%(Input_folder.split('/')[-3],typhoon_name)),index=False) 
+        typhoon_df['VMAX'] = typhoon_df['VMAX'].apply(lambda x: x*1.94384449*1.05) #convert to knotes
+        typhoon_df.to_csv(os.path.join(Input_folder,'ECMWF_%s_%s_%s.csv'%(Input_folder.split('/')[-3],STORMNAME,model_name)),index=False) 
+    #     for it,group in ecmwf_df2.groupby(['ens','YYYYMMDDHH']):
+    #         dff=pd.DataFrame({'YYYYMMDDHH':it[1],
+    #                           'STORMNAME':STORMNAME,#Input_folder.split('/')[-4],
+    #                           'LON':aggregateF(df=group,col='lon')['xmean'],
+    #                           'LAT':aggregateF(df=group,col='lat')['xmean'],
+    #                           'Lat_min':aggregateF(df=group,col='lat')['xmin'],
+    #                           'VMAX':aggregateF(df=group,col='windsped')['xmean'] ,
+    #                           'Lat_max': aggregateF(df=group,col='lat')['xmax']},index=[it[1]] )
+    #         dict1.append(dff)
+    #     ecmwf_df3 = pd.concat(dict1)  
+    #     ecmwf_df3['model_name']=model_name
+    #     list_df.append(ecmwf_df3)
+    #     typhoon_fss=ecmwf_df3[['YYYYMMDDHH','LAT','LON','VMAX','STORMNAME']]
+    #     typhoon_fss['VMAX'] = typhoon_fss['VMAX'].apply(lambda x: x*1.94384449) #convert to knotes
+    #     typhoon_fss.to_csv(os.path.join(Input_folder,'ECMWF2_%s_%s2.csv'%(Input_folder.split('/')[-3],typhoon_name)),index=False) 
+    #     #typhoon_fss.to_csv(os.path.join(Input_folder,'ECMWF_%s_%s_%s.csv'%(Input_folder.split('/')[-3],Input_folder.split('/')[-4],model_name)),index=False) 
+    # if len(list_df)>1:
+    #     df_forecast = pd.concat(list_df)
+    # else:
+    #     df_forecast = list_df[0]
+    # typhoon_fs=pd.DataFrame()  #
+    # typhoon_fs[['YYYYMMDDHH','LAT','LON','VMAX','STORMNAME','model_name']]=df_forecast[['YYYYMMDDHH','LAT','LON','VMAX','STORMNAME','model_name']]
+    # typhoon_fs['VMAX'] = typhoon_fs['VMAX'].apply(lambda x: x*1.94384449) #convert to knotes
+    # #typhoon_fs.to_csv( os.path.join(value,'%s_typhoon.csv' % value.split('/')[-1]))
+    # #typhoon_fs.to_csv( os.path.join(Input_folder,'UCL_%s_%s.csv' % (Input_folder.split('/')[-3],Input_folder.split('/')[-4])))
+    # typhoon_fs.to_csv(os.path.join(Input_folder,'ECMWF_%s_%s.csv'%(Input_folder.split('/')[-3],typhoon_name)),index=False) 
 
+
+#%%
+path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/'
+#path='home/fbf'
+
+#%%
+ 
+        #  decoder = pybufrkit.decoder.Decoder()
+
+        # if hasattr(file, 'read'):
+        #     bufr = decoder.process(file.read())
+        # elif hasattr(file, 'read_bytes'):
+        #     bufr = decoder.process(file.read_bytes())
+        # elif os.path.isfile(file):
+        #     with open(file, 'rb') as i:
+        #         bufr = decoder.process(i.read())
+        # else:
+        #     raise FileNotFoundError('Check file argument')
+
+        # # setup parsers and querents
+        # npparser = pybufrkit.dataquery.NodePathParser()
+        # data_query = pybufrkit.dataquery.DataQuerent(npparser).query
+
+        # meparser = pybufrkit.mdquery.MetadataExprParser()
+        # meta_query = pybufrkit.mdquery.MetadataQuerent(meparser).query
+
+        # if fcast_rep is None:
+        #     fcast_rep = self._find_delayed_replicator(
+        #         meta_query(bufr, '%unexpanded_descriptors')
+        #     )
+
+        # # query the bufr message
+        # msg = {
+        #     # subset forecast data
+        #     'significance': data_query(bufr, fcast_rep + '> 008005'),
+        #     'latitude': data_query(bufr, fcast_rep + '> 005002'),
+        #     'longitude': data_query(bufr, fcast_rep + '> 006002'),
+        #     'wind_10m': data_query(bufr, fcast_rep + '> 011012'),
+        #     'pressure': data_query(bufr, fcast_rep + '> 010051'),
+        #     'timestamp': data_query(bufr, fcast_rep + '> 004024'),
+
+        #     # subset metadata
+        #     'wmo_longname': data_query(bufr, '/001027'),
+        #     'storm_id': data_query(bufr, '/001025'),
+        #     'ens_type': data_query(bufr, '/001092'),
+        #     'ens_number': data_query(bufr, '/001091'),
+        # }
+
+        # timestamp_origin = dt.datetime(
+        #     meta_query(bufr, '%year'), meta_query(bufr, '%month'),
+        #     meta_query(bufr, '%day'), meta_query(bufr, '%hour'),
+        #     meta_query(bufr, '%minute'),
+        # )
+        # timestamp_origin = np.datetime64(timestamp_origin)
+
+        # if id_no is None:
+        #     id_no = timestamp_origin.item().strftime('%Y%m%d%H') + \
+        #             str(np.random.randint(1e3, 1e4))
+
+        # orig_centre = meta_query(bufr, '%originating_centre')
+        # if orig_centre == 98:
+        #     provider = 'ECMWF'
+        # else:
+        #     provider = 'BUFR code ' + str(orig_centre)
+
+        # for i in msg['significance'].subset_indices():
+        #     name = msg['wmo_longname'].get_values(i)[0].decode().strip()
+        #     track = self._subset_to_track(
+        #         msg, i, provider, timestamp_origin, name, id_no
+        #     )
+        #     if track is not None:
+        #         self.append(track)
+        #     else:
+        #         LOGGER.debug('Dropping empty track %s, subset %d', name, i)
+
+ 
