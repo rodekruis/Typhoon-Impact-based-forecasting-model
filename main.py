@@ -45,10 +45,14 @@ from settings import fTP_LOGIN, fTP_PASSWORD, uCL_USERNAME, uCL_PASSWORD
 from secrets import *
 from variables import *
 from ecmwfDataDownload import Ecmwf_data
+from JtcwDataDownload import Jtcw_data
 from uclDataDownload import ucl_data
 from notification import Sendemail
 from CheckActiveTyphoon import Check_for_active_typhoon
 from RainfallDataDownload import Rainfall_data
+ 
+#from typhoons_tracks_forecast import TCForecast 
+
 #%% 
 
 
@@ -64,7 +68,7 @@ def automation_sript(path):
         Active_typhoon=True#'True'
         #delete_old_files()      
         for typhoons in Activetyphoon:            
-            typhoons='ATSANI'  # to run it manually for any typhoon 
+            #typhoons='SURIGAE'  # to run it manually for any typhoon 
             
             #############################################################
             #### make input output directory for model 
@@ -128,7 +132,7 @@ def automation_sript(path):
             #############################################################
             #### download JTCW data
             #############################################################
-            #Jtcw_data.jtcw_data(Input_folder)
+            Jtcw_data.jtcw_data(Input_folder)
             #line_='JTCW,'+'%s/JTCW_%s_%s.csv' % (Input_folder,Input_folder.split('/')[-3],typhoons )+','+ typhoons #StormName #
             #fname.write(line_+'\n')
             fname.close()
@@ -196,22 +200,5 @@ def automation_sript(path):
     print(str(datetime.now()))
 
 
-#os.chdir(path)
-#%% r
-
-#automation_sript(path)
-for root, subFolders, files in os.walk(Input_folder+'UCL'):
-    for folder in subFolders:
-        if sub_folder.startswith(typhoons):
-            
-    
-sub_folder = [files for root, subFolders, files in os.walk(Input_folder+'UCL') if files.split('_'sub_folder.startswith(typhoons)]
-filne=[fil for fil in listdir(Input_folder+'UCL') if typhoon in listdir(Input_folder+'UCL')]
-
-
-
  
-
-
- 
-#%% r
+#%% 

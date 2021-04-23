@@ -12,7 +12,7 @@ clean_typhoon_data <- function() {
   #-------------------------Examine final dataset---------------------------------
 
 # rangers for randowm forest 
-setwd('C://documents//philipiness//Typhoons//model//new_model')
+
 #-------------------------import dataset---------------------------------
 
 ########################################################################################################## hazard variables 

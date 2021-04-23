@@ -64,7 +64,7 @@ def automation_sript(path):
         Active_typhoon=True#'True'
         #delete_old_files()      
         for typhoons in Activetyphoon:            
-            typhoons='ATSANI'  # to run it manually for any typhoon 
+            typhoons='25W'  # to run it manually for any typhoon 71W 25W
             #typhoons='73W'  # to run it manually for any typhoon 
             
             #############################################################
@@ -195,5 +195,4 @@ def automation_sript(path):
 
     print('---------------------AUTOMATION SCRIPT FINISHED---------------------------------')
     print(str(datetime.now()))
-
 

@@ -97,6 +97,60 @@ create_full_track <- function(hurr_track, tint = 3){
 }
 
 
+create_full_track2 <- function(hurr_track, tint = 3){ 
+  
+  typhoon_name <- as.vector(hurr_track$STORMNAME[1])
+  
+  hurr_track <- hurr_track %>%
+    dplyr::mutate(
+      index                          = 1:nrow(hurr_track),
+      date                           = lubridate::ymd_hm(YYYYMMDDHH),
+      tclat                           = abs(as.numeric(LAT)),
+      tclon                           = as.numeric(LON),
+      tclon                           = ifelse(tclon < 180, tclon, tclon - 180),
+      latitude                       = as.numeric(LAT),#as.numeric(LAT),#sprintf("%03d", LAT)#,#as.numeric(as.character(TRACK_DATA$LAT)),
+      longitude                      = as.numeric(LON),#as.numeric(LON),# as.numeric(as.character(TRACK_DATA$LON)),
+      vmax                           = as.numeric(VMAX)* 0.514444,#1.15078,#mph as.numeric(VMAX),# as.numeric(as.character(TRACK_DATA$VMAX)),
+      typhoon_name                   = tolower(STORMNAME),
+      prcen                           = as.numeric(prcen), #mph to knotes
+      wind                           = as.numeric(VMAX)*0.514444 #mph to knotes 
+    ) %>%
+    dplyr::select(date                                    ,
+                  latitude                                ,
+                  tclat                                   ,
+                  tclon                                   ,
+                  longitude                               ,
+                  typhoon_name                            ,
+                  wind                                    ,
+                  typhoon                                 ,
+                  prcen                                   ,
+                  vmax      ) 
+  
+  interp_df <- (floor(nrow(hurr_track)/2)-1)
+  #interp_df<- 34 # 108 --30    
+  interp_date <- seq(from = min(hurr_track$date),
+                     to = max(hurr_track$date),
+                     by = tint * 3600) # Date time sequence must use `by` in
+  # seconds
+  interp_date <- data.frame(date = interp_date)
+  
+  tclat_spline <- stats::glm(tclat ~ splines::ns(date, df = interp_df),  data = hurr_track)
+  interp_tclat <- stats::predict.glm(tclat_spline, newdata = interp_date)  
+  tclon_spline <- stats::glm(tclon ~ splines::ns(date, df = interp_df),  data = hurr_track)
+  interp_tclon <- stats::predict.glm(tclon_spline, newdata = interp_date)
+  
+  vmax_spline <- stats::glm(vmax ~ splines::ns(date, df = interp_df),    data = hurr_track)
+  interp_vmax <- stats::predict.glm(vmax_spline, newdata = interp_date)
+  
+  p_spline <- stats::glm(prcen ~ splines::ns(date, df = interp_df),    data = hurr_track)
+  interp_p <- stats::predict.glm(p_spline, newdata = interp_date)
+  
+  full_track <- data.frame(typhoon_name=typhoon_name,date = interp_date, tclat = interp_tclat, tclon = interp_tclon, vmax = interp_vmax, prcen = interp_p)
+  return(full_track)
+}
+
+
+
 
 latlon_to_km<- function(tclat_1, tclon_1, tclat_2, tclon_2, Rearth = 6378.14){
   tclat_1 <- degrees_to_radians(tclat_1)
@@ -197,6 +251,46 @@ will10a<-function(vmax_gl, tclat){
 #
 #Next, the code calculates another Willoughby parameter, n. This is done with equation 10b from Willoughby et al. (2006):
 #n=0.406+0.0144Vmax,G? 0.0038? 
+
+npclip <- function(x, lower, upper) {
+  pmax(pmin(x, upper), lower)
+}
+
+hol08<- function(v_trans=tcspd, penv, pcen, prepcen, tlat, tint){
+  hol_xx <- 0.6 * (1. - (penv - pcen) / 215)
+  hol_b <- -4.4e-5 * (penv - pcen)**2 +
+    0.01 * (penv - pcen) +
+    0.03 * (pcen - prepcen) / tint - 0.014 * abs(lat) +
+    0.15 * v_trans**hol_xx + 1.0
+  hol_b<- npclip(hol_b, 1, 2.5)
+  
+
+  return(hol_b)
+}
+
+
+
+
+
+
+ho_stat<- function(d_centr=dist, r_max, hol_b, penv, pcen, tlat, close_centr){
+  rho = 1.15
+  # Coriolis force parameter
+  f_val <- 2 * 0.0000729 * sin(degrees_to_radians(abs(tlat)))
+  # d_centr is in km, convert to m and apply Coriolis force factor
+  d_centr_mult <- 0.5 * 1000 * d_centr * f_val
+  # the factor 100 is from conversion between mbar and pascal
+  r_max_norm <- (r_max / d_centr)**hol_b
+  sqrt_term <- 100 * hol_b / rho * r_max_norm * (penv - pcen) * exp(-r_max_norm) + d_centr_mult**2
+  sqrt_term<- npclip(sqrt_term, 0, sqrt_term)
+  v_ang <- sqrt(sqrt_term) - d_centr_mult
+  return(v_ang)
+}
+
+
+
+
+
 
 will10b<- function(vmax_gl, tclat){
   n <- 0.4067 + 0.0144 * vmax_gl - 0.0038 * tclat
@@ -301,7 +395,7 @@ gradient_to_surface<- function(wind_gl_aa, cdist){
   }
   # Since all counties are over land, reduction factor should
   # be 20% lower than if it were over water
-  reduction_factor <- reduction_factor * 0.8
+  reduction_factor <- 1#reduction_factor * 0.8
   wind_sfc_sym <- wind_gl_aa * reduction_factor
   return(wind_sfc_sym)
 }
