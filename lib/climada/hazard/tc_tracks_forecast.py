@@ -35,7 +35,8 @@ import pandas as pd
 import pybufrkit
 import tqdm
 import xarray as xr
-
+from pybufrkit.renderer import FlatTextRenderer
+from io import StringIO
 # climada dependencies
 from climada.hazard.tc_tracks import (
     TCTracks, set_category, DEF_ENV_PRESSURE, CAT_NAMES
@@ -178,7 +179,10 @@ class TCForecast(TCTracks):
         _ = con.quit()
 
         return localfiles
-
+    def label_en (row,co):
+        if row['code'] == co :
+            return int(row['Data'])
+        return np.nan
     def read_one_bufr_tc(self, file, id_no=None, fcast_rep=None):
         """ Read a single BUFR TC track file.
 
@@ -190,6 +194,8 @@ class TCForecast(TCTracks):
         """
 
         decoder = pybufrkit.decoder.Decoder()
+ 
+
 
         if hasattr(file, 'read'):
             bufr = decoder.process(file.read())
@@ -200,6 +206,161 @@ class TCForecast(TCTracks):
                 bufr = decoder.process(i.read())
         else:
             raise FileNotFoundError('Check file argument')
+        text_data = FlatTextRenderer().render(bufr)
+        
+        # setup parsers and querents
+        #npparser = pybufrkit.dataquery.NodePathParser()
+        #data_query = pybufrkit.dataquery.DataQuerent(npparser).query
+
+        meparser = pybufrkit.mdquery.MetadataExprParser()
+        meta_query = pybufrkit.mdquery.MetadataQuerent(meparser).query
+        timestamp_origin = dt.datetime(
+            meta_query(bufr, '%year'), meta_query(bufr, '%month'),
+            meta_query(bufr, '%day'), meta_query(bufr, '%hour'),
+            meta_query(bufr, '%minute'),
+        )
+        timestamp_origin = np.datetime64(timestamp_origin)
+
+        orig_centre = meta_query(bufr, '%originating_centre')
+        if orig_centre == 98:
+            provider = 'ECMWF'
+        else:
+            provider = 'BUFR code ' + str(orig_centre)
+            
+        list1=[]
+        with StringIO(text_data) as input_data:
+            # Skips text before the beginning of the interesting block:
+            for line in input_data:
+                if line.startswith('<<<<<< section 4 >>>>>>'):  # Or whatever test is needed
+                    break
+            # Reads text until the end of the block:
+            for line in input_data:  # This keeps reading the file
+                if line.startswith('<<<<<< section 5 >>>>>>'):
+                    break
+                list1.append(line)
+         
+
+        list1=[li for li in list1 if li.startswith(" ") or li.startswith("##") ]
+        list2=[]
+        for items in list1:
+            if items.startswith("######"):
+                                list2.append([0,items.split()[1],items.split()[2]])
+            else:
+                list2.append([int(items.split()[0]),items.split()[1],items.split()[-1]])
+
+        df_ = pd.DataFrame(list2,columns=['id','code','Data'])
+        
+        def label_en (row,co):
+           if row['code'] == co :
+              return int(row['Data'])
+           return np.nan
+        
+        df_['subset'] = df_.apply (lambda row: label_en(row,co='subset'), axis=1)
+        df_['subset'] =df_['subset'].fillna(method='ffill')
+        df_['model_sgn'] = df_.apply (lambda row: label_en(row,co='008005'), axis=1)      
+        df_['model_sgn'] =df_['model_sgn'].fillna(method='ffill')
+        df_['model_sgn'] =df_['model_sgn'].fillna(method='bfill')
+
+        for names, group in df_.groupby("subset"):
+            pcen = list(group.query('code in ["010051"]')['Data'].values)
+            latc =  list(group.query('code in ["005002"] and model_sgn in [1]')['Data'].values)
+            lonc =  list(group.query('code in ["006002"] and model_sgn in [1]')['Data'].values)
+            latm =  list(group.query('code in ["005002"] and model_sgn in [3]')['Data'].values)
+            lonm =  list(group.query('code in ["006002"] and model_sgn in [3]')['Data'].values)
+            wind =  list(group.query('code in ["011012"]')['Data'].values)
+            vhr =  list(group.query('code in ["004024"]')['Data'].values)
+            wind=[np.nan if value=='None' else float(value) for value in wind]
+            pre=[np.nan if value=='None' else float(value)/100 for value in pcen]
+            lonm=[np.nan if value=='None' else float(value) for value in lonm]
+            lonc=[np.nan if value=='None' else float(value) for value in lonc]
+            latm=[np.nan if value=='None' else float(value) for value in latm]
+            latc=[np.nan if value=='None' else float(value) for value in latc]
+            vhr=[np.nan if value=='None' else int(value) for value in vhr]
+            
+            timestep_int = np.array(vhr).squeeze() #np.array(msg['timestamp'].get_values(index)).squeeze()
+            timestamp = timestamp_origin + timestep_int.astype('timedelta64[h]')
+            year =  list(group.query('code in ["004001"]')['Data'].values)
+            month =  list(group.query('code in ["004002"]')['Data'].values)
+            day =  list(group.query('code in ["004003"]')['Data'].values)
+            hour =  list(group.query('code in ["004004"]')['Data'].values)
+            #forecs_agency_id =  list(group.query('code in ["001033"]')['Data'].values)
+            storm_name =  list(group.query('code in ["001027"]')['Data'].values)
+            storm_id =  list(group.query('code in ["001025"]')['Data'].values)
+            frcst_type =  list(group.query('code in ["001092"]')['Data'].values)
+            max_radius=np.sqrt(np.square(np.array(latc)-np.array(latm))+np.square(np.array(lonc)-np.array(lonm)))*111
+            date_object ='%04d%02d%02d%02d'%(int(year[0]),int(month[0]),int(day[0]),int(hour[0]))
+            date_object=dt.datetime.strptime(date_object, "%Y%m%d%H")
+            #timestamp=[(date_object + dt.timedelta(hours=int(value))).strftime("%Y%m%d%H") for value in vhr]
+            #timestamp=[dt.datetime.strptime(value, "%Y%m%d%H") for value in timestamp]
+            track = xr.Dataset(
+                    data_vars={
+                            'max_sustained_wind': ('time', wind[1:]),
+                            'central_pressure': ('time', pre[1:]),
+                            'ts_int': ('time', timestep_int),
+                            'max_radius': ('time', max_radius[1:]),
+                            'lat': ('time', latc[1:]),
+                            'lon': ('time', lonc[1:]),
+                            'environmental_pressure':('time', np.full_like(timestamp, DEF_ENV_PRESSURE, dtype=float)),
+                            'radius_max_wind':('time', np.full_like(timestamp, np.nan, dtype=float)),
+                            },
+                            coords={'time': timestamp,
+                                    },
+                                    attrs={
+                                            'max_sustained_wind_unit': 'm/s',
+                                            'central_pressure_unit': 'mb',
+                                            'name': storm_name[0].strip("'"),
+                                            'sid': storm_id[0].split("'")[1],
+                                            'orig_event_flag': False,
+                                            'data_provider': provider,
+                                            'id_no': 'NA',
+                                            'ensemble_number': int(names),
+                                            'is_ensemble': ['TRUE' if frcst_type[0]=='4' else 'False'][0],
+                                            'forecast_time': date_object,
+                                            })
+            track = track.set_coords(['lat', 'lon'])
+            track['time_step'] = track.ts_int - track.ts_int.shift({'time': 1}, fill_value=0)
+            #track = track.drop('ts_int')
+            track.attrs['basin'] = BASINS[storm_id[0].split("'")[1][2].upper()]
+            cat_name = CAT_NAMES[set_category(
+            max_sus_wind=track.max_sustained_wind.values,
+            wind_unit=track.max_sustained_wind_unit,
+            saffir_scale=SAFFIR_MS_CAT)]          
+            track.attrs['category'] = cat_name
+            if track.sizes['time'] == 0:
+                track= None
+            
+            if track is not None:
+                self.append(track)
+            else:
+                LOGGER.debug('Dropping empty track, subset %s', names)
+            
+
+                
+                
+    def read_one_bufr_tc_old(self, file, id_no=None, fcast_rep=None):
+        """ Read a single BUFR TC track file.
+
+        Parameters:
+            file (str, filelike): Path object, string, or file-like object
+            id_no (int): Numerical ID; optional. Else use date + random int.
+            fcast_rep (int): Of the form 1xx000, indicating the delayed
+                replicator containing the forecast values; optional.
+        """
+
+        decoder = pybufrkit.decoder.Decoder()
+ 
+
+
+        if hasattr(file, 'read'):
+            bufr = decoder.process(file.read())
+        elif hasattr(file, 'read_bytes'):
+            bufr = decoder.process(file.read_bytes())
+        elif os.path.isfile(file):
+            with open(file, 'rb') as i:
+                bufr = decoder.process(i.read())
+        else:
+            raise FileNotFoundError('Check file argument')
+
 
         # setup parsers and querents
         npparser = pybufrkit.dataquery.NodePathParser()
@@ -341,10 +502,10 @@ class TCForecast(TCTracks):
         Parameters:
             bufr_message: An in-memory pybufrkit BUFR message
         """
-        delayed_replicators = [
-            d for d in descriptors
-            if 100000 < d < 200000 and d % 1000 == 0
-        ]
+        if len(descriptors) == 1:
+            delayed_replicators=descriptors
+        else:
+            delayed_replicators = [d for d in descriptors if 100000 < d < 200000 and d % 1000 == 0]
 
         if len(delayed_replicators) != 1:
             LOGGER.error('Could not find fcast_rep, please set manually.')

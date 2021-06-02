@@ -41,7 +41,7 @@ def cyclone_in_sublists(cyclone_name, big_list):
 
 
 
-def CXML_to_csv(data, cyclone_names, cyclone_possible_names, results_folder):
+def CXML_to_csv(data, cyclone_possible_names, results_folder):
     
     list_failed1 = []
     # Institute name from filename
@@ -90,7 +90,7 @@ def CXML_to_csv(data, cyclone_names, cyclone_possible_names, results_folder):
                 except:
                     cyclone_name = [' ']
             
-                if cyclone_name and cyclone_in_sublists(cyclone_name[0],cyclone_possible_names)[0] == 1:
+                if cyclone_name in cyclone_possible_names:
             
                     list_data = []
     
