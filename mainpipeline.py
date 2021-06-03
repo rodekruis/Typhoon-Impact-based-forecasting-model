@@ -103,7 +103,7 @@ cent.set_raster_from_pnt_bounds((118,6,127,19), res=0.05)
 cent.check()
 
 ########################################## uncomment the following line to see intermidiate results
-#cent.plot()
+cent.plot()
 ####
 
 admin=gpd.read_file("C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/data-raw/phl_admin3_simpl2.shp")
