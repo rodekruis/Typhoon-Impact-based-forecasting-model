@@ -4,5 +4,5 @@ This tool was developed as trigger mechanism for the typhoon Early action protoc
 The tool is available under the [GPL license](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/blob/master/LICENSE)
 
 ## steps
-    Open mainpipeline.py to run the pipelinefile
+    Open mainpipeline.py to run the pipeline ... 
 
