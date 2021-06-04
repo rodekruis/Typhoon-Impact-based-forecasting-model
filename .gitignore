@@ -144,6 +144,7 @@ cython_debug/
 forecast/
 typhoon_infographic/
 old_scripts/
+models/other_models/*
 lib/secrets.py
 lib/settings.py
 lib/variables.py
