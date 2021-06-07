@@ -177,6 +177,8 @@ df_imact_forecast <- as.data.frame(y_predicted) %>%dplyr::mutate(index= 1:length
 ####################################################################################################
 # ------------------------ calculate probability   -----------------------------------
 
+number_ensambles<-length(unique(df_imact_forecast$GEN_typhoon_id))
+
 df_damage  <- aggregate(df_imact_forecast$dm_90k, by=list(adm3_pcode=df_imact_forecast$GEN_mun_code), FUN=sum)%>%
   dplyr::mutate(probability_90k=50*x/number_ensambles)%>%dplyr::select(adm3_pcode,probability_90k)%>%
   left_join(aggregate(df_imact_forecast$dm_60k, by=list(adm3_pcode=df_imact_forecast$GEN_mun_code), FUN=sum)%>%
@@ -189,6 +191,7 @@ df_damage  <- aggregate(df_imact_forecast$dm_90k, by=list(adm3_pcode=df_imact_fo
 
 
 event_impact <- df_imact_forecast%>%left_join(df_damage,by='GEN_mun_code')
+
 event_impact <- php_admin3%>%left_join(event_impact,by='adm3_pcode')
 
 
