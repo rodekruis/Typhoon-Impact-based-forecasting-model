@@ -1,4 +1,5 @@
 #!/usr/bin/env Rscript
+args = commandArgs(trailingOnly=TRUE)
 #options(warn=-1)
 suppressMessages(library(stringr))
 suppressMessages(library(ggplot2))
@@ -14,8 +15,8 @@ suppressMessages(library(plyr))
 suppressMessages(library(lubridate))
 suppressMessages(library(rNOMADS))
 suppressMessages(library(ncdf4))
-
-args = commandArgs(trailingOnly=TRUE)
+suppressMessages(library(huxtable))
+suppressMessages(library(xgboost))
 rainfall_error = args[1]
 
 path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/'
@@ -114,10 +115,10 @@ typhoon_hazard <- wind_grid%>%
 data_new_typhoon1 <- geo_variable %>%
   left_join(material_variable2 %>% dplyr::select(-Region,-Province,-Municipality_City), by = "Mun_Code") %>%
   left_join(data_matrix_new_variables , by = "Mun_Code") %>%
-  left_join(typhoon_hazard , by = "Mun_Code") 
+  left_join(typhoon_hazard , by = "Mun_Code")%>%na.omit() 
 
 
-data <- clean_typhoon_forecast_data_ensamble(data_new_typhoon1)%>%na.omit() # Randomforests don't handle NAs, you can impute in the future 
+data <- clean_typhoon_forecast_data_ensamble(data_new_typhoon1)#%>%na.omit() # Randomforests don't handle NAs, you can impute in the future 
 
 model_input<-data%>%dplyr::select(-GEN_typhoon_name,
                                   -GEN_typhoon_id,
@@ -145,70 +146,74 @@ xgb_test     <- xgb.DMatrix(data=test_x)
 y_predicted  <- predict(xgmodel, xgb_test)
 
 
-df_imact_forecast <- as.data.frame(y_predicted) %>%dplyr::mutate(index= 1:length(y_predicted),impact=y_predicted)%>%
-  left_join(data , by = "index") %>%dplyr::mutate(dist50=ifelse(WEA_dist_track >= 50,0,1),
-                impact1=ifelse(impact >= 80,80,impact),
-                Damaged_houses=as.integer(GEO_n_households*impact1*0.01),
-                dm_low=ifelse(Damaged_houses > 0,1,0),
-                dm_110k=ifelse(Damaged_houses >= 110000,4,0),
-                dm_60k=ifelse(Damaged_houses >= 62000,1,0),
-                dm_90k=ifelse(Damaged_houses >= 90000,2,0))%>%filter(WEA_dist_track<100)%>%
-  dplyr::select(index,
-                GEN_mun_code,
-                GEN_mun_name,
-                GEO_n_households,
-                GEN_typhoon_name,
-                GEN_typhoon_id,
-                WEA_dist_track,
-                WEA_vmax_sust_mhp,
-                #GEN_mun_code,
-                impact,
-                dm_90k,
-                dm_60k,
-                dm_110k,
-                dm_low,
-                dist50,
-                Damaged_houses
-                #GEN_typhoon_name,
-                #GEN_typhoon_id,
-                )%>%drop_na()
 
+df_imact_forecast <- as.data.frame(y_predicted)%>%
+  dplyr::mutate(index= 1:length(y_predicted),
+                impact=y_predicted)%>%left_join(data , by = "index")%>%dplyr::mutate(dist50=ifelse(WEA_dist_track >= 50,0,1),
+                                                                                     e_impact=ifelse(impact > 100,100,impact),
+                                                         Damaged_houses=as.integer(GEO_n_households*e_impact*0.01),
+)%>%filter(WEA_dist_track<500)%>%dplyr::select(index,
+                                             GEN_mun_code,
+                                             GEN_mun_name,
+                                             GEO_n_households,
+                                             GEN_typhoon_name,
+                                             GEN_typhoon_id,
+                                             WEA_dist_track,
+                                             WEA_vmax_sust_mhp,
+                                             #GEN_mun_code,
+                                             e_impact,
+                                             dist50,
+                                             Damaged_houses
+                                             #GEN_typhoon_name,
+                                             #GEN_typhoon_id,
+  )%>%drop_na()
 
-####################################################################################################
-# ------------------------ calculate probability   -----------------------------------
+# ------------------------ calculate average impact vs probability   -----------------------------------
 
 number_ensambles<-length(unique(df_imact_forecast$GEN_typhoon_id))
 
-df_damage  <- aggregate(df_imact_forecast$dm_90k, by=list(adm3_pcode=df_imact_forecast$GEN_mun_code), FUN=sum)%>%
-  dplyr::mutate(probability_90k=50*x/number_ensambles)%>%dplyr::select(adm3_pcode,probability_90k)%>%
-  left_join(aggregate(df_imact_forecast$dm_60k, by=list(adm3_pcode=df_imact_forecast$GEN_mun_code), FUN=sum)%>%
-  dplyr::mutate(probability_60k=100*x/number_ensambles)%>%dplyr::select(adm3_pcode,probability_60k),by='adm3_pcode')%>%
-  left_join(aggregate(df_imact_forecast$dm_110k, by=list(adm3_pcode=df_imact_forecast$GEN_mun_code), FUN=sum)%>%
-              dplyr::mutate(probability_110k=25*x/number_ensambles)%>%dplyr::select(adm3_pcode,probability_110k),by='adm3_pcode')%>%
-  left_join(aggregate(df_imact_forecast$dist50, by=list(adm3_pcode=df_imact_forecast$GEN_mun_code), FUN=sum)%>%
-              dplyr::mutate(probability_dist50=100*x/number_ensambles)%>%dplyr::select(adm3_pcode,probability_dist50),by='adm3_pcode')%>%
-  dplyr::mutate(GEN_mun_code=adm3_pcode)
+df_imact_dist50  <- aggregate(df_imact_forecast$dist50, by=list(GEN_mun_code=df_imact_forecast$GEN_mun_code), FUN=sum)%>%
+  dplyr::mutate(probability_dist50=100*x/number_ensambles)%>%dplyr::select(GEN_mun_code,probability_dist50)%>%
+  left_join(aggregate(df_imact_forecast$e_impact, by=list(GEN_mun_code=df_imact_forecast$GEN_mun_code), FUN=sum)%>%
+              dplyr::mutate(impact=x/number_ensambles)%>%dplyr::select(GEN_mun_code,impact),by='GEN_mun_code')%>%
+  left_join(aggregate(df_imact_forecast$WEA_dist_track, by=list(GEN_mun_code=df_imact_forecast$GEN_mun_code), FUN=sum)%>%
+              dplyr::mutate(WEA_dist_track=x/number_ensambles)%>%dplyr::select(GEN_mun_code,WEA_dist_track),by='GEN_mun_code')
+
+df_impact<-df_imact_forecast%>%left_join(df_imact_dist50,by='GEN_mun_code')
+
+ 
+####################################################################################################
 
 
-event_impact <- df_imact_forecast%>%left_join(df_damage,by='GEN_mun_code')
+# ------------------------ calculate and plot probability   -----------------------------------
 
-event_impact <- php_admin3%>%left_join(event_impact,by='adm3_pcode')
-
-
-Typhoon_stormname <- as.character(unique(wind_grid$name)[1])
-
-maps <- Make_maps_ens(php_admin1,event_impact,track,TYF='ECMWF',Typhoon_stormname)
+df_imact_forecast%>%group_by(GEN_typhoon_id)%>%
+  dplyr::summarise(CDamaged_houses = sum(Damaged_houses))%>%
+  dplyr::mutate(DM_CLASS = ifelse(CDamaged_houses >= 100000,4,
+                                  ifelse(CDamaged_houses >= 80000,3,
+                                         ifelse(CDamaged_houses >= 50000,2,
+                                                ifelse(CDamaged_houses >= 30000,1, 0)))))%>%
+  ungroup()%>%dplyr::summarise(VH_100K = round(100*sum(DM_CLASS>=4)/52),
+                   H_80K = round(100*sum(DM_CLASS>=3)/52),
+                   M_50K = round(100*sum(DM_CLASS >=2)/52),
+                   L_30K = round(100*sum(DM_CLASS>=1)/52))#%>%as_hux()%>%set_text_color(1, everywhere, "blue")%>%theme_article()%>%set_caption("PROBABILITY FOR THE NUMBER OF COMPLETELY DAMAGED BUILDINGS") 
   
 
 
 
+
+
+# ------------------------ calculate probability   -----------------------------------
+
+event_impact <- php_admin3%>%left_join(df_imact_dist50%>%dplyr::mutate(adm3_pcode=GEN_mun_code),by='adm3_pcode')
+
+Typhoon_stormname <- as.character(unique(wind_grid$name)[1])
+#maps <- Make_maps_ens(php_admin1,event_impact,track,TYF='ECMWF',Typhoon_stormname)
+
 ####################################################################################################
 # ------------------------ save impact data to file   -
  
-tmap_save(maps, 
-          filename = paste0(Output_folder,'Impact_','_',forecast_time,'_',  Typhoon_stormname,'.png'),
-          width=20, height=24,dpi=600,
-          units="cm")
+#tmap_save(maps,filename = paste0(Output_folder,'Impact_','_',forecast_time,'_',  Typhoon_stormname,'.png'), width=20, height=24,dpi=600,units="cm")
 
 ####################################################################################################
 # ------------------------ save impact data to file   -----------------------------------
@@ -218,7 +223,7 @@ write.csv(event_impact, file = paste0(Output_folder,'Impact_','_',forecast_time,
 file_names<- c(paste0(Output_folder,'Impact_','_',forecast_time,'_',  Typhoon_stormname,'.png'),
                paste0(Output_folder,'Impact_','_',forecast_time,'_',  Typhoon_stormname,'.csv'))
  
-write.table(file_names, file =paste0(main_directory, 'forecast/',Typhoon_stormname,'_',forecast_time,'_file_names.csv'),append=TRUE, col.names = FALSE)
+write.table(file_names, file =paste0(Output_folder,'model_output_file_names.csv'),append=TRUE, col.names = FALSE)
 
 
 

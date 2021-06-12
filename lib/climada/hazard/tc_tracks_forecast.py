@@ -314,7 +314,7 @@ class TCForecast(TCTracks):
                                             'data_provider': provider,
                                             'id_no': 'NA',
                                             'ensemble_number': int(names),
-                                            'is_ensemble': ['TRUE' if frcst_type[0]=='4' else 'False'][0],
+                                            'is_ensemble': ['TRUE' if frcst_type[0]!='0' else 'False'][0],
                                             'forecast_time': date_object,
                                             })
             track = track.set_coords(['lat', 'lon'])

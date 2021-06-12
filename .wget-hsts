@@ -1,4 +1,4 @@
 # HSTS 1.0 Known Hosts database for GNU Wget.
 # Edit at your own risk.
 # <hostname>	<port>	<incl. subdomains>	<created>	<max-age>
-nomads.ncep.noaa.gov	0	1	1622709159	31536000
+nomads.ncep.noaa.gov	0	1	1623420568	31536000
