@@ -38,6 +38,7 @@ source('lib_r/Read_rainfall_v2.R')
 source('lib_r/Model_input_processing.R')
 source('lib_r/run_prediction_model.R')
 source('lib_r/Make_maps_ens.R')
+source('lib_r/Make_maps.R')
 
 source('lib_r/Check_landfall_time.R')
 
@@ -66,9 +67,10 @@ typhoon_info_for_model <- read.csv(paste0(main_directory,"/forecast/Input/typhoo
 #typhoon_events <- read.csv(paste0(main_directory,'/forecast/Input/typhoon_info_for_model.csv')) 
 
 
-rain_directory<-as.character(typhoon_info_for_model[typhoon_info_for_model$source=='Rainfall',]$filename)
-windfield_data<-as.character(typhoon_info_for_model[typhoon_info_for_model$source=='windfield',]$filename)
-ECMWF_<-as.character(typhoon_info_for_model[typhoon_info_for_model$source=='ecmwf',]$filename)
+rain_directory <- as.character(typhoon_info_for_model[typhoon_info_for_model$source=='Rainfall',]$filename)
+windfield_data <- as.character(typhoon_info_for_model[typhoon_info_for_model$source=='windfield',]$filename)
+ECMWF_ <- as.character(typhoon_info_for_model[typhoon_info_for_model$source=='ecmwf',]$filename)
+TRACK_DATA <- read.csv(ECMWF_)#%>%dplyr::mutate(STORMNAME=Typhoon_stormname, YYYYMMDDHH=format(strptime(YYYYMMDDHH, format = "%Y-%m-%d %H:%M:%S"), '%Y%m%d%H%00'))
 
 Output_folder<-as.character(typhoon_info_for_model[typhoon_info_for_model$source=='Output_folder',]$filename)
 forecast_time<-as.character(typhoon_info_for_model[typhoon_info_for_model$source=='ecmwf',]$time)
@@ -130,10 +132,6 @@ model_input<-data%>%dplyr::select(-GEN_typhoon_name,
                                   -contains('DAM_'),
                                   -GEN_mun_name)
 
-TRACK_DATA<-read.csv(ECMWF_)%>%dplyr::mutate(STORMNAME='NA',
-                                             YYYYMMDDHH=format(strptime(YYYYMMDDHH, format = "%Y-%m-%d %H:%M:%S"), '%Y%m%d%H%00'))
- 
-track <- track_interpolation(TRACK_DATA) 
 
 
 
@@ -207,8 +205,17 @@ df_imact_forecast%>%group_by(GEN_typhoon_id)%>%
 
 event_impact <- php_admin3%>%left_join(df_imact_dist50%>%dplyr::mutate(adm3_pcode=GEN_mun_code),by='adm3_pcode')
 
+
+
+
 Typhoon_stormname <- as.character(unique(wind_grid$name)[1])
-#maps <- Make_maps_ens(php_admin1,event_impact,track,TYF='ECMWF',Typhoon_stormname)
+
+
+
+track <- track_interpolation(TRACK_DATA) %>%dplyr::mutate(Data_Provider='ECMWF_HRS')
+
+ 
+maps <- Make_maps_avg(php_admin1,event_impact,track,TYF='ECMWF',Typhoon_stormname)
 
 ####################################################################################################
 # ------------------------ save impact data to file   -
@@ -223,7 +230,7 @@ write.csv(event_impact, file = paste0(Output_folder,'Impact_','_',forecast_time,
 file_names<- c(paste0(Output_folder,'Impact_','_',forecast_time,'_',  Typhoon_stormname,'.png'),
                paste0(Output_folder,'Impact_','_',forecast_time,'_',  Typhoon_stormname,'.csv'))
  
-write.table(file_names, file =paste0(Output_folder,'model_output_file_names.csv'),append=TRUE, col.names = FALSE)
+write.table(file_names, file =paste0(Output_folder,'model_output_file_names.csv'),sep=';',append=FALSE, col.names = FALSE)
 
 
 

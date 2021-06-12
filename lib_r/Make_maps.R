@@ -104,6 +104,7 @@ Make_maps<-function(php_admin1,php_admin3_,my_track,tc_tracks,TYF,Typhoon_stormn
 
 
 Make_maps_avg<-function(php_admin1,php_admin3_,my_track,TYF,Typhoon_stormname){
+
   
   ################################### Make maps #########
   Landfall_check <- st_intersection(php_admin1, my_track)
