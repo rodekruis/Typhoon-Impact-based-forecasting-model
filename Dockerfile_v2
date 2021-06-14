@@ -1,6 +1,8 @@
 FROM ubuntu:18.04
 ARG DEBIAN_FRONTEND=noninteractive
 
+
+
 # Set up basics
 RUN apt-get update
 RUN apt-get install -y software-properties-common nano sudo wget
@@ -67,7 +69,9 @@ RUN Rscript -e "install.packages('ncdf4', repos='http://cran.us.r-project.org')"
 RUN Rscript -e "install.packages('xgboost', repos='http://cran.us.r-project.org')"
 RUN Rscript -e "install.packages('huxtable', repos='http://cran.us.r-project.org')"
 
-
+FROM conda/miniconda3
+RUN conda install -c conda-forge cfgrib=proj=7.0.0
+ 
 # install python dependencies
 COPY requirements.txt /home/fbf/
 RUN pip install -r requirements.txt

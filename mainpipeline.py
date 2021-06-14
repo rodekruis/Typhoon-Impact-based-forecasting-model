@@ -39,8 +39,8 @@ import geopandas as gpd
 import xarray as xr
 
 decoder = Decoder()
-path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/'
-##Path='home/fbf/'
+#path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/'
+Path='home/fbf/'
 
 #%%
 sys.path.insert(0, path+'lib')
