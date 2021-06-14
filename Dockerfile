@@ -16,11 +16,18 @@ RUN mkdir --parents /home/fbf/
 WORKDIR /home/fbf/
 
 # prerequisite script for R-package 'tmap'
-COPY tmap_ubuntu_installation_18.sh  /home/fbf/
-RUN chmod +x tmap_ubuntu_installation_18.sh && bash -c "./tmap_ubuntu_installation_18.sh"
-
-COPY ncdf4_1.13.tar.gz  /home/fbf/
-R CMD INSTALL /home/fbf/ncdf4_1.9.tar.gz
+RUN apt-get install -y libgdal-dev
+RUN apt-get install -y libgeos-dev
+RUN apt-get install -y libproj-dev
+RUN apt-get install -y libudunits2-dev
+RUN apt-get install -y libv8-dev
+RUN apt-get install -y libjq-dev
+RUN apt-get install -y libprotobuf-dev
+RUN apt-get install -y protobuf-compiler
+RUN apt-get install -y libssl-dev
+RUN apt-get install -y libcairo2-dev
+#COPY tmap_ubuntu_installation_18.sh  /home/fbf/
+#RUN chmod +x tmap_ubuntu_installation_18.sh && bash -c "./tmap_ubuntu_installation_18.sh"
 
 # install R and R-packages
 RUN apt install -y apt-transport-https software-properties-common
@@ -67,6 +74,17 @@ RUN Rscript -e "install.packages('ncdf4', repos='http://cran.us.r-project.org')"
 RUN Rscript -e "install.packages('xgboost', repos='http://cran.us.r-project.org')"
 RUN Rscript -e "install.packages('huxtable', repos='http://cran.us.r-project.org')"
 
+ENV PATH="/home/fbf/miniconda3/bin:${PATH}"
+ARG PATH="/home/fbf/miniconda3/bin:${PATH}"
+RUN apt-get update
+RUN apt-get install -y wget && rm -rf /var/lib/apt/lists/*
+
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+    && mkdir /root/.conda \
+    && bash Miniconda3-latest-Linux-x86_64.sh -b \
+    && rm -f Miniconda3-latest-Linux-x86_64.sh 
+	
+RUN conda install -c conda-forge cfgrib=proj=7.0.0	
 
 # install python dependencies
 COPY requirements.txt /home/fbf/
