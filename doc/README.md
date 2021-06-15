@@ -89,15 +89,16 @@ sudo vim lib/setting.py cp
 
 Start up application:
 ```
-docker build -t fbf-phv2 .
-docker run --rm --name=fbf-phv2 -v ${PWD}:/home/fbf -it fbf-phv2 bash
+docker build -t fbf-phv3 .
+docker run --rm --name=fbf-phv3 -v ${PWD}:/home/fbf -it fbf-phv3 bash
 ```
 If entering the container a 2nd time or later:
 ```
-docker exec -it fbf-phv2 /bin/bash
+docker exec -it fbf-phv3 /bin/bash
 ```
 or (if unstarted)
 ```
+
 docker start -i fbf-phv2
 ```
 To edit files within the container first install vim 
@@ -109,7 +110,7 @@ apt-get install vim
 
 To start code manually from inside container
 ```
-python3 main.py
+python3 mainpipeline.py
 ```
 
 To inspect the logs (e.g. when getting an email about errors), run from inside the container:

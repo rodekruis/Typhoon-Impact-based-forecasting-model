@@ -3,8 +3,10 @@
 This tool was developed as trigger mechanism for the typhoon Early action protocol of the philipiness resdcross FbF project. The model will predict the potential damage of a typhoon before landfall, the prediction will be percentage of completely damaged houses per manuciplaity.
 The tool is available under the [GPL license](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/blob/master/LICENSE)
 
-## steps
-    Open mainpipeline.py to run the pipeline ... 
+## Pipeline
+    The main script for the pipeline is mainpipeline.py 
+	After setting the python R inviroment listed in the requirement file 
+	mainpipeline.py can be run from a command line via python3 mainpipeline.py... 
 	
 	
 ## Instructions to Build,Update and Run Docker image
@@ -47,7 +49,7 @@ apt-get install vim
 
 To start code manually from inside container
 ```
-python3 main.py
+python3 mainpipeline.py
 ```
 
 To inspect the logs (e.g. when getting an email about errors), run from inside the container:

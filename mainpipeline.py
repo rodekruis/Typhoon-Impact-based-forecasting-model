@@ -270,12 +270,12 @@ def automation_sript(path):
         if platform == "linux" or platform == "linux2": #check if running on linux or windows os
             # linux
             try:
-                p = subprocess.check_call(["Rscript", "run_model_v2.R", str(rainfall_error)])
+                p = subprocess.check_call(["Rscript", "run_model_V2.R", str(rainfall_error)])
             except subprocess.CalledProcessError as e:
                 raise ValueError(str(e))
         elif platform == "win32": #if OS is windows edit the path for Rscript
             try:
-                p = subprocess.check_call(["C:/Program Files/R/R-4.1.0/bin/Rscript", "run_model_v2.R", str(rainfall_error)])
+                p = subprocess.check_call(["C:/Program Files/R/R-4.1.0/bin/Rscript", "run_model_V2.R", str(rainfall_error)])
             except subprocess.CalledProcessError as e:
                 raise ValueError(str(e))
             
