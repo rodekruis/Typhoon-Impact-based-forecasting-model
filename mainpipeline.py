@@ -40,7 +40,7 @@ import xarray as xr
 
 decoder = Decoder()
 #path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/'
-Path='home/fbf/'
+path='home/fbf/'
 
 #%%
 sys.path.insert(0, path+'lib')
@@ -123,7 +123,7 @@ cent.check()
 cent.plot()
 ####
 
-admin=gpd.read_file("C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/data-raw/phl_admin3_simpl2.shp")
+admin=gpd.read_file("./data-raw/phl_admin3_simpl2.shp")
 df = pd.DataFrame(data=cent.coord)
 df["centroid_id"] = "id"+(df.index).astype(str)  
 centroid_idx=df["centroid_id"].values

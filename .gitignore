@@ -141,6 +141,8 @@ cython_debug/
 .idea/
 
 # Cutsom by Aki
+PostLandfallAnalysis/
+analysis/
 forecast/
 typhoon_infographic/
 old_scripts/
