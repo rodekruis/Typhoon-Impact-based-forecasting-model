@@ -20,7 +20,7 @@ suppressMessages(library(xgboost))
 rainfall_error = args[1]
 
 #path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/'
-path='home/fbf/'
+path='/home/fbf/'
 main_directory<-path
 
 

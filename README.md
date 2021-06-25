@@ -43,9 +43,10 @@ Then run:
 docker build -t rodekruis510/typhoonibf .
 ```
 
+## Running
 To spin up and enter the docker container, execute:
 ```
-docker run --rm --name=rodekruis510/typhoonibf -v ${PWD}:/home/fbf -it rodekruis510/typhoonibf bash
+docker run --rm -it --name=fbf-phv3 -v ${PWD}:/home/fbf  rodekruis510/typhoonibf bash
 ```
 Each time you need to re-enter the container, you can run:
 ```
