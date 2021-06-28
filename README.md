@@ -48,10 +48,6 @@ To spin up and enter the docker container, execute:
 ```
 docker run --rm -it --name=fbf-phv3 -v ${PWD}:/home/fbf  rodekruis510/typhoonibf bash
 ```
-Each time you need to re-enter the container, you can run:
-```
-docker exec -it fbf-phv3 /bin/bash
-```
 To run the pipeline, enter the container and execute:
 ```
 python3 mainpipeline.py
