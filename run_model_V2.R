@@ -18,6 +18,7 @@ suppressMessages(library(ncdf4))
 suppressMessages(library(huxtable))
 suppressMessages(library(xgboost))
 rainfall_error = args[1]
+sf_use_s2(FALSE)
 
 #path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/'
 path='/home/fbf/'
