@@ -1,3 +1,9 @@
+import os
+import requests
+import subprocess
+
+from bs4 import BeautifulSoup
+
 def download_rainfall_nomads(Input_folder,path,Alternative_data_point):
     """
     download rainfall 
@@ -46,7 +52,7 @@ def download_rainfall_nomads(Input_folder,path,Alternative_data_point):
             print(batch_ex)
             p = subprocess.call(batch_ex ,cwd=path)
         
-    rain_files = [f for f in listdir(rainfall_path) if isfile(join(rainfall_path, f))]
+    rain_files = [f for f in os.listdir(rainfall_path) if os.path.isfile(os.path.join(rainfall_path, f))]
     os.chdir(rainfall_path)
     pattern1='.pgrb2a.0p50.bc_06h'
     pattern2='.pgrb2a.0p50.bc_24h'

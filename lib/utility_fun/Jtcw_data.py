@@ -1,18 +1,13 @@
 import re
-import shutil
-import sys
 import os
-from lxml import etree
-from os.path import relpath
+from datetime import datetime
+
 from bs4 import BeautifulSoup
 import requests
-from os import listdir
-from os.path import isfile, join
-from sys import platform
-import xml.etree.ElementTree as ET
 import lxml.etree as ET2
 import pandas as pd
-from datetime import datetime
+
+
 def jtcw_data(Input_folder):
     parser = ET2.XMLParser(recover=True)#
     output=[] 
@@ -48,7 +43,7 @@ def jtcw_data(Input_folder):
         Gust_wind=[float(item.split(',')[1]) for item in index_list_wd]
         easting=[float(item.split(',')[1].split(' ')[2][:-1]) for item in index_list_id]
         northing=[float(item.split(',')[1].split(' ')[1][:-1]) for item in index_list_id]
-        YYYYMM='{0:02d}'.format(date.today().year)+'{0:02d}'.format(date.today().month)
+        YYYYMM='{0:02d}'.format(datetime.today().year)+'{0:02d}'.format(datetime.today().month)
         YYYYMMDDHH=[YYYYMM+item.split(',')[0].replace(" ","")[:-1] for item in index_list_id]
         
         YYYYMMDDHH=[datetime.strptime(item, "%Y%m%d%H%M").strftime("%Y%m%d%H%M") for item in YYYYMMDDHH]

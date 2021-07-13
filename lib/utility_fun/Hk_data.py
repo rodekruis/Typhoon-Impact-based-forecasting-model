@@ -1,16 +1,11 @@
-import re
-import shutil
-import sys
 import os
-from lxml import etree
-from os.path import relpath
-from bs4 import BeautifulSoup
 import requests
-from os import listdir
-from os.path import isfile, join
-from sys import platform
+
+from bs4 import BeautifulSoup
+
 
 def download_hk(Input_folder):
+    # TODO: Figure out parser variable
     HKfeed =  BeautifulSoup(requests.get('https://www.weather.gov.hk/wxinfo/currwx/tc_list.xml').content,parser=parser,features="lxml")#'html.parser')
     trac_data=[]
     try:

@@ -1,17 +1,11 @@
 from ftplib import FTP
-import sys
 import os
-import re
-import zipfile
-from pybufrkit.renderer import FlatTextRenderer
-from sys import platform
 import urllib.request
 import requests
-from bs4 import BeautifulSoup
-from os.path import relpath
 import subprocess
-from os import listdir
-from os.path import isfile, join
+from datetime import datetime
+
+from bs4 import BeautifulSoup
 
 
 def url_is_alive(url):
@@ -54,6 +48,7 @@ def download_rainfall(Input_folder):
         ftp.cwd(path2)
         filelist = ftp.nlst()
         for file in filelist:
+            # TODO: Find what the file_pattern variable should be
             if ((file_pattern in file) and file.endswith('.grib2')):
                 ftp.retrbinary("RETR " + file, open(os.path.join(rainfall_path,'rainfall_forecast.grib2'),"wb").write)
                 print(file + " downloaded")
@@ -63,7 +58,8 @@ def download_rainfall(Input_folder):
         rainfall_error=True
         pass
     ftp.quit()
-    
+
+
 def download_rainfall_nomads(Input_folder,path,Alternative_data_point):
     """
     download rainfall 
@@ -95,7 +91,7 @@ def download_rainfall_nomads(Input_folder,path,Alternative_data_point):
         rainfall_24.extend(rainfall_06)
         for rain_file in rainfall_24:
             print(rain_file)
-            output_file= os.path.join(relpath(rainfall_path,path),rain_file.split('/')[-1]+'.grib2')
+            output_file= os.path.join(os.path.relpath(rainfall_path,path),rain_file.split('/')[-1]+'.grib2')
             #output_file= os.path.join(rainfall_path,rain_file.split('/')[-1]+'.grib2')
             batch_ex="wget -O %s %s" %(output_file,rain_file)
             os.chdir(path)
@@ -110,13 +106,13 @@ def download_rainfall_nomads(Input_folder,path,Alternative_data_point):
         rainfall_24.extend(rainfall_06)
         for rain_file in rainfall_24:
             #output_file= os.path.join(rainfall_path,rain_file.split('/')[-1]+'.grib2')
-            output_file= os.path.join(relpath(rainfall_path,path),rain_file.split('/')[-1]+'.grib2')
+            output_file= os.path.join(os.path.relpath(rainfall_path,path),rain_file.split('/')[-1]+'.grib2')
             batch_ex="wget -O %s %s" %(output_file,rain_file)
             os.chdir(path)
             print(batch_ex)
             p = subprocess.call(batch_ex ,cwd=path)
         
-    rain_files = [f for f in listdir(rainfall_path) if isfile(join(rainfall_path, f))]
+    rain_files = [f for f in os.listdir(rainfall_path) if os.path.isfile(os.path.join(rainfall_path, f))]
     os.chdir(rainfall_path)
     pattern1='.pgrb2a.0p50.bc_06h'
     pattern2='.pgrb2a.0p50.bc_24h'

@@ -4,21 +4,11 @@ Created on Thu Oct 29 09:15:52 2020
 
 @author: ATeklesadik
 """
-import re
 import zipfile
-from ftplib import FTP
-import shutil
-import sys
 import os
-import xml.etree.ElementTree as ET
 import lxml.etree as ET2
 from os.path import relpath
-from bs4 import BeautifulSoup
-import requests
 from os import listdir
-from os.path import isfile, join
-from sys import platform
-#from settings import fTP_LOGIN, fTP_PASSWORD, uCL_USERNAME, uCL_PASSWORD
 import time
 import subprocess
 import geopandas as gpd
