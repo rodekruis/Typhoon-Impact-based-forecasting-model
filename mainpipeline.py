@@ -11,12 +11,17 @@ import os
 from datetime import datetime, timedelta
 from sys import platform
 import subprocess
+import logging
 
 import pandas as pd
 from pybufrkit.decoder import Decoder
 import numpy as np
 from geopandas.tools import sjoin
 import geopandas as gpd
+
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s | %(name)s | %(levelname)s | %(message)s')
+logger = logging.getLogger(__name__)
 
 decoder = Decoder()
 #path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/'
@@ -75,12 +80,12 @@ if not os.path.exists(Output_folder):
 #download NOAA rainfall
 
 
-try:
-    Rainfall_data.download_rainfall_nomads(Input_folder,path,Alternative_data_point)
-    rainfall_error=False
-except:
-    rainfall_error=True
-    pass
+#try:
+Rainfall_data.download_rainfall_nomads(Input_folder,path,Alternative_data_point)
+rainfall_error=False
+#except:
+#rainfall_error=True
+#    pass
 
 ###### download UCL data
     
