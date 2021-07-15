@@ -20,8 +20,7 @@ import geopandas as gpd
 
 decoder = Decoder()
 #path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/'
-#path='/home/fbf/'
-path="./"
+path='/home/fbf/'
 
 #%%
 sys.path.insert(0, path+'lib')
