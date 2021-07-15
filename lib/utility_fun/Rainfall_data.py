@@ -39,7 +39,6 @@ def download_rainfall_nomads(Input_folder, path, Alternative_data_point, use_wgr
     url1 = f"{url_base}{Input_folder.split('/')[-3][:-2]}/"  # Use the timestamp of the input folder for the query
     url2 = f"{url_base}{Alternative_data_point}/"  # Yesterday's date
 
-
     try:
         logger.info("Trying to get rainfall from today's date")
         get_grib_files(url1, path, rainfall_path)
@@ -61,7 +60,6 @@ def download_rainfall_nomads(Input_folder, path, Alternative_data_point, use_wgr
 
 def get_grib_files(url, path, rainfall_path):
     base_urls = []
-    logger.info(f'base_urls')
     for items in listFD(url):
         if url_is_alive(items+'prcp_bc_gb2/'):
             base_urls.append(items)

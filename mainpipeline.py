@@ -19,9 +19,14 @@ import numpy as np
 from geopandas.tools import sjoin
 import geopandas as gpd
 
-logging.basicConfig(level=logging.INFO,
+# Set up logger
+level = logging.INFO
+logging.basicConfig(level=level,
                     format='%(asctime)s | %(name)s | %(levelname)s | %(message)s')
 logger = logging.getLogger(__name__)
+# Stop some overly verbose packages
+for package in ["pybufrkit"]:
+    logging.getLogger(package).setLevel(max(logging.WARNING, level))
 
 decoder = Decoder()
 #path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/'
@@ -80,12 +85,12 @@ if not os.path.exists(Output_folder):
 #download NOAA rainfall
 
 
-#try:
-Rainfall_data.download_rainfall_nomads(Input_folder,path,Alternative_data_point)
-rainfall_error=False
-#except:
-#rainfall_error=True
-#    pass
+try:
+    Rainfall_data.download_rainfall_nomads(Input_folder,path,Alternative_data_point)
+    rainfall_error=False
+except Exception as e:
+    logger.warning(f'Rainfall download failed: {e}, performing download in R script')
+    rainfall_error=True
 
 ###### download UCL data
     
