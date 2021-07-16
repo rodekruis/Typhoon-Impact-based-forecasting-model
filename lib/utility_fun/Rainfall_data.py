@@ -4,6 +4,7 @@ import urllib.error
 import requests
 import logging
 from pathlib import Path
+import shutil
 
 from bs4 import BeautifulSoup
 import xarray as xr
@@ -77,7 +78,6 @@ def get_grib_files(url, path, rainfall_path, use_cache=True):
         if use_cache and os.path.isfile(output_file):
             logger.info(f'File {output_file} exists, skipping')
             continue
-        import shutil
         try:
             with urllib.request.urlopen(rain_file) as response, open(output_file, 'wb') as out_file:
                 logger.info(f'Downloading {rain_file} to {output_file}')
