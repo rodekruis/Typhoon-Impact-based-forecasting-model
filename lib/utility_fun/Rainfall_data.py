@@ -2,10 +2,11 @@ import os
 import urllib.request
 import urllib.error
 import requests
-import subprocess
 import logging
+from pathlib import Path
 
 from bs4 import BeautifulSoup
+import xarray as xr
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +27,8 @@ def url_is_alive(url):
         return False
 
 
-def download_rainfall_nomads(Input_folder, path, Alternative_data_point, use_wgrib2 = False):
+def download_rainfall_nomads(Input_folder, path, Alternative_data_point):
     """
-
     download rainfall 
     """
     rainfall_path = os.path.join(Input_folder, 'rainfall/')
@@ -42,23 +42,27 @@ def download_rainfall_nomads(Input_folder, path, Alternative_data_point, use_wgr
     try:
         logger.info("Trying to get rainfall from today's date")
         get_grib_files(url1, path, rainfall_path)
-    except Exception as e:
-        logger.warning(f"Encountered error: {e}, using yesterday's date instead")
+    except IndexError:
+        # If list index out of range then it means that there are no files available,
+        # use tomorrow's date instead
+        logger.warning(f"No rainfall files available today, using yesterday's date instead")
         get_grib_files(url2, path, rainfall_path)
 
-    # TODO: turning this off until we figure out if it's really needed and then install wgrib2
-    if use_wgrib2:
-        rain_files = [f for f in os.listdir(rainfall_path) if os.path.isfile(os.path.join(rainfall_path, f))]
-        os.chdir(rainfall_path)
-        for files in rain_files:
-            for hour in ['06', '24']:
-                pattern = f'.pgrb2a.0p50.bc_{hour}h'
-                if pattern in files:
-                    subprocess.call(['wgrib2', files, '-append', '-netcdf', 'rainfall_24.nc'], cwd=rainfall_path)
-                    os.remove(files)
+    for hour in ['06', '24']:
+        pattern = f'.pgrb2a.0p50.bc_{hour}h'
+        output_filename = f'rainfall_{hour}.nc'
+        filename_list = Path(rainfall_path).glob(f'*{pattern}*')
+        with xr.open_mfdataset(filename_list, engine='cfgrib',
+                               combine="nested", concat_dim=["time"],
+                               backend_kwargs={"indexpath": "",
+                                               'filter_by_keys': {'totalNumber': 30}}
+                               ) as ds:
+            filepath = os.path.join(rainfall_path, output_filename)
+            logger.info(f'Writing to file {filepath}')
+            ds.to_netcdf(filepath)
 
 
-def get_grib_files(url, path, rainfall_path):
+def get_grib_files(url, path, rainfall_path, use_cache=True):
     base_urls = []
     for items in listFD(url):
         if url_is_alive(items+'prcp_bc_gb2/'):
@@ -68,14 +72,19 @@ def get_grib_files(url, path, rainfall_path):
     time_step_list = ['06', '12', '18', '24', '30', '36', '42', '48', '54', '60', '66', '72']
     rainfall_24 = [base_url_hour+'24hf0%s' % t for t in time_step_list]
     rainfall_06 = [base_url_hour+'06hf0%s' % t for t in time_step_list]
-    rainfall_24.extend(rainfall_06)
-    for rain_file in rainfall_24:
-        logger.info(f'Rain file: {rain_file}')
+    for rain_file in rainfall_06 + rainfall_24:
         output_file = os.path.join(os.path.relpath(rainfall_path, path), rain_file.split('/')[-1]+'.grib2')
-        batch_ex = ["wget", "-O", output_file, rain_file]
-        logger.info(f'Running command {batch_ex}')
-        os.chdir(path)
-        subprocess.call(batch_ex, cwd=path)
+        if use_cache and os.path.isfile(output_file):
+            logger.info(f'File {output_file} exists, skipping')
+            continue
+        import shutil
+        try:
+            with urllib.request.urlopen(rain_file) as response, open(output_file, 'wb') as out_file:
+                logger.info(f'Downloading {rain_file} to {output_file}')
+                shutil.copyfileobj(response, out_file)
+        except urllib.error.HTTPError:
+            logger.warning(f"Rain file {rain_file} doesn't exist, skipping")
+            continue
 
 
 def listFD(url):

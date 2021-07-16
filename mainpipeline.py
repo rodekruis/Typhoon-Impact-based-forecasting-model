@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from sys import platform
 import subprocess
 import logging
+import traceback
 
 import pandas as pd
 from pybufrkit.decoder import Decoder
@@ -25,7 +26,7 @@ logging.basicConfig(level=level,
                     format='%(asctime)s | %(name)s | %(levelname)s | %(message)s')
 logger = logging.getLogger(__name__)
 # Stop some overly verbose packages
-for package in ["pybufrkit"]:
+for package in ["PyBufrKit"]:
     logging.getLogger(package).setLevel(max(logging.WARNING, level))
 
 decoder = Decoder()
@@ -88,8 +89,9 @@ if not os.path.exists(Output_folder):
 try:
     Rainfall_data.download_rainfall_nomads(Input_folder,path,Alternative_data_point)
     rainfall_error=False
-except Exception as e:
-    logger.warning(f'Rainfall download failed: {e}, performing download in R script')
+except Exception:
+    traceback.print_exc()
+    logger.warning(f'Rainfall download failed, performing download in R script')
     rainfall_error=True
 
 ###### download UCL data
