@@ -3,7 +3,6 @@
 Read_rainfall_v2<-function(wshade){
   
 ########### Read_rainfall ###################
-            x = paste0(rain_directory, "/rainfall_24.nc")
             if(file.exists(paste0(rain_directory, "/rainfall_24.nc") )) {
               
               e <- extent(114,145,4,28) # clip data to polygon around 
