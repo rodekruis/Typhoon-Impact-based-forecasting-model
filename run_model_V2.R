@@ -38,7 +38,6 @@ source('lib_r/track_interpolation.R')
 source('lib_r/Read_rainfall_v2.R')
 source('lib_r/Model_input_processing.R')
 source('lib_r/run_prediction_model.R')
-source('lib_r/Make_maps_ens.R')
 source('lib_r/Make_maps.R')
 
 source('lib_r/Check_landfall_time.R')
@@ -221,7 +220,7 @@ maps <- Make_maps_avg(php_admin1,event_impact,track,TYF='ECMWF',Typhoon_stormnam
 ####################################################################################################
 # ------------------------ save impact data to file   -
  
-#tmap_save(maps,filename = paste0(Output_folder,'Impact_','_',forecast_time,'_',  Typhoon_stormname,'.png'), width=20, height=24,dpi=600,units="cm")
+tmap_save(maps,filename = paste0(Output_folder,'Impact_','_',forecast_time,'_',  Typhoon_stormname,'.png'), width=20, height=24,dpi=600,units="cm")
 
 ####################################################################################################
 # ------------------------ save impact data to file   -----------------------------------
