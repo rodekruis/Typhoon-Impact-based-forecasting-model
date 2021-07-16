@@ -90,7 +90,7 @@ if not os.path.exists(Output_folder):
 try:
     Rainfall_data.download_rainfall_nomads(Input_folder,path,Alternative_data_point)
     rainfall_error=False
-except Exception:
+except:
     traceback.print_exc()
     logger.warning(f'Rainfall download failed, performing download in R script')
     rainfall_error=True
