@@ -26,8 +26,9 @@ logging.basicConfig(level=level,
                     format='%(asctime)s | %(name)s | %(levelname)s | %(message)s')
 logger = logging.getLogger(__name__)
 # Stop some overly verbose packages
-for package in ["PyBufrKit"]:
-    logging.getLogger(package).setLevel(max(logging.WARNING, level))
+for log_name, log_obj in logging.Logger.manager.loggerDict.items():
+    if log_name != '<module name>':
+        logging.getLogger(log_name).setLevel(max(logging.WARNING, level))
 
 decoder = Decoder()
 #path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/'
