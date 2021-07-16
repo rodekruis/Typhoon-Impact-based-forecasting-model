@@ -32,7 +32,8 @@ for log_name, log_obj in logging.Logger.manager.loggerDict.items():
 
 decoder = Decoder()
 #path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/'
-path='/home/fbf/'
+#path='/home/fbf/'
+path = './'
 
 #%%
 sys.path.insert(0, path+'lib')
