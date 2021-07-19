@@ -147,12 +147,7 @@ forecast/
 typhoon_infographic/
 old_scripts/
 models/other_models/*
-lib/secrets.py
-lib/settings.py
-lib/variables.py
-lib/climada_python-main
-variables.py
 .Rproj.user
 home/
 otherfiles/
-temp/
+

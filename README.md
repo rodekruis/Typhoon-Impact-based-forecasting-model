@@ -16,9 +16,9 @@ the `lib` directory.
 
 ### Without Docker
 
-The main script for the pipeline is mainpipeline.py.
+The main script for the pipeline is IBF-Typhoon-model/mainpipeline.py.
 It can in principle be run locally by setting up your local Python environment using
-the `requirements.txt` file, and installing all the R packages listed in the `Dockerfile`.
+the `IBF-Typhoon-model/requirements.txt` file, and installing all the R packages listed in the `IBF-Typhoon-model/Dockerfile`.
 However, we suggest using the docker image instead.
 
 ### With Docker
