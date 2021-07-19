@@ -22,7 +22,7 @@ pillow==8.2.0 # Climada is 7.2.0
 pint==0.15
 # pyproj==2.6 # climada uses conda proj==7.0.0, compatibility listed here:
 #             # https://pyproj4.github.io/pyproj/stable/installation.html
-tables==3.5.2 # called pytables in conda, climada needs 3.6.1
+# tables==3.5.2 # called pytables in conda, climada needs 3.6.1
 rasterio==1.1.5
 scikit-learn==0.23.2
 statsmodels==0.12.0 # climada uses 0.11.1

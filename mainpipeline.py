@@ -11,6 +11,8 @@ import os
 from datetime import datetime, timedelta
 from sys import platform
 import subprocess
+import logging
+import traceback
 
 import pandas as pd
 from pybufrkit.decoder import Decoder
@@ -18,9 +20,20 @@ import numpy as np
 from geopandas.tools import sjoin
 import geopandas as gpd
 
+# Set up logger
+level = logging.INFO
+logging.basicConfig(level=level,
+                    format='%(asctime)s | %(name)s | %(levelname)s | %(message)s')
+logger = logging.getLogger(__name__)
+# Stop some overly verbose packages
+for log_name, log_obj in logging.Logger.manager.loggerDict.items():
+    if log_name != '<module name>':
+        logging.getLogger(log_name).setLevel(max(logging.WARNING, level))
+
 decoder = Decoder()
 #path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/'
-path='/home/fbf/'
+#path='/home/fbf/'
+path = './'
 
 #%%
 sys.path.insert(0, path+'lib')
@@ -79,8 +92,9 @@ try:
     Rainfall_data.download_rainfall_nomads(Input_folder,path,Alternative_data_point)
     rainfall_error=False
 except:
+    traceback.print_exc()
+    logger.warning(f'Rainfall download failed, performing download in R script')
     rainfall_error=True
-    pass
 
 ###### download UCL data
     
@@ -136,7 +150,7 @@ def automation_sript(path):
     for typhoons in Activetyphoon:
         fname=open(os.path.join(path,'forecast/Input/',"typhoon_info_for_model.csv"),'w')
         fname.write('source,filename,event,time'+'\n')            
-        line_='Rainfall,'+'%sRainfall' % Input_folder +',' +typhoons+','+ datetime.now().strftime("%Y%m%d%H")  #StormName #
+        line_='Rainfall,'+'%srainfall' % Input_folder +',' +typhoons+','+ datetime.now().strftime("%Y%m%d%H")  #StormName #
         fname.write(line_+'\n')
         line_='Output_folder,'+'%s' % Output_folder +',' +typhoons+',' + datetime.now().strftime("%Y%m%d%H")  #StormName #
         #line_='Rainfall,'+'%sRainfall/' % Input_folder +','+ typhoons + ',' + datetime.now().strftime("%Y%m%d%H") #StormName #
