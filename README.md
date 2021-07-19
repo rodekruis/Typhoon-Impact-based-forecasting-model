@@ -42,7 +42,15 @@ Then run:
 ```
 docker build -t rodekruis510/typhoonibf .
 ```
+Create a docker container
+```
+docker run --name typhoonibf rodekruis510/typhoonibf
 
+```
+Run and access the container
+```
+docker run -it --entrypoint /bin/bash rodekruis510/typhoonibf
+```
 ## Running
 To spin up and enter the docker container, execute:
 ```
@@ -52,4 +60,15 @@ To run the pipeline, enter the container and execute:
 ```
 python3 mainpipeline.py
 ```
+Run with options
+```
+run-typhoon-model [OPTIONS]
+
+Options:
+  --path TEXT             main directory
+  --remote_dir_ TEXT                  remote directory
+  --active_typhoon TEXT               name for active typhoon
+
+```
+
 If you need to inspect the log files, you can find them in `/var/log/cron.log`.

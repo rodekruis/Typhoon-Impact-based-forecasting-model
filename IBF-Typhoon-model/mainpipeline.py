@@ -34,120 +34,91 @@ decoder = Decoder()
 #path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/Typhoon-Impact-based-forecasting-model/IBF-Typhoon-model/'
 #path='/home/fbf/'
 path = './'
-
 #%%
 sys.path.insert(0, path+'lib')
 os.chdir(path)
-
 from settings import fTP_LOGIN, fTP_PASSWORD, uCL_USERNAME, uCL_PASSWORD
-#from settings import *
-#from secrets import *
-#from variables import *
- 
 from climada.hazard import Centroids, TropCyclone,TCTracks
 from climada.hazard.tc_tracks import estimate_roci,estimate_rmw
 from climada.hazard.tc_tracks_forecast import TCForecast
-from utility_fun import track_data_clean,Rainfall_data,Check_for_active_typhoon,Sendemail,ucl_data
-
-#%% check for active typhoons
-print('---------------------check for active typhoons---------------------------------')
-print(str(datetime.now()))
-#### the following code checks if there are active typhoons around the philippines 
-
-Activetyphoon=Check_for_active_typhoon.check_active_typhoon()
-#forecast_available_fornew_typhoon= False#'False'
-
-#### if there are no typhoons use SURIGAE data for testing the pipeline 
-
-if Activetyphoon==[]:
-  remote_dir='20210421120000' #for downloading test data otherwise set it to None
-  Activetyphoon=['SURIGAE']  #name of typhoon for test
-else:
-  #remote_dir=None #for downloading real time data
-  remote_dir=None #'20210518120000' #for downloading test data  Activetyphoon=['SURIGAE']
-  
-print("currently active typhoon list= %s"%Activetyphoon)
+from utility_fun import track_data_clean,Check_for_active_typhoon,Sendemail,ucl_data
+from utility_fun import Rainfall_data
 
 
-#%% Download Rainfaall
+#@click.command()
+#@click.option('--path', default='./', help='main directory')
+#@click.option('--remote_dir_', default='20210421120000', help='remote directory')
+#@click.option('--active_typhoon', default='SURIGAE',help='name for active typhoon')
 
-##### create directories for input/output  the new typhoon 
-
-
-Alternative_data_point=(datetime.strptime(datetime.now().strftime("%Y%m%d%H"), "%Y%m%d%H")-timedelta(hours=24)).strftime("%Y%m%d")
-     
-Input_folder=os.path.join(path,'forecast/Input/%s/Input/'%(datetime.now().strftime("%Y%m%d%H")))
-Output_folder=os.path.join(path,'forecast/Output/%s/Output/'%(datetime.now().strftime("%Y%m%d%H")))
-
-if not os.path.exists(Input_folder):
-    os.makedirs(Input_folder)
-if not os.path.exists(Output_folder):
-    os.makedirs(Output_folder)   
-
-
-#download NOAA rainfall
-
-
-try:
-    Rainfall_data.download_rainfall_nomads(Input_folder,path,Alternative_data_point)
-    rainfall_error=False
-except:
-    traceback.print_exc()
-    logger.warning(f'Rainfall download failed, performing download in R script')
-    rainfall_error=True
-
-###### download UCL data
-    
-
-try:
-    ucl_data.create_ucl_metadata(path,uCL_USERNAME,uCL_PASSWORD)
-    ucl_data.process_ucl_data(path,Input_folder,uCL_USERNAME,uCL_PASSWORD)
-
-except:
-    pass
-
-
-#%%
-
-##Create grid points to calculate Winfield
-
-cent = Centroids()
-cent.set_raster_from_pnt_bounds((118,6,127,19), res=0.05)
-cent.check()
-cent.plot()
-####
-
-admin=gpd.read_file("./data-raw/phl_admin3_simpl2.geojson")
-df = pd.DataFrame(data=cent.coord)
-df["centroid_id"] = "id"+(df.index).astype(str)  
-centroid_idx=df["centroid_id"].values
-ncents = cent.size
-df=df.rename(columns={0: "lat", 1: "lon"})
-
-df = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.lon, df.lat))
-#df.to_crs({'init': 'epsg:4326'})
-df.crs = {'init': 'epsg:4326'}
-df_admin = sjoin(df, admin, how="left")
-df_admin=df_admin.dropna()
-
-#%% Download ECMWF forecast for typhoon tracks 
-
-bufr_files = TCForecast.fetch_bufr_ftp(remote_dir=remote_dir)
-fcast = TCForecast()
-fcast.fetch_ecmwf(files=bufr_files)
-
-#%% filter data downloaded in the above step for active typhoons  in PAR
-
-# filter tracks with name of current typhoons and drop tracks with only one timestep
-fcast.data = [tr for tr in fcast.data if tr.name in Activetyphoon]
-fcast.data = [tr for tr in fcast.data if tr.time.size>1]
-
- 
-
-def automation_sript(path):
+def main(path='./',remote_dir_='20210421120000',active_typhoon='SURIGAE'):
     print('---------------------AUTOMATION SCRIPT STARTED---------------------------------')
-    print(str(datetime.now()))   
+    print(str(datetime.now()))
+    #%% check for active typhoons
+    print('---------------------check for active typhoons---------------------------------')
+    print(str(datetime.now()))
+    Activetyphoon=Check_for_active_typhoon.check_active_typhoon()
+    if Activetyphoon==[]:
+      remote_dir=remote_dir_#'20210421120000' #for downloading test data otherwise set it to None
+      Activetyphoon=[active_typhoon]  #name of typhoon for test
+    else:
+      remote_dir=None #'20210518120000' #for downloading test data  Activetyphoon=['SURIGAE']
+    print("currently active typhoon list= %s"%Activetyphoon)
+
+    #%% Download Rainfaall
+    Alternative_data_point=(datetime.strptime(datetime.now().strftime("%Y%m%d%H"), "%Y%m%d%H")-timedelta(hours=24)).strftime("%Y%m%d")
+         
+    Input_folder=os.path.join(path,'forecast/Input/%s/Input/'%(datetime.now().strftime("%Y%m%d%H")))
+    Output_folder=os.path.join(path,'forecast/Output/%s/Output/'%(datetime.now().strftime("%Y%m%d%H")))
+
+    if not os.path.exists(Input_folder):
+        os.makedirs(Input_folder)
+    if not os.path.exists(Output_folder):
+        os.makedirs(Output_folder)   
+    #download NOAA rainfall
+    try:
+        #Rainfall_data_window.download_rainfall_nomads(Input_folder,path,Alternative_data_point)
+        Rainfall_data.download_rainfall_nomads(Input_folder,path,Alternative_data_point)
+        rainfall_error=False
+    except:
+        traceback.print_exc()
+        logger.warning(f'Rainfall download failed, performing download in R script')
+        rainfall_error=True
+    ###### download UCL data
+      
+    try:
+        ucl_data.create_ucl_metadata(path,uCL_USERNAME,uCL_PASSWORD)
+        ucl_data.process_ucl_data(path,Input_folder,uCL_USERNAME,uCL_PASSWORD)
+
+    except:
+        pass
+    #%%
+    ##Create grid points to calculate Winfield
+    cent = Centroids()
+    cent.set_raster_from_pnt_bounds((118,6,127,19), res=0.05)
+    cent.check()
+    cent.plot()
+    ####
+    admin=gpd.read_file(os.path.join(path,"./data-raw/phl_admin3_simpl2.geojson"))
+    df = pd.DataFrame(data=cent.coord)
+    df["centroid_id"] = "id"+(df.index).astype(str)  
+    centroid_idx=df["centroid_id"].values
+    ncents = cent.size
+    df=df.rename(columns={0: "lat", 1: "lon"})
+    df = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.lon, df.lat))
+    #df.to_crs({'init': 'epsg:4326'})
+    df.crs = {'init': 'epsg:4326'}
+    df_admin = sjoin(df, admin, how="left")
+    df_admin=df_admin.dropna()
+    #%% Download ECMWF forecast for typhoon tracks 
+    bufr_files = TCForecast.fetch_bufr_ftp(remote_dir=remote_dir)
+    fcast = TCForecast()
+    fcast.fetch_ecmwf(files=bufr_files)
+    #%% filter data downloaded in the above step for active typhoons  in PAR
+    # filter tracks with name of current typhoons and drop tracks with only one timestep
+    fcast.data = [tr for tr in fcast.data if tr.name in Activetyphoon]
+    fcast.data = [tr for tr in fcast.data if tr.time.size>1]    
     for typhoons in Activetyphoon:
+        typhoons=Activetyphoon[0]
         fname=open(os.path.join(path,'forecast/Input/',"typhoon_info_for_model.csv"),'w')
         fname.write('source,filename,event,time'+'\n')            
         line_='Rainfall,'+'%srainfall' % Input_folder +',' +typhoons+','+ datetime.now().strftime("%Y%m%d%H")  #StormName #
@@ -326,4 +297,6 @@ def automation_sript(path):
 
 
 #%%#Download rainfall (old pipeline)
-automation_sript(path)
+#automation_sript(path)
+if __name__ == "__main__":
+    main()
