@@ -1,63 +1,55 @@
 # Typhoon Impact forecasting model
 
-This tool was developed as trigger mechanism for the typhoon Early action protocol of the philipiness resdcross FbF project. The model will predict the potential damage of a typhoon before landfall, the prediction will be percentage of completely damaged houses per manuciplaity.
-The tool is available under the [GPL license](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/blob/master/LICENSE)
+This tool was developed as trigger mechanism for the typhoon Early action protocol of the philipiness resdcross 
+FbF project. The model will predict the potential damage of a typhoon before landfall, the prediction will be 
+percentage of completely damaged houses per manuciplaity.
+The tool is available under the 
+[GPL license](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/blob/master/LICENSE)
 
-## Run Pipeline without docker 
+## Installation
 
-The main script for the pipeline is mainpipeline.py 
-After setting the python R inviroment listed in the requirement file 
-mainpipeline.py can be run from a command line via python3 mainpipeline.py
+To run the pipeline, you need access to an FTP server. 
+If you or your organization is interested in using the pipeline, 
+please contact [510 Global](https://www.510.global/contact-us/)
+to obtain the credentials.  You will receive a file called `settings.py`, which you need to place in 
+the `lib` directory.
 
-## Run code by downloading docekr image from docker hub
+### Without Docker
 
-the docker image is avilable at [typhoonibf:latest](https://hub.docker.com/repository/docker/rodekruis510/typhoonibf/) 
-to run pipeline follw steps explained in the next part 
+The main script for the pipeline is mainpipeline.py.
+It can in principle be run locally by setting up your local Python environment using
+the `requirements.txt` file, and installing all the R packages listed in the `Dockerfile`.
+However, we suggest using the docker image instead.
 
-## Instructions to Build,Update and Run Docker image
+### With Docker
 
-Prerequisites 
-Docker installed
-Docker-settings: set memory of containers to at least 2GB
+You will need to have docker installed, and you should modify `Docker-settings`
+to set the container memory to at least 2GB
 
-Retrieve code and move in repository:
-	```
-	git clone https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model.git
-	cd Typhoon-Impact-based-forecasting-model
-	```
-create a lib/setting.py -file: # s
-	```
-	sudo vim lib/setting.py cp 
-	```
-.. and retrieve the correct credentials from someone who knows. 
+####  Get the image
 
-Start up application:
-	```
-	docker build -t fbf-phv3 .
-	docker run --rm --name=fbf-phv3 -v ${PWD}:/home/fbf -it fbf-phv3 bash
-	```
-If entering the container a 2nd time or later:
-	```
-	docker exec -it fbf-phv3 /bin/bash
-	```
-or (if unstarted)
-	```
-	
-	docker start -i fbf-phv3
-	```
-To edit files within the container first install vim 
-	```
-	apt-get update
-	apt-get install vim
-	```
+The docker image is available at 
+[typhoonibf:latest](https://hub.docker.com/repository/docker/rodekruis510/typhoonibf/).
+To download it, run:
+```
+docker pull rodekruis510/typhoonibf
+```
 
+You can also build it yourself. To do so, first download 
+[this version of ncdf4](https://cran.r-project.org/src/contrib/Archive/ncdf4/ncdf4_1.13.tar.gz)
+and place the tarball in the top-level directory.
+Then run:
+```
+docker build -t rodekruis510/typhoonibf .
+```
 
-To start code manually from inside container
-	```
-	python3 mainpipeline.py
-	```
-
-To inspect the logs (e.g. when getting an email about errors), run from inside the container:
-	```
-	nano /var/log/cron.log
-	```
+## Running
+To spin up and enter the docker container, execute:
+```
+docker run --rm -it --name=fbf-phv3 -v ${PWD}:/home/fbf  rodekruis510/typhoonibf bash
+```
+To run the pipeline, enter the container and execute:
+```
+python3 mainpipeline.py
+```
+If you need to inspect the log files, you can find them in `/var/log/cron.log`.
