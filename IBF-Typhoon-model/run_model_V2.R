@@ -166,6 +166,65 @@ df_imact_forecast <- as.data.frame(y_predicted)%>%
                                              #GEN_typhoon_id,
   )%>%drop_na()
 
+
+Typhoon_stormname <- as.character(unique(wind_grid$name)[1])
+
+####################################################################################################
+# ------------------------ calculate  probability only for region 5 and 8  -----------------------------------
+
+df_imact_forecast_CERF<-df_imact_forecast%>%filter(region%in%c('PH05','PH08'))%>%
+  dplyr::summarise(CDamaged_houses = sum(Damaged_houses))%>%
+  dplyr::mutate(DM_CLASS = ifelse(CDamaged_houses >= 80000,5,
+                                  ifelse(CDamaged_houses >= 50000,4,
+                                         ifelse(CDamaged_houses >= 30000,3,
+                                                ifelse(CDamaged_houses >= 10000,2,
+                                                       ifelse(CDamaged_houses >= 5000,1, 0))))))%>%
+  ungroup()%>%group_by(GEN_typhoon_name)%>%
+  dplyr::summarise(VH_80K = round(100*sum(DM_CLASS>=5)/52),
+                   H_50K = round(100*sum(DM_CLASS>=4)/52),
+                   H_30K = round(100*sum(DM_CLASS>=3)/52),
+                   M_10K = round(100*sum(DM_CLASS >=2)/52),
+                   L_5K = round(100*sum(DM_CLASS>=1)/52))%>%dplyr::rename(Typhoon_name=GEN_typhoon_name)%>% 
+  mutate(
+    Typhoon_name = toupper(Typhoon_name)
+  )
+
+write.csv(df_imact_forecast_CERF, file = paste0(Output_folder,'CERF_TRIGGER_LEVEL_',forecast_time,'_',  Typhoon_stormname,'.csv'))
+
+df_imact_forecast_CERF%>%  as_hux()%>%
+  set_text_color(1, everywhere, "blue")%>%
+  theme_article()%>%set_caption("PROBABILITY FOR THE NUMBER OF COMPLETELY DAMAGED BUILDINGS") #(Region 5 and 8)
+
+####################################################################################################
+# ------------------------ calculate and plot probability National -----------------------------------
+
+df_imact_forecast_dref<-df_imact_forecast%>%group_by(GEN_typhoon_name,GEN_typhoon_id)%>%
+  dplyr::summarise(CDamaged_houses = sum(Damaged_houses))%>%
+  dplyr::mutate(DM_CLASS = ifelse(CDamaged_houses >= 100000,5,
+                                  ifelse(CDamaged_houses >= 80000,4,
+                                         ifelse(CDamaged_houses >= 70000,3,
+                                                ifelse(CDamaged_houses >= 50000,2,
+                                                       ifelse(CDamaged_houses >= 30000,1, 0))))))%>%
+  ungroup()%>%group_by(GEN_typhoon_name)%>%
+  dplyr::summarise(VH_100K = round(100*sum(DM_CLASS>=5)/52),
+                   H_80K = round(100*sum(DM_CLASS>=4)/52),
+                   H_70K = round(100*sum(DM_CLASS>=3)/52),
+                   M_50K = round(100*sum(DM_CLASS >=2)/52),
+                   L_30K = round(100*sum(DM_CLASS>=1)/52))%>%dplyr::rename(Typhoon_name=GEN_typhoon_name)%>% 
+  mutate(
+    Typhoon_name = toupper(Typhoon_name)
+  )
+
+
+df_imact_forecast_dref%>%as_hux()%>%
+  set_text_color(1, everywhere, "blue")%>%
+  theme_article()%>%set_caption("PROBABILITY FOR THE NUMBER OF COMPLETELY DAMAGED BUILDINGS") 
+
+
+
+write.csv(df_imact_forecast_dref, file = paste0(Output_folder,'DREF_TRIGGER_LEVEL_',forecast_time,'_',  Typhoon_stormname,'.csv'))
+
+
 # ------------------------ calculate average impact vs probability   -----------------------------------
 
 number_ensambles<-length(unique(df_imact_forecast$GEN_typhoon_id))
@@ -185,16 +244,16 @@ df_impact<-df_imact_forecast%>%left_join(df_imact_dist50,by='GEN_mun_code')
 
 # ------------------------ calculate and plot probability   -----------------------------------
 
-df_imact_forecast%>%group_by(GEN_typhoon_id)%>%
-  dplyr::summarise(CDamaged_houses = sum(Damaged_houses))%>%
-  dplyr::mutate(DM_CLASS = ifelse(CDamaged_houses >= 100000,4,
-                                  ifelse(CDamaged_houses >= 80000,3,
-                                         ifelse(CDamaged_houses >= 50000,2,
-                                                ifelse(CDamaged_houses >= 30000,1, 0)))))%>%
-  ungroup()%>%dplyr::summarise(VH_100K = round(100*sum(DM_CLASS>=4)/52),
-                   H_80K = round(100*sum(DM_CLASS>=3)/52),
-                   M_50K = round(100*sum(DM_CLASS >=2)/52),
-                   L_30K = round(100*sum(DM_CLASS>=1)/52))#%>%as_hux()%>%set_text_color(1, everywhere, "blue")%>%theme_article()%>%set_caption("PROBABILITY FOR THE NUMBER OF COMPLETELY DAMAGED BUILDINGS") 
+# df_imact_forecast%>%group_by(GEN_typhoon_id)%>%
+  # dplyr::summarise(CDamaged_houses = sum(Damaged_houses))%>%
+  # dplyr::mutate(DM_CLASS = ifelse(CDamaged_houses >= 100000,4,
+                                  # ifelse(CDamaged_houses >= 80000,3,
+                                         # ifelse(CDamaged_houses >= 50000,2,
+                                                # ifelse(CDamaged_houses >= 30000,1, 0)))))%>%
+  # ungroup()%>%dplyr::summarise(VH_100K = round(100*sum(DM_CLASS>=4)/52),
+                   # H_80K = round(100*sum(DM_CLASS>=3)/52),
+                   # M_50K = round(100*sum(DM_CLASS >=2)/52),
+                   # L_30K = round(100*sum(DM_CLASS>=1)/52))#%>%as_hux()%>%set_text_color(1, everywhere, "blue")%>%theme_article()%>%set_caption("PROBABILITY FOR THE NUMBER OF COMPLETELY DAMAGED BUILDINGS") 
   
 
 
@@ -208,7 +267,7 @@ event_impact <- php_admin3%>%left_join(df_imact_dist50%>%dplyr::mutate(adm3_pcod
 
 
 
-Typhoon_stormname <- as.character(unique(wind_grid$name)[1])
+
 
 
 
@@ -220,15 +279,15 @@ maps <- Make_maps_avg(php_admin1,event_impact,track,TYF='ECMWF',Typhoon_stormnam
 ####################################################################################################
 # ------------------------ save impact data to file   -
  
-tmap_save(maps,filename = paste0(Output_folder,'Impact_','_',forecast_time,'_',  Typhoon_stormname,'.png'), width=20, height=24,dpi=600,units="cm")
+tmap_save(maps,filename = paste0(Output_folder,'Average_Impact_','_',forecast_time,'_',  Typhoon_stormname,'.png'), width=20, height=24,dpi=600,units="cm")
 
 ####################################################################################################
 # ------------------------ save impact data to file   -----------------------------------
  
-write.csv(event_impact, file = paste0(Output_folder,'Impact_','_',forecast_time,'_',  Typhoon_stormname,'.csv'))
+write.csv(event_impact, file = paste0(Output_folder,'Average_Impact_','_',forecast_time,'_',  Typhoon_stormname,'.csv'))
  
-file_names<- c(paste0(Output_folder,'Impact_','_',forecast_time,'_',  Typhoon_stormname,'.png'),
-               paste0(Output_folder,'Impact_','_',forecast_time,'_',  Typhoon_stormname,'.csv'))
+file_names<- c(paste0(Output_folder,'Average_Impact_','_',forecast_time,'_',  Typhoon_stormname,'.png'),
+               paste0(Output_folder,'Average_Impact_','_',forecast_time,'_',  Typhoon_stormname,'.csv'))
  
 write.table(file_names, file =paste0(Output_folder,'model_output_file_names.csv'),sep=';',append=FALSE, col.names = FALSE)
 
