@@ -45,8 +45,12 @@ source('lib_r/Check_landfall_time.R')
 
 # ------------------------ import DATA  -----------------------------------
 
-php_admin3 <- st_read(dsn=paste0(main_directory,'data-raw'),layer='phl_admin3_simpl2')
-php_admin1 <- st_read(dsn=paste0(main_directory,'data-raw'),layer='phl_admin1_gadm_pcode')
+#php_admin3 <- st_read(dsn=paste0(main_directory,'data-raw'),layer='phl_admin3_simpl2')
+php_admin3 <- geojsonsf::geojson_sf(paste0(main_directory,'data-raw/phl_admin3_simpl2.geojson'))
+ 
+#php_admin1 <- st_read(dsn=paste0(main_directory,'data-raw'),layer='phl_admin1_gadm_pcode')
+php_admin1 <- geojsonsf::geojson_sf(paste0(main_directory,'data-raw/phl_admin1_gadm_pcode.geojson'))
+
 wshade <- php_admin3
 material_variable2 <- read.csv(paste0(main_directory,"data/material_variable2.csv"))
 data_matrix_new_variables <- read.csv(paste0(main_directory,"data/data_matrix_new_variables.csv"))
