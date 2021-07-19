@@ -108,9 +108,11 @@ RUN conda install -c conda-forge matplotlib
 RUN conda install -c conda-forge matplotlib-base
 RUN conda install -c conda-forge cartopy
 RUN conda install dask
+# Put this here for now but move later
+RUN apt-get install -y python3-eccodes
 # install python dependencies
 COPY requirements.txt /home/fbf/
-RUN python3.7 -m pip install -r requirements.txt
+RUN python3.7 -m pip install --no-cache-dir -r requirements.txt
 
 # set up cronjob
 # COPY crontab /etc/cron.d/crontab
