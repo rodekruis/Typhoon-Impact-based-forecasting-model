@@ -42,5 +42,5 @@ xmlrunner==1.7.7
 feedparser==6.0.6
 requests==2.22.0
 beautifulsoup4==4.9.1
-lxml==4.5.0
+lxml==4.6.3
 Rtree==0.9.4
