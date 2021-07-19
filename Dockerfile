@@ -110,7 +110,7 @@ RUN conda install -c conda-forge cartopy
 RUN conda install dask
 # install python dependencies
 COPY requirements.txt /home/fbf/
-RUN python3.7 -m pip install -r requirements.txt
+RUN python3.7 -m pip install --no-cache-dir -r requirements.txt
 
 # set up cronjob
 # COPY crontab /etc/cron.d/crontab

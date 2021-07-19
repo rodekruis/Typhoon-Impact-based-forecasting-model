@@ -1,3 +1,15 @@
+import os
+from ftplib import FTP
+from datetime import datetime
+import re
+import subprocess
+
+import pandas as pd
+from bs4 import BeautifulSoup
+import requests
+import lxml.etree as ET2
+
+
 def download_ecmwf(Input_folder,filepatern):
     """
     Reads ecmwf forecast data and save to folder
@@ -41,6 +53,7 @@ def download_rainfall(Input_folder):
         ftp.cwd(path2)
         filelist = ftp.nlst()
         for file in filelist:
+            # TODO: Find out what file_pattern var should be
             if ((file_pattern in file) and file.endswith('.grib2')):
                 ftp.retrbinary("RETR " + file, open(os.path.join(rainfall_path,'rainfall_forecast.grib2'),"wb").write)
                 print(file + " downloaded")
@@ -78,7 +91,7 @@ def download_rainfall_nomads(Input_folder,path,Alternative_data_point):
         rainfall_24.extend(rainfall_06)
         for rain_file in rainfall_24:
             print(rain_file)
-            output_file= os.path.join(relpath(rainfall_path,path),rain_file.split('/')[-1]+'.grib2')
+            output_file= os.path.join(os.path.relpath(rainfall_path,path),rain_file.split('/')[-1]+'.grib2')
             #output_file= os.path.join(rainfall_path,rain_file.split('/')[-1]+'.grib2')
             batch_ex="wget -O %s %s" %(output_file,rain_file)
             os.chdir(path)
@@ -93,13 +106,13 @@ def download_rainfall_nomads(Input_folder,path,Alternative_data_point):
         rainfall_24.extend(rainfall_06)
         for rain_file in rainfall_24:
             #output_file= os.path.join(rainfall_path,rain_file.split('/')[-1]+'.grib2')
-            output_file= os.path.join(relpath(rainfall_path,path),rain_file.split('/')[-1]+'.grib2')
+            output_file= os.path.join(os.path.relpath(rainfall_path,path),rain_file.split('/')[-1]+'.grib2')
             batch_ex="wget -O %s %s" %(output_file,rain_file)
             os.chdir(path)
             print(batch_ex)
             p = subprocess.call(batch_ex ,cwd=path)
         
-    rain_files = [f for f in listdir(rainfall_path) if isfile(join(rainfall_path, f))]
+    rain_files = [f for f in os.listdir(rainfall_path) if os.path.isfile(os.path.join(rainfall_path, f))]
     os.chdir(rainfall_path)
     pattern1='.pgrb2a.0p50.bc_06h'
     pattern2='.pgrb2a.0p50.bc_24h'
@@ -113,6 +126,7 @@ def download_rainfall_nomads(Input_folder,path,Alternative_data_point):
 
 
 def hk_data(Input_folder):
+    # TODO: find out what parser variable should be
     HKfeed =  BeautifulSoup(requests.get('https://www.weather.gov.hk/wxinfo/currwx/tc_list.xml').content,parser=parser,features="lxml")#'html.parser')
     trac_data=[]
     try:

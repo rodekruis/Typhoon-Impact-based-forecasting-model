@@ -1,26 +1,16 @@
-import sys
 import os
-import pandas as pd
-import subprocess
-import numpy as np
-from datetime import datetime 
 import datetime as dt
-from datetime import timedelta
-import re
-import zipfile
-import geopandas as gpd
+from datetime import datetime, timedelta
 from ftplib import FTP
-import shutil
-from os.path import relpath
-from os import listdir
-from os.path import isfile, join
+from io import StringIO
+
+import pandas as pd
+import pybufrkit
 from pybufrkit.decoder import Decoder
 from pybufrkit.renderer import FlatTextRenderer
-from sys import platform
-from io import StringIO
 import numpy as np
+import xarray as xr
  
-import pybufrkit
 decoder = pybufrkit.decoder.Decoder()
 
 
@@ -76,7 +66,7 @@ def ecmwf_data_process(Input_folder,filepatern):
     decoder = Decoder()
     #1=Storm Centre 4 = Location of the storm in the perturbed analysis
     #5 = Location of the storm in the analysis #3=Location of maximum wind
-    ecmwf_files = [f for f in listdir(path_ecmwf) if isfile(join(path_ecmwf, f))]
+    ecmwf_files = [f for f in os.listdir(path_ecmwf) if os.path.isfile(os.path.join(path_ecmwf, f))]
     #ecmwf_files = [file_name for file_name in ecmwf_files if file_name.startswith('A_JSXX02ECEP')]
     list_df=[]
     for ecmwf_file in ecmwf_files:
@@ -202,28 +192,9 @@ def ecmwf_data_process(Input_folder,filepatern):
                                             })
             track = track.set_coords(['lat', 'lon'])  
     list_df.append(track)
-        
-        
-        
-        
-        
-        
-        
-#%%        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+
+# TODO: Fix below
+
         date_object ='%04d%02d%02d%02d'%(int([line.split()[-1] for line in StringIO(text_data) if line[6:17].upper=="004001 YEAR" ][0]),
                              int([line.split()[-1] for line in StringIO(text_data) if line[6:18].upper=="004002 MONTH" ][0]),
                              int([line.split()[-1] for line in StringIO(text_data) if line[6:16].upper=="004003 DAY" ][0]),
@@ -303,7 +274,7 @@ path_ecmwf=os.path.join(Input_folder,'ecmwf/')
 
     #1=Storm Centre 4 = Location of the storm in the perturbed analysis
     #5 = Location of the storm in the analysis #3=Location of maximum wind
-ecmwf_files = [f for f in listdir(path_ecmwf) if isfile(join(path_ecmwf, f))]
+ecmwf_files = [f for f in os.listdir(path_ecmwf) if os.path.isfile(join(path_ecmwf, f))]
     #ecmwf_files = [file_name for file_name in ecmwf_files if file_name.startswith('A_JSXX02ECEP')]
 list_df=[]
 ecmwf_file=ecmwf_files[1]

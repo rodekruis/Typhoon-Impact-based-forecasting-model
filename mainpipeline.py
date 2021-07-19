@@ -8,35 +8,15 @@ Created on Sat Oct 31 16:01:00 2020
 """
 import sys
 import os
-import pandas as pd
-import feedparser
-import numpy as np
-from shapely.geometry import Point
-from shapely.geometry.polygon import Polygon
-from datetime import datetime
-from datetime import timedelta
-import smtplib
-from smtplib import SMTP_SSL as SMTP
-import geopandas as gpd
-import fiona
-from ftplib import FTP
-import shutil
-from os.path import relpath
-import re
-import zipfile
-from os.path import relpath
-from os import listdir
-from os.path import isfile, join
-from pybufrkit.decoder import Decoder
-from pybufrkit.renderer import FlatTextRenderer
+from datetime import datetime, timedelta
 from sys import platform
-from io import StringIO
-import numpy as np
-from bs4 import BeautifulSoup
 import subprocess
+
+import pandas as pd
+from pybufrkit.decoder import Decoder
+import numpy as np
 from geopandas.tools import sjoin
 import geopandas as gpd
-import xarray as xr
 
 decoder = Decoder()
 #path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/'

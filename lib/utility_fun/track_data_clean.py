@@ -1,6 +1,3 @@
-import os
-import math
-import numpy as np
 import xarray as xr
 import pandas as pd
 from climada.hazard.tc_tracks import estimate_roci,estimate_rmw
