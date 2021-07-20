@@ -118,7 +118,7 @@ def main(path='./',remote_dir_='20210421120000',active_typhoon='SURIGAE'):
     fcast.data = [tr for tr in fcast.data if tr.name in Activetyphoon]
     fcast.data = [tr for tr in fcast.data if tr.time.size>1]    
     for typhoons in Activetyphoon:
-        typhoons=Activetyphoon[0]
+        #typhoons=Activetyphoon[0]
         fname=open(os.path.join(path,'forecast/Input/',"typhoon_info_for_model.csv"),'w')
         fname.write('source,filename,event,time'+'\n')            
         line_='Rainfall,'+'%srainfall' % Input_folder +',' +typhoons+','+ datetime.now().strftime("%Y%m%d%H")  #StormName #

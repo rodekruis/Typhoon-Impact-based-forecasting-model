@@ -19,16 +19,18 @@ from pybufrkit.decoder import Decoder
 import numpy as np
 from geopandas.tools import sjoin
 import geopandas as gpd
+import click
 
 # Set up logger
-level = logging.INFO
-logging.basicConfig(level=level,
-                    format='%(asctime)s | %(name)s | %(levelname)s | %(message)s')
-logger = logging.getLogger(__name__)
-# Stop some overly verbose packages
-for log_name, log_obj in logging.Logger.manager.loggerDict.items():
-    if log_name != '<module name>':
-        logging.getLogger(log_name).setLevel(max(logging.WARNING, level))
+logging.root.handlers = []
+logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.DEBUG, filename='ex.log')
+# set up logging to console
+console = logging.StreamHandler()
+console.setLevel(logging.INFO)
+# set a format which is simpler for console use
+formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(message)s')
+console.setFormatter(formatter)
+logging.getLogger("").addHandler(console)
 
 decoder = Decoder()
 #path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/Typhoon-Impact-based-forecasting-model/IBF-Typhoon-model/'
@@ -45,12 +47,12 @@ from utility_fun import track_data_clean,Check_for_active_typhoon,Sendemail,ucl_
 from utility_fun import Rainfall_data
 
 
-#@click.command()
-#@click.option('--path', default='./', help='main directory')
-#@click.option('--remote_dir_', default='20210421120000', help='remote directory')
-#@click.option('--active_typhoon', default='SURIGAE',help='name for active typhoon')
+@click.command()
+@click.option('--path', default='./', help='main directory')
+@click.option('--remote_dir_', default='20210421120000', help='remote directory for ECMWF forecast data') 
+@click.option('--active_typhoon', default='SURIGAE',help='name for active typhoon')
 
-def main(path='./',remote_dir_='20210421120000',active_typhoon='SURIGAE'):
+def main(path,remote_dir_,active_typhoon):
     print('---------------------AUTOMATION SCRIPT STARTED---------------------------------')
     print(str(datetime.now()))
     #%% check for active typhoons
@@ -60,6 +62,7 @@ def main(path='./',remote_dir_='20210421120000',active_typhoon='SURIGAE'):
     if Activetyphoon==[]:
       remote_dir=remote_dir_#'20210421120000' #for downloading test data otherwise set it to None
       Activetyphoon=[active_typhoon]  #name of typhoon for test
+      logging.info(f"No active typhoon in PAR runing for typhoon{active_typhoon}")
     else:
       remote_dir=None #'20210518120000' #for downloading test data  Activetyphoon=['SURIGAE']
     print("currently active typhoon list= %s"%Activetyphoon)
@@ -81,13 +84,15 @@ def main(path='./',remote_dir_='20210421120000',active_typhoon='SURIGAE'):
         rainfall_error=False
     except:
         traceback.print_exc()
-        logger.warning(f'Rainfall download failed, performing download in R script')
+        #logger.warning(f'Rainfall download failed, performing download in R script')
+        logging.info(f'Rainfall download failed, performing download in R script')
         rainfall_error=True
     ###### download UCL data
       
     try:
         ucl_data.create_ucl_metadata(path,uCL_USERNAME,uCL_PASSWORD)
         ucl_data.process_ucl_data(path,Input_folder,uCL_USERNAME,uCL_PASSWORD)
+        logging.info(f'UCL download failed')
 
     except:
         pass
@@ -110,15 +115,20 @@ def main(path='./',remote_dir_='20210421120000',active_typhoon='SURIGAE'):
     df_admin = sjoin(df, admin, how="left")
     df_admin=df_admin.dropna()
     #%% Download ECMWF forecast for typhoon tracks 
-    bufr_files = TCForecast.fetch_bufr_ftp(remote_dir=remote_dir)
-    fcast = TCForecast()
-    fcast.fetch_ecmwf(files=bufr_files)
+    try:    
+        bufr_files = TCForecast.fetch_bufr_ftp(remote_dir=remote_dir)
+        fcast = TCForecast()
+        fcast.fetch_ecmwf(files=bufr_files)
+    except:
+        logging.error(f' Data downloding from ECMWF failed')
+        exit(0)
     #%% filter data downloaded in the above step for active typhoons  in PAR
     # filter tracks with name of current typhoons and drop tracks with only one timestep
     fcast.data = [tr for tr in fcast.data if tr.name in Activetyphoon]
     fcast.data = [tr for tr in fcast.data if tr.time.size>1]    
     for typhoons in Activetyphoon:
-        typhoons=Activetyphoon[0]
+        #typhoons=Activetyphoon[0]
+        logging.info(f'Processing data {typhoons}')
         fname=open(os.path.join(path,'forecast/Input/',"typhoon_info_for_model.csv"),'w')
         fname.write('source,filename,event,time'+'\n')            
         line_='Rainfall,'+'%srainfall' % Input_folder +',' +typhoons+','+ datetime.now().strftime("%Y%m%d%H")  #StormName #
@@ -237,11 +247,13 @@ def main(path='./',remote_dir_='20210421120000',active_typhoon='SURIGAE'):
             try:
                 p = subprocess.check_call(["Rscript", "run_model_V2.R", str(rainfall_error)])
             except subprocess.CalledProcessError as e:
+                logging.error(f'failed to excute R sript')
                 raise ValueError(str(e))
         elif platform == "win32": #if OS is windows edit the path for Rscript
             try:
                 p = subprocess.check_call(["C:/Program Files/R/R-4.1.0/bin/Rscript", "run_model_V2.R", str(rainfall_error)])
             except subprocess.CalledProcessError as e:
+                logging.error(f'failed to excute R sript')
                 raise ValueError(str(e))
             
         

@@ -17,7 +17,7 @@ setup(
     packages=['lib'],
     entry_points={
         'console_scripts': [
-            f"run-typhoon-model = lib.mainpipeline:main",
+            f"run-typhoon-model = lib.pipeline:main",
         ]
     }
 )
