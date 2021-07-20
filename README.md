@@ -58,15 +58,11 @@ docker run --rm -it --name=fbf-phv3 -v ${PWD}:/home/fbf  rodekruis510/typhoonibf
 ```
 To run the pipeline, enter the container and execute:
 ```
-python3 mainpipeline.py
-```
-Run with options
-```
 run-typhoon-model [OPTIONS]
 
 Options:
-  --path TEXT             main directory
-  --remote_dir_ TEXT                  remote directory
+  --path TEXT             main directory defult 
+  --remote_dir_ TEXT                  remote directory 
   --active_typhoon TEXT               name for active typhoon
 
 ```

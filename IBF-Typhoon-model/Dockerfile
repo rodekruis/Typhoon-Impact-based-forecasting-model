@@ -109,6 +109,7 @@ COPY lib_r /home/fbf/lib_r
 COPY models /home/fbf/models
 COPY mainpipeline.py /home/fbf/
 COPY setup.py /home/fbf/
+COPY run_model_V2.R /home/fbf/
 COPY __init__.py /home/fbf/
 # set up cronjob
 # COPY crontab /etc/cron.d/crontab
