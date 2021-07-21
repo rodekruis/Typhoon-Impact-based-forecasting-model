@@ -10,3 +10,5 @@ lib/climada_python-main
 home/
 otherfiles/
 temp/
+mainpipeline_win.py
+model_trigger.py
