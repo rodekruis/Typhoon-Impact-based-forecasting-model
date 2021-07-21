@@ -75,8 +75,8 @@ RUN Rscript -e "install.packages('sf', repos='http://cran.us.r-project.org')"
 RUN Rscript -e "install.packages('geojsonsf', repos='http://cran.us.r-project.org')"
 RUN Rscript -e "install.packages('raster', repos='http://cran.us.r-project.org')"
 RUN Rscript -e "install.packages('rgdal', repos='http://cran.us.r-project.org')"
-RUN Rscript -e "install.packages('ranger', repos='http://cran.us.r-project.org')"
-RUN Rscript -e "install.packages('caret', repos='http://cran.us.r-project.org')"
+#RUN Rscript -e "install.packages('ranger', repos='http://cran.us.r-project.org')"
+#RUN Rscript -e "install.packages('caret', repos='http://cran.us.r-project.org')"
 RUN Rscript -e "install.packages('RFmarkerDetector', repos='http://cran.us.r-project.org')"
 RUN Rscript -e "install.packages('kernlab', repos='http://cran.us.r-project.org')"
 RUN Rscript -e "install.packages('MLmetrics', repos='http://cran.us.r-project.org')"
@@ -99,24 +99,14 @@ RUN apt-get install -y python3-eccodes
 # install python dependencies
 COPY requirements.txt /home/fbf/
 RUN python3.7 -m pip install --no-cache-dir -r requirements.txt
-
-COPY data /home/fbf/data
-COPY data-raw /home/fbf/data-raw
-COPY lib /home/fbf/lib
-COPY lib_r /home/fbf/lib_r
-COPY logos /home/fbf/logos
-COPY lib_r /home/fbf/lib_r
-COPY models /home/fbf/models
-COPY mainpipeline.py /home/fbf/
-COPY setup.py /home/fbf/
-COPY run_model_V2.R /home/fbf/
-COPY __init__.py /home/fbf/
+ADD IBF-Typhoon-model .
+RUN pip install .
 # set up cronjob
 # COPY crontab /etc/cron.d/crontab
 # RUN chmod 0644 /etc/cron.d/crontab
 # RUN crontab /etc/cron.d/crontab
 # RUN touch /var/log/cron.log
 # CMD cron && tail -f /var/log/cron.log
-RUN pip install .
+
 
 

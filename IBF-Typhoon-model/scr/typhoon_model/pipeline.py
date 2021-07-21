@@ -23,7 +23,7 @@ import click
 
 # Set up logger
 logging.root.handlers = []
-logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.DEBUG, filename='ex.log')
+logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.WARNING, filename='ex.log')
 # set up logging to console
 console = logging.StreamHandler()
 console.setLevel(logging.INFO)
@@ -33,9 +33,8 @@ console.setFormatter(formatter)
 logging.getLogger("").addHandler(console)
 
 decoder = Decoder()
-#path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/Typhoon-Impact-based-forecasting-model/IBF-Typhoon-model/'
-#path='/home/fbf/'
-path = './'
+path='/home/fbf/'
+#path = './'
 #%%
 sys.path.insert(0, path+'lib')
 os.chdir(path)
@@ -46,7 +45,7 @@ from climada.hazard.tc_tracks_forecast import TCForecast
 from utility_fun import track_data_clean,Check_for_active_typhoon,Sendemail,ucl_data
 from utility_fun import Rainfall_data
 
-
+#%%
 @click.command()
 @click.option('--path', default='./', help='main directory')
 @click.option('--remote_dir_', default='20210421120000', help='remote directory for ECMWF forecast data') 
@@ -262,6 +261,7 @@ def main(path,remote_dir_,active_typhoon):
         #############################################################
 
         landfall_typhones=[] #model_output_file_names
+
         try:
             #fname2=open("forecast/%s_file_names.csv" % typhoons,'r')
             fname2=open(os.path.join(Output_folder,"model_output_file_names.csv"),'r')
