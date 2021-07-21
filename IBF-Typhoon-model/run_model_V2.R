@@ -19,7 +19,6 @@ suppressMessages(library(huxtable))
 suppressMessages(library(xgboost))
 rainfall_error = args[1]
 sf_use_s2(FALSE)
-
 #path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/'
 #path='/home/fbf/'
 path='./'
@@ -153,8 +152,10 @@ df_imact_forecast <- as.data.frame(y_predicted)%>%
   dplyr::mutate(index= 1:length(y_predicted),
                 impact=y_predicted)%>%left_join(data , by = "index")%>%dplyr::mutate(dist50=ifelse(WEA_dist_track >= 50,0,1),
                                                                                      e_impact=ifelse(impact > 100,100,impact),
+                                                                                     region=substr(GEN_mun_code, 1, 4),
                                                          Damaged_houses=as.integer(GEO_n_households*e_impact*0.01),
 )%>%filter(WEA_dist_track<500)%>%dplyr::select(index,
+                                               region,
                                              GEN_mun_code,
                                              GEN_mun_name,
                                              GEO_n_households,
