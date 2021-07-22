@@ -13,17 +13,28 @@ from sys import platform
 import subprocess
 import logging
 import traceback
-
 import pandas as pd
 from pybufrkit.decoder import Decoder
 import numpy as np
 from geopandas.tools import sjoin
 import geopandas as gpd
 import click
+decoder = Decoder()
+
+#%%
+sys.path.insert(0, '/home/fbf/lib')
+#os.chdir(path)
+from settings import fTP_LOGIN, fTP_PASSWORD, uCL_USERNAME, uCL_PASSWORD
+from climada.hazard import Centroids, TropCyclone,TCTracks
+from climada.hazard.tc_tracks import estimate_roci,estimate_rmw
+from climada.hazard.tc_tracks_forecast import TCForecast
+from utility_fun import track_data_clean,Check_for_active_typhoon,Sendemail,ucl_data
+from utility_fun import Rainfall_data
+
 
 # Set up logger
 logging.root.handlers = []
-logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.WARNING, filename='ex.log')
+logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.DEBUG, filename='ex.log')
 # set up logging to console
 console = logging.StreamHandler()
 console.setLevel(logging.INFO)
@@ -32,26 +43,14 @@ formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(message)s')
 console.setFormatter(formatter)
 logging.getLogger("").addHandler(console)
 
-decoder = Decoder()
-path='/home/fbf/'
-#path = './'
-#%%
-sys.path.insert(0, path+'lib')
-os.chdir(path)
-from settings import fTP_LOGIN, fTP_PASSWORD, uCL_USERNAME, uCL_PASSWORD
-from climada.hazard import Centroids, TropCyclone,TCTracks
-from climada.hazard.tc_tracks import estimate_roci,estimate_rmw
-from climada.hazard.tc_tracks_forecast import TCForecast
-from utility_fun import track_data_clean,Check_for_active_typhoon,Sendemail,ucl_data
-from utility_fun import Rainfall_data
 
 #%%
 @click.command()
 @click.option('--path', default='./', help='main directory')
-@click.option('--remote_dir_', default='20210421120000', help='remote directory for ECMWF forecast data') 
-@click.option('--active_typhoon', default='SURIGAE',help='name for active typhoon')
+@click.option('--remote_directory', default='20210421120000', help='remote directory for ECMWF forecast data') 
+@click.option('--typhoonname', default='SURIGAE',help='name for active typhoon')
 
-def main(path,remote_dir_,active_typhoon):
+def main(path,remote_directory,typhoonname):
     print('---------------------AUTOMATION SCRIPT STARTED---------------------------------')
     print(str(datetime.now()))
     #%% check for active typhoons
@@ -59,8 +58,8 @@ def main(path,remote_dir_,active_typhoon):
     print(str(datetime.now()))
     Activetyphoon=Check_for_active_typhoon.check_active_typhoon()
     if Activetyphoon==[]:
-      remote_dir=remote_dir_#'20210421120000' #for downloading test data otherwise set it to None
-      Activetyphoon=[active_typhoon]  #name of typhoon for test
+      remote_dir=remote_directory#'20210421120000' #for downloading test data otherwise set it to None
+      Activetyphoon=[typhoonname]  #name of typhoon for test
       logging.info(f"No active typhoon in PAR runing for typhoon{active_typhoon}")
     else:
       remote_dir=None #'20210518120000' #for downloading test data  Activetyphoon=['SURIGAE']
@@ -98,7 +97,7 @@ def main(path,remote_dir_,active_typhoon):
     #%%
     ##Create grid points to calculate Winfield
     cent = Centroids()
-    cent.set_raster_from_pnt_bounds((118,6,127,19), res=0.05)
+    cent.set_raster_from_pnt_bounds((118,6,127,19), res=0.1)
     cent.check()
     cent.plot()
     ####

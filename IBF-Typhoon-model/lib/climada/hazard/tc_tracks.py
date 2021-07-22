@@ -1288,7 +1288,10 @@ def set_category(max_sus_wind, wind_unit, saffir_scale=None):
         saffir_scale = SAFFIR_SIM_CAT
         if wind_unit != 'kn':
             max_sus_wind = _change_max_wind_unit(max_sus_wind, wind_unit, 'kn')
-    max_wind = np.nanmax(max_sus_wind)
+    if max_sus_wind.size != 0:
+        max_wind = np.nanmax(max_sus_wind)
+    else:
+        max_wind = 0
     try:
         return (np.argwhere(max_wind < saffir_scale) - 1)[0][0]
     except IndexError:

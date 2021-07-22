@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 # Stop some overly verbose packages
 for log_name, log_obj in logging.Logger.manager.loggerDict.items():
     if log_name != '<module name>':
-        logging.getLogger(log_name).setLevel(max(logging.WARNING, level))
+        logging.getLogger(log_name).setLevel(max(logging.DEBUG, level))
 
 decoder = Decoder()
 #path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/Typhoon-Impact-based-forecasting-model/IBF-Typhoon-model/'
@@ -94,7 +94,7 @@ def main(path='./',remote_dir_='20210421120000',active_typhoon='SURIGAE'):
     #%%
     ##Create grid points to calculate Winfield
     cent = Centroids()
-    cent.set_raster_from_pnt_bounds((118,6,127,19), res=0.05)
+    cent.set_raster_from_pnt_bounds((118,6,127,19), res=0.1)
     cent.check()
     cent.plot()
     ####
