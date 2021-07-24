@@ -1,15 +1,21 @@
 """
 This file is part of CLIMADA.
+
 Copyright (C) 2017 ETH Zurich, CLIMADA contributors listed in AUTHORS.
+
 CLIMADA is free software: you can redistribute it and/or modify it under the
-terms of the GNU Lesser General Public License as published by the Free
+terms of the GNU General Public License as published by the Free
 Software Foundation, version 3.
+
 CLIMADA is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.
-You should have received a copy of the GNU Lesser General Public License along
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along
 with CLIMADA. If not, see <https://www.gnu.org/licenses/>.
+
 ---
+
 Define TropCyclone class.
 """
 
@@ -19,7 +25,7 @@ import itertools
 import logging
 import datetime as dt
 import numpy as np
-from numba import jit
+import numba
 from scipy import sparse
 
 from climada.hazard.base import Hazard
@@ -80,17 +86,16 @@ class TCRain(Hazard):
         else:
             tc_haz = list()
             for track in tracks.data:
-                tc_haz.append(self._set_from_track(track, centroids,
+                self.append(self._set_from_track(track, centroids,
                                                    dist_degree=dist_degree,
                                                    intensity=self.intensity_thres))
         LOGGER.debug('Append events.')
-        self.concatenate(tc_haz)
         LOGGER.debug('Compute frequency.')
         TropCyclone.frequency_from_tracks(self, tracks.data)
         self.tag.description = description
 
     @staticmethod
-    @jit(forceobj=True)
+    @numba.jit(forceobj=True)
     def _set_from_track(track, centroids, dist_degree=3, intensity=0.1):
         """Set hazard from track and centroids.
         Parameters:
@@ -121,7 +126,7 @@ class TCRain(Hazard):
             track.time.dt.day[0]).toordinal()])
         new_haz.orig = np.array([track.orig_event_flag])
         new_haz.category = np.array([track.category])
-        new_haz.basin = [track.basin]
+        new_haz.basin = [str(track.basin.values[0])]
         return new_haz
 
 def rainfield_from_track(track, centroids, dist_degree=3, intensity=0.1):
@@ -172,7 +177,7 @@ def rainfield_from_track(track, centroids, dist_degree=3, intensity=0.1):
             fradius_km[pos] = np.sqrt(dd) * 111.12
 
             rainsum += _RCLIPER(track.max_sustained_wind.values[node],
-                                inreach, fradius_km)
+                                inreach, fradius_km) * track.time_step.values[node]
 
     rainsum[rainsum < intensity] = 0
 

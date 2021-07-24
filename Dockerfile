@@ -27,16 +27,16 @@ RUN apt-get install -y libfontconfig1-dev
 RUN apt-get update
 RUN apt-get install -y wget && rm -rf /var/lib/apt/lists/*
 RUN wget \
-    https://repo.anaconda.com/miniconda/Miniconda3-py37_4.9.2-Linux-x86_64.sh \
+    https://repo.anaconda.com/miniconda/Miniconda3-py38_4.8.2-Linux-x86_64.sh \
     && mkdir /root/.conda \
-    && bash Miniconda3-py37_4.9.2-Linux-x86_64.sh -b \
-    && rm -f Miniconda3-py37_4.9.2-Linux-x86_64.sh 
+    && bash Miniconda3-py38_4.8.2-Linux-x86_64.sh -b \
+    && rm -f Miniconda3-py38_4.8.2-Linux-x86_64.sh 
 #RUN conda --version
 
 
 # update pip
-RUN python3.7 -m pip install pip --upgrade
-RUN python3.7 -m pip install wheel
+RUN python3.8 -m pip install pip --upgrade
+RUN python3.8 -m pip install wheel
 
 
 # copy files
@@ -86,6 +86,7 @@ RUN Rscript -e "install.packages('readr', repos='http://cran.us.r-project.org')"
 RUN Rscript -e "install.packages('rNOMADS', repos='http://cran.us.r-project.org')"
 RUN Rscript -e "install.packages('xgboost', repos='http://cran.us.r-project.org')"
 RUN Rscript -e "install.packages('huxtable', repos='http://cran.us.r-project.org')"
+COPY ncdf4_1.13.tar.gz  /home/fbf/
 RUN Rscript -e "install.packages('ncdf4_1.13.tar.gz', dependencies=FALSE, verbose=TRUE, repos=NULL, type='source')"
 
 RUN conda install -c conda-forge proj==7.0.0
@@ -98,9 +99,10 @@ RUN conda install dask
 RUN apt-get install -y python3-eccodes
 # install python dependencies
 COPY requirements.txt /home/fbf/
-RUN python3.7 -m pip install --no-cache-dir -r requirements.txt
+RUN python3.8 -m pip install --no-cache-dir -r requirements.txt
 ADD IBF-Typhoon-model .
 RUN pip install .
+
 # set up cronjob
 # COPY crontab /etc/cron.d/crontab
 # RUN chmod 0644 /etc/cron.d/crontab

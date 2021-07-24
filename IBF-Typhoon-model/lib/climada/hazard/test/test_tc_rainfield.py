@@ -4,14 +4,14 @@ This file is part of CLIMADA.
 Copyright (C) 2017 ETH Zurich, CLIMADA contributors listed in AUTHORS.
 
 CLIMADA is free software: you can redistribute it and/or modify it under the
-terms of the GNU Lesser General Public License as published by the Free
+terms of the GNU General Public License as published by the Free
 Software Foundation, version 3.
 
 CLIMADA is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU Lesser General Public License along
+You should have received a copy of the GNU General Public License along
 with CLIMADA. If not, see <https://www.gnu.org/licenses/>.
 
 ---
@@ -19,25 +19,23 @@ with CLIMADA. If not, see <https://www.gnu.org/licenses/>.
 Test TCRain class
 """
 
-import os
 import unittest
+import datetime as dt
 import numpy as np
 from scipy import sparse
-import datetime as dt
 
+from climada import CONFIG
 from climada.hazard.tc_tracks import TCTracks
 from climada.hazard.tc_rainfield import TCRain, rainfield_from_track
 from climada.hazard.centroids.centr import Centroids
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
-HAZ_TEST_MAT = os.path.join(DATA_DIR, 'TCrain_brb_test.mat')
-TEST_TRACK = os.path.join(DATA_DIR, "trac_brb_test.csv")
-TEST_TRACK_SHORT = os.path.join(DATA_DIR, "trac_short_test.csv")
+DATA_DIR = CONFIG.hazard.test_data.dir()
+HAZ_TEST_MAT = DATA_DIR.joinpath('TCrain_brb_test.mat')
+TEST_TRACK = DATA_DIR.joinpath("trac_brb_test.csv")
+TEST_TRACK_SHORT = DATA_DIR.joinpath("trac_short_test.csv")
 
-CENTR_DIR = os.path.join(os.path.dirname(__file__), 'data/')
 CENTR_TEST_BRB = Centroids()
-CENTR_TEST_BRB.read_mat(os.path.join(CENTR_DIR, 'centr_brb_test.mat'))
-
+CENTR_TEST_BRB.read_mat(DATA_DIR.joinpath('centr_brb_test.mat'))
 
 class TestReader(unittest.TestCase):
     """Test loading funcions from the TCRain class"""
@@ -92,7 +90,7 @@ class TestReader(unittest.TestCase):
         self.assertEqual(tc_haz.event_id[0], 1)
         self.assertEqual(tc_haz.event_name, ['1951239N12334'])
         self.assertEqual(tc_haz.category, tc_track.data[0].category)
-        self.assertTrue(np.isnan(tc_haz.basin[0]))
+        self.assertEqual(tc_haz.basin[0], "NA")
         self.assertIsInstance(tc_haz.basin, list)
         self.assertIsInstance(tc_haz.category, np.ndarray)
         self.assertTrue(np.array_equal(tc_haz.frequency, np.array([1])))
@@ -148,6 +146,28 @@ class TestModel(unittest.TestCase):
         self.assertAlmostEqual(rainfall[0, 0], 66.801702386)
         self.assertAlmostEqual(rainfall[0, 130], 43.290917792)
         self.assertAlmostEqual(rainfall[0, 200], 76.315923838)
+
+    def test_rainfield_diff_time_steps(self):
+        tc_track = TCTracks()
+        tc_track.read_processed_ibtracs_csv(TEST_TRACK)
+
+        train_org = TCRain()
+        train_org.set_from_tracks(tc_track)
+
+        tc_track.equal_timestep(time_step_h=1)
+        train_1h = TCRain()
+        train_1h.set_from_tracks(tc_track)
+
+        tc_track.equal_timestep(time_step_h=0.5)
+        train_05h = TCRain()
+        train_05h.set_from_tracks(tc_track)
+
+        np.testing.assert_allclose(train_org.intensity.sum(),
+                                   train_1h.intensity.sum(), rtol=1e-1)
+        np.testing.assert_allclose(train_org.intensity.sum(),
+                                   train_05h.intensity.sum(), rtol=1e-1)
+        np.testing.assert_allclose(train_05h.intensity.sum(),
+                                   train_1h.intensity.sum(), rtol=1e-1)
 
 if __name__ == "__main__":
     TESTS = unittest.TestLoader().loadTestsFromTestCase(TestReader)

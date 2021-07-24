@@ -4,14 +4,14 @@ This file is part of CLIMADA.
 Copyright (C) 2017 ETH Zurich, CLIMADA contributors listed in AUTHORS.
 
 CLIMADA is free software: you can redistribute it and/or modify it under the
-terms of the GNU Lesser General Public License as published by the Free
+terms of the GNU General Public License as published by the Free
 Software Foundation, version 3.
 
 CLIMADA is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU Lesser General Public License along
+You should have received a copy of the GNU General Public License along
 with CLIMADA. If not, see <https://www.gnu.org/licenses/>.
 
 ---
@@ -31,7 +31,7 @@ import xlsxwriter
 
 from climada.entity.measures.base import Measure
 from climada.entity.tag import Tag
-import climada.util.hdf5_handler as hdf5
+import climada.util.hdf5_handler as u_hdf5
 
 LOGGER = logging.getLogger(__name__)
 
@@ -130,8 +130,7 @@ class MeasureSet():
             ValueError
         """
         if not isinstance(meas, Measure):
-            LOGGER.error("Input value is not of type Measure.")
-            raise ValueError
+            raise ValueError("Input value is not of type Measure.")
         if not meas.haz_type:
             LOGGER.warning("Input Measure's hazard type not set.")
         if not meas.name:
@@ -275,13 +274,11 @@ class MeasureSet():
             def_color = plt.cm.get_cmap('Greys', len(meas_dict))
             for i_meas, (name, meas) in enumerate(meas_dict.items()):
                 if (name != meas.name) | (name == ''):
-                    LOGGER.error("Wrong Measure.name: %s != %s.", name,
-                                 meas.name)
-                    raise ValueError
+                    raise ValueError("Wrong Measure.name: %s != %s."
+                                     % (name, meas.name))
                 if key_haz != meas.haz_type:
-                    LOGGER.error("Wrong Measure.haz_type: %s != %s.",
-                                 key_haz, meas.haz_type)
-                    raise ValueError
+                    raise ValueError("Wrong Measure.haz_type: %s != %s."
+                                     % (key_haz, meas.haz_type))
                 # set default color if not set
                 if np.array_equal(meas.color_rgb, np.zeros(3)):
                     meas.color_rgb = def_color(i_meas)
@@ -323,17 +320,17 @@ class MeasureSet():
             for idx in range(0, num_mes):
                 meas = Measure()
 
-                meas.name = hdf5.get_str_from_ref(
+                meas.name = u_hdf5.get_str_from_ref(
                     file_name, data[var_names['var_name']['name']][idx][0])
 
-                color_str = hdf5.get_str_from_ref(
+                color_str = u_hdf5.get_str_from_ref(
                     file_name, data[var_names['var_name']['color']][idx][0])
                 meas.color_rgb = np.fromstring(color_str, dtype=float, sep=' ')
                 meas.cost = data[var_names['var_name']['cost']][idx][0]
-                meas.haz_type = hdf5.get_str_from_ref(
+                meas.haz_type = u_hdf5.get_str_from_ref(
                     file_name, data[var_names['var_name']['haz']][idx][0])
                 meas.hazard_freq_cutoff = data[var_names['var_name']['haz_frq']][idx][0]
-                meas.hazard_set = hdf5.get_str_from_ref(
+                meas.hazard_set = u_hdf5.get_str_from_ref(
                     file_name, data[var_names['var_name']['haz_set']][idx][0])
                 try:
                     meas.hazard_inten_imp = (
@@ -348,10 +345,10 @@ class MeasureSet():
                                    data[var_names['var_name']['mdd_b']][idx][0])
                 meas.paa_impact = (data[var_names['var_name']['paa_a']][idx][0],
                                    data[var_names['var_name']['paa_b']][idx][0])
-                meas.imp_fun_map = hdf5.get_str_from_ref(
+                meas.imp_fun_map = u_hdf5.get_str_from_ref(
                     file_name, data[var_names['var_name']['fun_map']][idx][0])
 
-                meas.exposures_set = hdf5.get_str_from_ref(
+                meas.exposures_set = u_hdf5.get_str_from_ref(
                     file_name, data[var_names['var_name']['exp_set']][idx][0])
                 exp_region_id = data[var_names['var_name']['exp_reg']][idx][0]
                 if exp_region_id:
@@ -361,9 +358,9 @@ class MeasureSet():
 
                 measures.append(meas)
 
-        data = hdf5.read(file_name)
+        data = u_hdf5.read(file_name)
         self.clear()
-        self.tag.file_name = file_name
+        self.tag.file_name = str(file_name)
         self.tag.description = description
         try:
             data = data[var_names['sup_field_name']]
@@ -374,8 +371,7 @@ class MeasureSet():
             data = data[var_names['field_name']]
             read_att_mat(self, data, file_name, var_names)
         except KeyError as var_err:
-            LOGGER.error("Not existing variable %s", str(var_err))
-            raise var_err
+            raise KeyError("Variable not in MAT file: " + str(var_err)) from var_err
 
     def read_excel(self, file_name, description='', var_names=DEF_VAR_EXCEL):
         """Read excel file following template and store variables.
@@ -434,13 +430,12 @@ class MeasureSet():
         dfr = pd.read_excel(file_name, var_names['sheet_name'])
         dfr = dfr.fillna('')
         self.clear()
-        self.tag.file_name = file_name
+        self.tag.file_name = str(file_name)
         self.tag.description = description
         try:
             read_att_excel(self, dfr, var_names)
         except KeyError as var_err:
-            LOGGER.error("Not existing variable: %s", str(var_err))
-            raise var_err
+            raise KeyError("Variable not in Excel file: " + str(var_err)) from var_err
 
     def write_excel(self, file_name, var_names=DEF_VAR_EXCEL):
         """Write excel file following template.

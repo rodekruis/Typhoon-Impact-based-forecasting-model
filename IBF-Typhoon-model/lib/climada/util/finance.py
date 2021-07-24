@@ -4,14 +4,14 @@ This file is part of CLIMADA.
 Copyright (C) 2017 ETH Zurich, CLIMADA contributors listed in AUTHORS.
 
 CLIMADA is free software: you can redistribute it and/or modify it under the
-terms of the GNU Lesser General Public License as published by the Free
+terms of the GNU General Public License as published by the Free
 Software Foundation, version 3.
 
 CLIMADA is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU Lesser General Public License along
+You should have received a copy of the GNU General Public License along
 with CLIMADA. If not, see <https://www.gnu.org/licenses/>.
 
 ---
@@ -20,25 +20,22 @@ Finance functionalities.
 """
 __all__ = ['net_present_value', 'income_group', 'gdp']
 
-import os
-import glob
 import shutil
 import logging
-import requests
 import warnings
 import zipfile
+
+from pathlib import Path
+
+import requests
 import numpy as np
 import pandas as pd
+from pandas_datareader import wb
 from cartopy.io import shapereader
 
 from climada.util.files_handler import download_file
 from climada.util.constants import SYSTEM_DIR
 
-# solve version problem in pandas-datareader-0.6.0. see:
-# https://stackoverflow.com/questions/50394873/import-pandas-datareader-gives-
-# importerror-cannot-import-name-is-list-like
-pd.core.common.is_list_like = pd.api.types.is_list_like
-from pandas_datareader import wb
 
 LOGGER = logging.getLogger(__name__)
 
@@ -92,9 +89,7 @@ def net_present_value(years, disc_rates, val_years):
         float
     """
     if years.size != disc_rates.size or years.size != val_years.size:
-        LOGGER.error('Wrong input sizes %s, %s, %s.', years.size,
-                     disc_rates.size, val_years.size)
-        raise ValueError
+        raise ValueError(f'Wrong input sizes {years.size}, {disc_rates.size}, {val_years.size}.')
 
     npv = val_years[-1]
     for val, disc in zip(val_years[-2::-1], disc_rates[-2::-1]):
@@ -149,12 +144,10 @@ def gdp(cntry_iso, ref_year, shp_file=None, per_capita=False):
             close_year, close_val = world_bank(cntry_iso, ref_year, 'NY.GDP.PCAP.CD')
         else:
             close_year, close_val = world_bank(cntry_iso, ref_year, 'NY.GDP.MKTP.CD')
-    except (ValueError, IndexError, requests.exceptions.ConnectionError) \
-    as err:
+    except (ValueError, IndexError, requests.exceptions.ConnectionError) as err:
         if isinstance(err, requests.exceptions.ConnectionError):
             LOGGER.warning('Internet connection failed while retrieving GDPs.')
-        close_year, close_val = nat_earth_adm0(cntry_iso, 'GDP_MD_EST',
-                                               'GDP_YEAR', shp_file)
+        close_year, close_val = nat_earth_adm0(cntry_iso, 'GDP_MD_EST', 'GDP_YEAR', shp_file)
     finally:
         LOGGER.info("GDP {} {:d}: {:.3e}.".format(cntry_iso, close_year,
                                                   close_val))
@@ -187,10 +180,10 @@ def world_bank(cntry_iso, ref_year, info_ind):
         close_year = int(close_val.iloc[0].name[1])
         close_val = float(close_val.iloc[0].values)
     else:  # income group level
-        fn_ig = os.path.join(os.path.abspath(SYSTEM_DIR), 'OGHIST.xls')
+        fn_ig = SYSTEM_DIR.joinpath('OGHIST.xls')
         dfr_wb = pd.DataFrame()
         try:
-            if not glob.glob(fn_ig):
+            if not fn_ig.is_file():
                 file_down = download_file(WORLD_BANK_INC_GRP)
                 shutil.move(file_down, fn_ig)
             dfr_wb = pd.read_excel(fn_ig, 'Country Analytical History', skiprows=5)
@@ -198,9 +191,8 @@ def world_bank(cntry_iso, ref_year, info_ind):
             dfr_wb = dfr_wb.replace(INCOME_GRP_WB_TABLE.keys(),
                                     INCOME_GRP_WB_TABLE.values())
         except (IOError, requests.exceptions.ConnectionError) as err:
-            LOGGER.error('Internet connection failed while downloading '
-                         'historical income groups.')
-            raise err
+            raise type(err)('Internet connection failed while downloading '
+                            'historical income groups: ' + str(err)) from err
 
         cntry_dfr = dfr_wb.loc[cntry_iso]
         close_val = cntry_dfr.iloc[np.abs(
@@ -241,8 +233,7 @@ def nat_earth_adm0(cntry_iso, info_name, year_name=None, shp_file=None):
             break
 
     if not close_val:
-        LOGGER.error("No GDP for country %s found.", cntry_iso)
-        raise ValueError
+        raise ValueError("No GDP for country %s found." % cntry_iso)
 
     if info_name == 'GDP_MD_EST':
         close_val *= 1e6
@@ -264,7 +255,7 @@ def wealth2gdp(cntry_iso, non_financial=True, ref_year=2016,
         Returns:
             float
     """
-    fname = os.path.join(SYSTEM_DIR, file_name)
+    fname = SYSTEM_DIR.joinpath(file_name)
     factors_all_countries = pd.read_csv(fname, sep=',', index_col=None,
                                         header=0, encoding='ISO-8859-1')
     if ref_year != 2016:
@@ -276,14 +267,14 @@ def wealth2gdp(cntry_iso, non_financial=True, ref_year=2016,
         try:
             val = factors_all_countries[
                 factors_all_countries.country_iso3 == cntry_iso]['NFW-to-GDP-ratio'].values[0]
-        except:
+        except (AttributeError, KeyError, IndexError):
             LOGGER.warning('No data for country, using mean factor.')
             val = factors_all_countries["NFW-to-GDP-ratio"].mean()
     else:
         try:
             val = factors_all_countries[
                 factors_all_countries.country_iso3 == cntry_iso]['TW-to-GDP-ratio'].values[0]
-        except:
+        except (AttributeError, KeyError, IndexError):
             LOGGER.warning('No data for country, using mean factor.')
             val = factors_all_countries["TW-to-GDP-ratio"].mean()
     val = np.around(val, 5)
@@ -326,23 +317,23 @@ def world_bank_wealth_account(cntry_iso, ref_year, variable_name="NW.PCA.TO",
                         (applies to 'NW.PCA.*' only). Default = True.
     """
     try:
-        fname = os.path.join(SYSTEM_DIR, FILE_WORLD_BANK_WEALTH_ACC)
-        if not os.path.isfile(fname):
-            fname = os.path.join(SYSTEM_DIR, 'Wealth-Accounts_CSV', FILE_WORLD_BANK_WEALTH_ACC)
-        if not os.path.isfile(fname):
-            if not os.path.isdir(os.path.join(SYSTEM_DIR, 'Wealth-Accounts_CSV')):
-                os.mkdir(os.path.join(SYSTEM_DIR, 'Wealth-Accounts_CSV'))
+        data_file = SYSTEM_DIR.joinpath(FILE_WORLD_BANK_WEALTH_ACC)
+        if not data_file.is_file():
+            data_file = SYSTEM_DIR.joinpath('Wealth-Accounts_CSV', FILE_WORLD_BANK_WEALTH_ACC)
+        if not data_file.is_file():
+            if not SYSTEM_DIR.joinpath('Wealth-Accounts_CSV').is_dir():
+                SYSTEM_DIR.joinpath('Wealth-Accounts_CSV').mkdir()
             file_down = download_file(WORLD_BANK_WEALTH_ACC)
             zip_ref = zipfile.ZipFile(file_down, 'r')
-            zip_ref.extractall(os.path.join(SYSTEM_DIR, 'Wealth-Accounts_CSV'))
+            zip_ref.extractall(SYSTEM_DIR.joinpath('Wealth-Accounts_CSV'))
             zip_ref.close()
-            os.remove(file_down)
-            LOGGER.debug('Download and unzip complete. Unzipping %s', str(fname))
+            Path(file_down).unlink()
+            LOGGER.debug('Download and unzip complete. Unzipping %s', str(data_file))
 
-        data_wealth = pd.read_csv(fname, sep=',', index_col=None, header=0)
-    except:
-        LOGGER.error('Downloading World Bank Wealth Accounting Data failed.')
-        raise
+        data_wealth = pd.read_csv(data_file, sep=',', index_col=None, header=0)
+    except Exception as err:
+        raise type(err)(
+            'Downloading World Bank Wealth Accounting Data failed: ' + str(err)) from err
 
     data_wealth = data_wealth[data_wealth['Country Code'].str.contains(cntry_iso)
                               & data_wealth['Indicator Code'].str.contains(variable_name)
@@ -389,9 +380,9 @@ def _gdp_twn(ref_year, per_capita=False):
     Returns:
         float
     """
-    if not os.path.isfile(os.path.join(os.path.abspath(SYSTEM_DIR), 'GDP_TWN_IMF_WEO_data.csv')):
-        LOGGER.error('File GDP_TWN_IMF_WEO_data.csv not found in SYSTEM_DIR')
-        return 0
+    fname = 'GDP_TWN_IMF_WEO_data.csv'
+    if not SYSTEM_DIR.joinpath(fname).is_file():
+        raise FileNotFoundError(f'File {fname} not found in SYSTEM_DIR')
     if per_capita:
         var_name = 'Gross domestic product per capita, current prices'
     else:
@@ -402,7 +393,7 @@ def _gdp_twn(ref_year, per_capita=False):
         close_year = 2024
     else:
         close_year = ref_year
-    data = pd.read_csv(os.path.join(os.path.abspath(SYSTEM_DIR), 'GDP_TWN_IMF_WEO_data.csv'),
+    data = pd.read_csv(SYSTEM_DIR.joinpath('GDP_TWN_IMF_WEO_data.csv'),
                        index_col=None, header=0)
     close_val = data.loc[data['Subject Descriptor'] == var_name, str(close_year)].values[0]
     close_val = float(close_val.replace(',', ''))

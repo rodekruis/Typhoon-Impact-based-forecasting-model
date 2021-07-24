@@ -4,14 +4,14 @@ This file is part of CLIMADA.
 Copyright (C) 2017 ETH Zurich, CLIMADA contributors listed in AUTHORS.
 
 CLIMADA is free software: you can redistribute it and/or modify it under the
-terms of the GNU Lesser General Public License as published by the Free
+terms of the GNU General Public License as published by the Free
 Software Foundation, version 3.
 
 CLIMADA is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU Lesser General Public License along
+You should have received a copy of the GNU General Public License along
 with CLIMADA. If not, see <https://www.gnu.org/licenses/>.
 
 ---
@@ -27,7 +27,7 @@ import shapely.vectorized
 from shapely.geometry import Polygon
 
 from climada.hazard import Centroids
-from climada.util.coordinates import get_country_geometries, NE_CRS
+import climada.util.coordinates as u_coord
 import climada.hazard.emulator.const as const
 
 LOGGER = logging.getLogger(__name__)
@@ -68,8 +68,8 @@ class HazRegion():
         lon_min, lon_max, lat_min, lat_max = extent
         extent_poly = gpd.GeoSeries(Polygon([
             (lon_min, lat_min), (lon_min, lat_max), (lon_max, lat_max), (lon_max, lat_min)
-        ]), crs=NE_CRS)
-        self.geometry = gpd.GeoDataFrame({'geometry': extent_poly}, crs=NE_CRS)
+        ]), crs=u_coord.NE_CRS)
+        self.geometry = gpd.GeoDataFrame({'geometry': extent_poly}, crs=u_coord.NE_CRS)
 
         if country is not None:
             self.meta['country'] = country
@@ -77,7 +77,7 @@ class HazRegion():
                 country = None
             elif not isinstance(country, list):
                 country = [country]
-            country_geom = get_country_geometries(country_names=country)
+            country_geom = u_coord.get_country_geometries(country_names=country)
             self.geometry = gpd.overlay(self.geometry, country_geom, how="intersection")
 
         if geometry is not None:
@@ -190,5 +190,5 @@ def get_tc_basin_geometry(tc_basin):
             (lonmax, latmin)
         ]))
     polygons = shapely.ops.unary_union(polygons)
-    polygons = gpd.GeoSeries(polygons, crs=NE_CRS)
-    return gpd.GeoDataFrame({'geometry': polygons}, crs=NE_CRS)
+    polygons = gpd.GeoSeries(polygons, crs=u_coord.NE_CRS)
+    return gpd.GeoDataFrame({'geometry': polygons}, crs=u_coord.NE_CRS)

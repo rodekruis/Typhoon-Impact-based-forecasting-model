@@ -4,31 +4,30 @@ This file is part of CLIMADA.
 Copyright (C) 2017 ETH Zurich, CLIMADA contributors listed in AUTHORS.
 
 CLIMADA is free software: you can redistribute it and/or modify it under the
-terms of the GNU Lesser General Public License as published by the Free
+terms of the GNU General Public License as published by the Free
 Software Foundation, version 3.
 
 CLIMADA is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU Lesser General Public License along
+You should have received a copy of the GNU General Public License along
 with CLIMADA. If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
 Test MeasureSet and Measure classes.
 """
-import os
 import unittest
 import numpy as np
 
+from climada import CONFIG
 from climada.entity.measures.base import Measure
 from climada.entity.measures.measure_set import MeasureSet
 from climada.util.constants import ENT_TEMPLATE_XLS, ENT_DEMO_TODAY
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
-ENT_TEST_MAT = os.path.join(os.path.dirname(__file__),
-                            '../../exposures/test/data/demo_today.mat')
+DATA_DIR = CONFIG.measures.test_data.dir()
+ENT_TEST_MAT = CONFIG.exposures.test_data.dir().joinpath('demo_today.mat')
 
 class TestConstructor(unittest.TestCase):
     """Test impact function attributes."""
@@ -59,10 +58,9 @@ class TestContainer(unittest.TestCase):
             meas.append(act_1)
         self.assertIn("Input Measure's hazard type not set.", cm.output[0])
 
-        with self.assertLogs('climada.entity.measures.measure_set', level='ERROR') as cm:
-            with self.assertRaises(ValueError):
-                meas.append(45)
-        self.assertIn("Input value is not of type Measure.", cm.output[0])
+        with self.assertRaises(ValueError) as cm:
+            meas.append(45)
+        self.assertIn("Input value is not of type Measure.", str(cm.exception))
 
     def test_remove_measure_pass(self):
         """Test remove_measure removes Measure of MeasureSet correcty."""
@@ -162,11 +160,9 @@ class TestChecker(unittest.TestCase):
         act_1.paa_impact = (1, 2)
         meas.append(act_1)
 
-        with self.assertLogs('climada.util.checker', level='ERROR') as cm:
-            with self.assertRaises(ValueError):
-                meas.check()
-        self.assertIn('Invalid Measure.hazard_inten_imp size: 2 != 3.',
-                         cm.output[0])
+        with self.assertRaises(ValueError) as cm:
+            meas.check()
+        self.assertIn('Invalid Measure.hazard_inten_imp size: 2 != 3.', str(cm.exception))
 
     def test_check_wrongColor_fail(self):
         """Wrong measures definition"""
@@ -180,10 +176,9 @@ class TestChecker(unittest.TestCase):
         act_1.hazard_inten_imp = (1, 2)
         meas.append(act_1)
 
-        with self.assertLogs('climada.util.checker', level='ERROR') as cm:
-            with self.assertRaises(ValueError):
-                meas.check()
-        self.assertIn('Invalid Measure.color_rgb size: 3 != 2.', cm.output[0])
+        with self.assertRaises(ValueError) as cm:
+            meas.check()
+        self.assertIn('Invalid Measure.color_rgb size: 2 not in [3, 4].', str(cm.exception))
 
     def test_check_wrongMDD_fail(self):
         """Wrong measures definition"""
@@ -197,10 +192,9 @@ class TestChecker(unittest.TestCase):
         act_1.hazard_inten_imp = (1, 2)
         meas.append(act_1)
 
-        with self.assertLogs('climada.util.checker', level='ERROR') as cm:
-            with self.assertRaises(ValueError):
-                meas.check()
-        self.assertIn('Measure.mdd_impact has wrong dimensions.', cm.output[0])
+        with self.assertRaises(ValueError) as cm:
+            meas.check()
+        self.assertIn('Measure.mdd_impact has wrong size.', str(cm.exception))
 
     def test_check_wrongPAA_fail(self):
         """Wrong measures definition"""
@@ -214,10 +208,9 @@ class TestChecker(unittest.TestCase):
         act_1.hazard_inten_imp = (1, 2)
         meas.append(act_1)
 
-        with self.assertLogs('climada.util.checker', level='ERROR') as cm:
-            with self.assertRaises(ValueError):
-                meas.check()
-        self.assertIn('Invalid Measure.paa_impact size: 2 != 4.', cm.output[0])
+        with self.assertRaises(ValueError) as cm:
+            meas.check()
+        self.assertIn('Invalid Measure.paa_impact size: 2 != 4.', str(cm.exception))
 
     def test_check_name_fail(self):
         """Wrong measures definition"""
@@ -228,10 +221,9 @@ class TestChecker(unittest.TestCase):
         meas._data['FL'] = dict()
         meas._data['FL']['LoLo'] = act_1
 
-        with self.assertLogs('climada.entity.measures.measure_set', level='ERROR') as cm:
-            with self.assertRaises(ValueError):
-                meas.check()
-        self.assertIn('Wrong Measure.name: LoLo != LaLa', cm.output[0])
+        with self.assertRaises(ValueError) as cm:
+            meas.check()
+        self.assertIn('Wrong Measure.name: LoLo != LaLa', str(cm.exception))
 
     def test_def_color(self):
         """Test default grey scale used when no color set"""
@@ -376,7 +368,7 @@ class TestReaderExcel(unittest.TestCase):
         self.assertEqual(act_buil.risk_transf_attach, 0)
         self.assertEqual(act_buil.risk_transf_cover, 0)
 
-        self.assertEqual(meas.tag.file_name, ENT_DEMO_TODAY)
+        self.assertEqual(meas.tag.file_name, str(ENT_DEMO_TODAY))
         self.assertEqual(meas.tag.description, description)
 
     def test_template_file_pass(self):
@@ -454,7 +446,7 @@ class TestReaderExcel(unittest.TestCase):
         self.assertEqual(act_buil.risk_transf_cover, 1000000000)
         self.assertEqual(act_buil.risk_transf_cost_factor, 2)
 
-        self.assertEqual(meas.tag.file_name, ENT_TEMPLATE_XLS)
+        self.assertEqual(meas.tag.file_name, str(ENT_TEMPLATE_XLS))
         self.assertEqual(meas.tag.description, '')
 
 class TestReaderMat(unittest.TestCase):
@@ -520,7 +512,7 @@ class TestReaderMat(unittest.TestCase):
         self.assertEqual(act_buil.risk_transf_attach, 0)
         self.assertEqual(act_buil.risk_transf_cover, 0)
 
-        self.assertEqual(meas.tag.file_name, ENT_TEST_MAT)
+        self.assertEqual(meas.tag.file_name, str(ENT_TEST_MAT))
         self.assertEqual(meas.tag.description, description)
 
 class TestWriter(unittest.TestCase):
@@ -563,13 +555,13 @@ class TestWriter(unittest.TestCase):
         meas_set.append(act_11)
         meas_set.append(act_2)
 
-        file_name = os.path.join(DATA_DIR, 'test_meas.xlsx')
+        file_name = DATA_DIR.joinpath('test_meas.xlsx')
         meas_set.write_excel(file_name)
 
         meas_read = MeasureSet()
         meas_read.read_excel(file_name, 'test')
 
-        self.assertEqual(meas_read.tag.file_name, file_name)
+        self.assertEqual(meas_read.tag.file_name, str(file_name))
         self.assertEqual(meas_read.tag.description, 'test')
 
         meas_list = meas_read.get_measure('TC')

@@ -4,14 +4,14 @@ This file is part of CLIMADA.
 Copyright (C) 2017 ETH Zurich, CLIMADA contributors listed in AUTHORS.
 
 CLIMADA is free software: you can redistribute it and/or modify it under the
-terms of the GNU Lesser General Public License as published by the Free
+terms of the GNU General Public License as published by the Free
 Software Foundation, version 3.
 
 CLIMADA is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU Lesser General Public License along
+You should have received a copy of the GNU General Public License along
 with CLIMADA. If not, see <https://www.gnu.org/licenses/>.
 
 ---
@@ -21,48 +21,56 @@ Define TCTracks: IBTracs reader and tracks manager.
 
 __all__ = ['CAT_NAMES', 'SAFFIR_SIM_CAT', 'TCTracks', 'set_category']
 
-import os
-import glob
-import shutil
-import logging
-import warnings
+# standard libraries
 import datetime as dt
 import itertools
-import numpy as np
+import logging
+import re
+import shutil
+import warnings
+from pathlib import Path
+
+# additional libraries
+import cartopy.crs as ccrs
+import cftime
+import geopandas as gpd
 import matplotlib.cm as cm_mp
-from matplotlib.lines import Line2D
 from matplotlib.collections import LineCollection
 from matplotlib.colors import BoundaryNorm, ListedColormap
-import cartopy.crs as ccrs
-import pandas as pd
-import xarray as xr
-from sklearn.neighbors import DistanceMetric
+from matplotlib.lines import Line2D
+import matplotlib.pyplot as plt
 import netCDF4 as nc
-from numba import jit
+import numba
+import numpy as np
+import pandas as pd
 import scipy.io.matlab as matlab
+from shapely.geometry import Point, LineString, MultiLineString
+import shapely.ops
+from sklearn.neighbors import DistanceMetric
 import statsmodels.api as sm
+import xarray as xr
 
+# climada dependencies
 from climada.util import ureg
-import climada.util.coordinates as coord_util
-from climada.util.constants import EARTH_RADIUS_KM, SYSTEM_DIR
+import climada.util.coordinates as u_coord
+from climada.util.constants import EARTH_RADIUS_KM, SYSTEM_DIR, DEF_CRS
 from climada.util.files_handler import get_file_names, download_ftp
 import climada.util.plot as u_plot
 import climada.hazard.tc_tracks_synth
 
 LOGGER = logging.getLogger(__name__)
 
-SAFFIR_SIM_CAT_ = [34, 64, 83, 96, 113, 137, 1000]
-SAFFIR_SIM_CAT = [34, 47, 64,80, 99, 1000]
+SAFFIR_SIM_CAT = [34, 64, 83, 96, 113, 137, 1000]
 """Saffir-Simpson Hurricane Wind Scale in kn based on NOAA"""
 
 CAT_NAMES_ = {
     -1: 'Tropical Depression',
     0: 'Tropical Storm',
-    1: 'Hurricane Cat. 1', 
+    1: 'Hurricane Cat. 1',
     2: 'Hurricane Cat. 2',
-    3: 'Hurricane Cat. 3', 
+    3: 'Hurricane Cat. 3',
     4: 'Hurricane Cat. 4',
-    5: 'Hurricane Cat. 5', 
+    5: 'Hurricane Cat. 5',
 }
 CAT_NAMES = {
     -1: 'Tropical Depression',
@@ -88,7 +96,7 @@ IBTRACS_FILE = 'IBTrACS.ALL.v04r00.nc'
 """IBTrACS v4.0 file all"""
 
 IBTRACS_AGENCIES = [
-    'wmo', 'usa', 'tokyo', 'newdelhi', 'reunion', 'bom', 'nadi', 'wellington',
+    'usa', 'tokyo', 'newdelhi', 'reunion', 'bom', 'nadi', 'wellington',
     'cma', 'hko', 'ds824', 'td9636', 'td9635', 'neumann', 'mlc',
 ]
 """Names/IDs of agencies in IBTrACS v4.0"""
@@ -98,6 +106,30 @@ IBTRACS_USA_AGENCIES = [
     'jtwc_sh', 'jtwc_wp', 'nhc_working_bt', 'tcvightals', 'tcvitals'
 ]
 """Names/IDs of agencies in IBTrACS that correspond to 'usa_*' variables"""
+
+
+IBTRACS_AGENCY_1MIN_WIND_FACTOR = {
+    "usa": [1.0, 0.0],
+    "tokyo": [0.60, 23.3],
+    "newdelhi": [1.0, 0.0],
+    "reunion": [0.88, 0.0],
+    "bom": [0.88, 0.0],
+    "nadi": [0.88, 0.0],
+    "wellington": [0.88, 0.0],
+    'cma': [0.871, 0.0],
+    'hko': [0.9, 0.0],
+    'ds824': [1.0, 0.0],
+    'td9636': [1.0, 0.0],
+    'td9635': [1.0, 0.0],
+    'neumann': [0.88, 0.0],
+    'mlc': [1.0, 0.0],
+}
+"""Scale and shift used by agencies to convert their internal Dvorak 1-minute sustained winds to
+the officially reported values that are in IBTrACS. From Table 1 in:
+
+Knapp, K.R., Kruk, M.C. (2010): Quantifying Interagency Differences in Tropical Cyclone Best-Track
+Wind Speed Estimates. Monthly Weather Review 138(4): 1459–1473.
+https://library.wmo.int/index.php?lvl=notice_display&id=135"""
 
 DEF_ENV_PRESSURE = 1010
 """Default environmental pressure"""
@@ -125,29 +157,31 @@ EMANUEL_RMW_CORR_FACTOR = 2.0
 class TCTracks():
     """Contains tropical cyclone tracks.
 
-    Attributes:
-        data (list(xarray.Dataset)): list of tropical cyclone tracks. Each
-            track contains following attributes:
-                - time (coords)
-                - lat (coords)
-                - lon (coords)
-                - time_step
-                - radius_max_wind
-                - max_sustained_wind
-                - central_pressure
-                - environmental_pressure
-                - max_sustained_wind_unit (attrs)
-                - central_pressure_unit (attrs)
-                - name (attrs)
-                - sid (attrs)
-                - orig_event_flag (attrs)
-                - data_provider (attrs)
-                - basin (attrs)
-                - id_no (attrs)
-                - category (attrs)
-            computed during processing:
-                - on_land
-                - dist_since_lf
+    Attributes
+    ----------
+    data : list(xarray.Dataset)
+        List of tropical cyclone tracks. Each track contains following attributes:
+            - time (coords)
+            - lat (coords)
+            - lon (coords)
+            - time_step (in hours)
+            - radius_max_wind (in nautical miles)
+            - radius_oci (in nautical miles)
+            - max_sustained_wind (in knots)
+            - central_pressure (in hPa/mbar)
+            - environmental_pressure (in hPa/mbar)
+            - basin (for each track position)
+            - max_sustained_wind_unit (attrs)
+            - central_pressure_unit (attrs)
+            - name (attrs)
+            - sid (attrs)
+            - orig_event_flag (attrs)
+            - data_provider (attrs)
+            - id_no (attrs)
+            - category (attrs)
+        Computed during processing:
+            - on_land (bool for each track position)
+            - dist_since_lf (in km)
     """
     def __init__(self, pool=None):
         """Empty constructor. Read csv IBTrACS files if provided."""
@@ -161,24 +195,32 @@ class TCTracks():
     def append(self, tracks):
         """Append tracks to current.
 
-        Parameters:
-            tracks (xarray.Dataset or list(xarray.Dataset)): tracks to append.
+        Parameters
+        ----------
+        tracks : xarray.Dataset or list(xarray.Dataset)
+            tracks to append.
         """
         if not isinstance(tracks, list):
             tracks = [tracks]
         self.data.extend(tracks)
 
     def get_track(self, track_name=None):
-        """Get track with provided name. Return all tracks if no name provided.
-        Returns the first matching track based on the assumption that no other
-        track with the same name or sid exists in the set.
+        """Get track with provided name.
 
-        Parameters:
-            track_name (str, optional): name or sid (ibtracsID for IBTrACS)
-                of track
+        Returns the first matching track based on the assumption that no other track with the same
+        name or sid exists in the set.
 
-        Returns:
-            xarray.Dataset or [xarray.Dataset]
+        Parameters
+        ----------
+        track_name : str, optional
+            Name or sid (ibtracsID for IBTrACS) of track. If None (default), return all tracks.
+
+        Returns
+        -------
+        result : xarray.Dataset or list of xarray.Dataset
+            Usually, a single track is returned. If no track with the specified name is found,
+            an empty list `[]` is returned. If called with `track_name=None`, the list of all
+            tracks is returned.
         """
         if track_name is None:
             if len(self.data) == 1:
@@ -195,137 +237,342 @@ class TCTracks():
         return []
 
     def subset(self, filterdict):
-        """Subset tracks based on attributes. Currently only uses exact matches.
-        Returns a new instance.
+        """Subset tracks based on track attributes.
 
-        Parameters:
-            filterdict (dict): Of the form {'sid': 'pattern', ...}. Although
-                this is not an ordered dict, presumably the filter of greatest
-                magnitude should come first.
+        Select all tracks matching exactly the given attribute values.
+
+        Parameters
+        ----------
+        filterdict : dict or OrderedDict
+            Keys are attribute names, values are the corresponding attribute values to match.
+            In case of an ordered dict, the filters are applied in the given order.
+
+        Returns
+        -------
+        tc_tracks : TCTracks
+            A new instance of TCTracks containing only the matching tracks.
         """
         out = self.__class__(self.pool)
         out.data = self.data
 
         for key, pattern in filterdict.items():
-            out.data = [ds for ds in out.data if ds.attrs[key] == pattern]
+            if key == "basin":
+                out.data = [ds for ds in out.data if pattern in ds.basin]
+            else:
+                out.data = [ds for ds in out.data if ds.attrs[key] == pattern]
 
         return out
 
-    def read_ibtracs_netcdf(self, provider=None, storm_id=None,
-                            year_range=None, basin=None, estimate_missing=False,
-                            correct_pres=False,
-                            file_name='IBTrACS.ALL.v04r00.nc'):
-        """Fill from raw ibtracs v04. Removes nans in coordinates, central
-        pressure and removes repeated times data. Fills nans of environmental_pressure
-        and radius_max_wind. Checks environmental_pressure > central_pressure.
+    def tracks_in_exp(self, exposure, buffer=1.0):
+        """Select only the tracks that are in the vicinity (buffer) of an exposure.
 
-        Parameters:
-            provider (str, optional): If specified, enforce use of specific
-                agency, such as "usa", "newdelhi", "bom", "cma", "tokyo".
-                Default: None (and automatic choice).
-            storm_id (str or list(str), optional): IBTrACS ID of the storm,
-                e.g. 1988234N13299, [1988234N13299, 1989260N11316]
-            year_range(tuple, optional): (min_year, max_year). Default: (1980, 2018)
-            basin (str, optional): e.g. US, SA, NI, SI, SP, WP, EP, NA. if not
-                provided, consider all basins.
-            estimate_missing (bool, optional): estimate missing central pressure
-                wind speed and radius values using other available values.
-                Default: False
-            correct_pres (bool, optional): For backwards compatibility, alias
-                for `estimate_missing`. This is deprecated, use
-                `estimate_missing` instead!
-            file_name (str, optional): name of netcdf file to be dowloaded or located
-                at climada/data/system. Default: 'IBTrACS.ALL.v04r00.nc'.
+        Each exposure point/geometry is extended to a disc of radius `buffer`. Each track is
+        converted to a line and extended by a radius `buffer`.
+
+        Parameters
+        ----------
+        exposure : Exposure
+            Exposure used to select tracks.
+        buffer : float, optional
+            Size of buffer around exposure geometries (in the units of `exposure.crs`),
+            see `geopandas.distance`. Default: 1.0
+
+        Returns
+        -------
+        filtered_tracks : climada.hazard.TCTracks()
+            TCTracks object with tracks from tc_tracks intersecting the exposure whitin a buffer
+            distance.
+        """
+
+        if buffer <= 0.0:
+            raise ValueError(f"buffer={buffer} is invalid, must be above zero.")
+        try:
+            exposure.gdf.geometry
+        except AttributeError:
+            exposure.set_geometry_points()
+
+        exp_buffer = exposure.gdf.buffer(distance=buffer, resolution=0)
+        exp_buffer = exp_buffer.unary_union
+
+        tc_tracks_lines = self.to_geodataframe().buffer(distance=buffer)
+        select_tracks = tc_tracks_lines.intersects(exp_buffer)
+        tracks_in_exp = [track for j, track in enumerate(self.data) if select_tracks[j]]
+        filtered_tracks= TCTracks()
+        filtered_tracks.append(tracks_in_exp)
+
+        return filtered_tracks
+
+
+    def read_ibtracs_netcdf(self, provider=None, rescale_windspeeds=True, storm_id=None,
+                            year_range=None, basin=None, genesis_basin=None,
+                            interpolate_missing=True, estimate_missing=False, correct_pres=False,
+                            discard_single_points=True,
+                            file_name='IBTrACS.ALL.v04r00.nc'):
+        """Read track data from IBTrACS databse.
+
+        When using data from IBTrACS, make sure to be familiar with the scope and limitations of
+        IBTrACS, e.g. by reading the official documentation
+        (https://www.ncdc.noaa.gov/ibtracs/pdf/IBTrACS_version4_Technical_Details.pdf). Reading the
+        CLIMADA documentation can't replace a thorough understanding of the underlying data. This
+        function only provides a (hopefully useful) interface for the data input, but cannot
+        provide any guidance or make recommendations about if and how to use IBTrACS data for your
+        particular project.
+
+        Resulting tracks are required to have both pressure and wind speed information at all time
+        steps. Therefore, all track positions where one of wind speed or pressure are missing are
+        discarded unless one of `interpolate_missing` or `estimate_missing` are active.
+
+        Some corrections are automatically applied, such as: `environmental_pressure` is enforced
+        to be larger than `central_pressure`.
+
+        Note that the tracks returned by this function might contain irregular time steps since
+        that is often the case for the original IBTrACS records. Apply the `equal_timestep`
+        function afterwards to enforce regular time steps.
+
+        Parameters
+        ----------
+        provider : str or list of str, optional
+            Either specify an agency, such as "usa", "newdelhi", "bom", "cma", "tokyo", or the
+            special values "official" and "official_3h":
+            * "official" means using the (usually 6-hourly) officially reported values of the
+              officially responsible agencies.
+            * "official_3h" means to include (inofficial) 3-hourly data of the officially
+              responsible agencies (whenever available).
+            If you want to restrict to the officially reported values by the officially responsible
+            agencies (`provider="official"`) without any modifications to the original official
+            data, make sure to also set `estimate_missing=False` and `interpolate_missing=False`.
+            Otherwise, gaps in the official reporting will be filled using interpolation and/or
+            statistical estimation procedures (see below).
+            If a list is given, the following logic is applied: For each storm, the variables that
+            are not reported by the first agency for this storm are taken from the next agency in
+            the list that did report this variable for this storm. For different storms, the same
+            variable might be taken from different agencies.
+            Default: ['official_3h', 'usa', 'tokyo', 'newdelhi', 'reunion', 'bom', 'nadi',
+            'wellington', 'cma', 'hko', 'ds824', 'td9636', 'td9635', 'neumann', 'mlc']
+        rescale_windspeeds : bool, optional
+            If True, all wind speeds are linearly rescaled to 1-minute sustained winds.
+            Note however that the IBTrACS documentation (Section 5.2,
+            https://www.ncdc.noaa.gov/ibtracs/pdf/IBTrACS_version4_Technical_Details.pdf) includes
+            a warning about this kind of conversion: "While a multiplicative factor can describe
+            the numerical differences, there are procedural and observational differences between
+            agencies that can change through time, which confounds the simple multiplicative
+            factor." Default: True
+        storm_id : str or list of str, optional
+            IBTrACS ID of the storm, e.g. 1988234N13299, [1988234N13299, 1989260N11316].
+        year_range : tuple (min_year, max_year), optional
+            Year range to filter track selection. Default: None.
+        basin : str, optional
+            If given, select storms that have at least one position in the specified basin. This
+            allows analysis of a given basin, but also means that basin-specific track sets should
+            not be combined across basins since some storms will be in more than one set. If you
+            would like to select storms by their (unique) genesis basin instead, use the parameter
+            `genesis_basin`. For possible values (basin abbreviations), see the parameter
+            `genesis_basin`. If None, this filter is not applied. Default: None.
+        genesis_basin : str, optional
+            The basin where a TC is formed is not defined in IBTrACS. However, this filter option
+            allows to restrict to storms whose first valid eye position is in the specified basin,
+            which simulates the genesis location. Note that the resulting genesis basin of a
+            particular track may depend on the selected `provider` and on `estimate_missing`
+            because only the first *valid* eye position is considered. Possible values are 'NA'
+            (North Atlantic), 'SA' (South Atlantic), 'EP'​ (Eastern North Pacific, which includes
+            the Central Pacific region), 'WP'​ (Western North Pacific), 'SP'​ (South Pacific),
+            'SI'​ (South Indian), 'NI'​ (North Indian). If None, this filter is not applied.
+            Default: None.
+        interpolate_missing : bool, optional
+            If True, interpolate temporal reporting gaps within a variable (such as pressure, wind
+            speed, or radius) linearly if possible. Temporal interpolation is with respect to the
+            time steps defined in IBTrACS for a particular storm. No new time steps are added that
+            are not originally defined in IBTrACS.
+            For each time step with a missing value, this procedure is only able to fill in that
+            value if there are other time steps before and after this time step for which values
+            have been reported.
+            This procedure will be applied before the statistical estimations referred to
+            by `estimate_missing`. It is applied to all variables (eye position, wind speed,
+            environmental and central pressure, storm radius and radius of maximum winds).
+            Default: True
+        estimate_missing : bool, optional
+            For each fixed time step, estimate missing pressure, wind speed and radius using other
+            variables that are available at that time step.
+            The relationships between the variables are purely statistical. In comparison to
+            `interpolate_missing`, this procedure is able to estimate values for variables that
+            haven't been reported by any agency at any time step, as long as other variables are
+            available.
+            A typical example are storms before 1950, for which there are often no reported values
+            for pressure, but for wind speed. In this case, a rough statistical pressure-wind
+            relationship is applied to estimate the missing pressure values from the available
+            wind-speed values.
+            Make sure to set `rescale_windspeeds=True` when using this option because the
+            statistical relationships are calibrated using rescaled wind speeds.
+            Default: False
+        correct_pres : bool, optional
+            For backwards compatibility, alias for `estimate_missing`.
+            This is deprecated, use `estimate_missing` instead!
+        discard_single_points : bool, optional
+            Whether to discard tracks that consists of a single point. Recommended for full
+            compatiblity with other functions such as `equal_timesteps`. Default: True.
+        file_name : str, optional
+            Name of NetCDF file to be dowloaded or located at climada/data/system.
+            Default: 'IBTrACS.ALL.v04r00.nc'
         """
         if correct_pres:
             LOGGER.warning("`correct_pres` is deprecated. "
                            "Use `estimate_missing` instead.")
             estimate_missing = True
-        self.data = list()
-        fn_nc = os.path.join(os.path.abspath(SYSTEM_DIR), file_name)
-        if not glob.glob(fn_nc):
+        if estimate_missing and not rescale_windspeeds:
+            LOGGER.warning(
+                "Using `estimate_missing` without `rescale_windspeeds` is strongly discouraged!")
+
+        ibtracs_path = SYSTEM_DIR.joinpath(file_name)
+        if not ibtracs_path.is_file():
             try:
                 download_ftp(f'{IBTRACS_URL}/{IBTRACS_FILE}', IBTRACS_FILE)
-                shutil.move(IBTRACS_FILE, fn_nc)
+                shutil.move(IBTRACS_FILE, ibtracs_path)
             except ValueError as err:
-                LOGGER.error('Error while downloading %s. Try to download it '
-                             'manually and put the file in '
-                             'climada_python/data/system/', IBTRACS_URL)
-                raise err
+                raise ValueError(
+                    f'Error while downloading {IBTRACS_URL}. Try to download it manually and '
+                    f'put the file in {ibtracs_path}') from err
 
-        ibtracs_ds = xr.open_dataset(fn_nc)
+        ibtracs_ds = xr.open_dataset(ibtracs_path)
+        ibtracs_date = ibtracs_ds.attrs["date_created"]
+        if (np.datetime64('today') - np.datetime64(ibtracs_date)).item().days > 180:
+            LOGGER.warning(f"The cached IBTrACS data set dates from {ibtracs_date} (older "
+                           "than 180 days). Very likely, a more recent version is available. "
+                           f"Consider manually removing the file {ibtracs_path} and re-running "
+                           "this function, which will download the most recent version of the "
+                           "IBTrACS data set from the official URL.")
+
         match = np.ones(ibtracs_ds.sid.shape[0], dtype=bool)
-        if storm_id:
+        if storm_id is not None:
             if not isinstance(storm_id, list):
                 storm_id = [storm_id]
-            match &= ibtracs_ds.sid.isin([i.encode() for i in storm_id])
-            if np.count_nonzero(match) == 0:
-                LOGGER.info('No tracks with given IDs %s.', storm_id)
-        else:
-            year_range = year_range if year_range else (1980, 2018)
-        if year_range:
+            invalid_mask = np.array(
+                [re.match(r"[12][0-9]{6}[NS][0-9]{5}", s) is None for s in storm_id])
+            if invalid_mask.any():
+                invalid_sids = list(np.array(storm_id)[invalid_mask])
+                raise ValueError("The following given IDs are invalid: %s%s" % (
+                                 ", ".join(invalid_sids[:5]),
+                                 ", ..." if len(invalid_sids) > 5  else "."))
+                storm_id = list(np.array(storm_id)[~invalid_mask])
+            storm_id_encoded = [i.encode() for i in storm_id]
+            non_existing_mask = ~np.isin(storm_id_encoded, ibtracs_ds.sid.values)
+            if np.count_nonzero(non_existing_mask) > 0:
+                non_existing_sids = list(np.array(storm_id)[non_existing_mask])
+                raise ValueError("The following given IDs are not in IBTrACS: %s%s" % (
+                                 ", ".join(non_existing_sids[:5]),
+                                 ", ..." if len(non_existing_sids) > 5  else "."))
+                storm_id_encoded = list(np.array(storm_id_encoded)[~non_existing_mask])
+            match &= ibtracs_ds.sid.isin(storm_id_encoded)
+        if year_range is not None:
             years = ibtracs_ds.sid.str.slice(0, 4).astype(int)
             match &= (years >= year_range[0]) & (years <= year_range[1])
             if np.count_nonzero(match) == 0:
                 LOGGER.info('No tracks in time range (%s, %s).', *year_range)
-        if basin:
+        if basin is not None:
             match &= (ibtracs_ds.basin == basin.encode()).any(dim='date_time')
             if np.count_nonzero(match) == 0:
                 LOGGER.info('No tracks in basin %s.', basin)
+        if genesis_basin is not None:
+            # Here, we only filter for the basin at *any* eye position. We will filter again later
+            # for the basin of the *first* eye position, but only after restricting to the valid
+            # time steps in the data.
+            match &= (ibtracs_ds.basin == genesis_basin.encode()).any(dim='date_time')
+            if np.count_nonzero(match) == 0:
+                LOGGER.info('No tracks in genesis basin %s.', genesis_basin)
 
         if np.count_nonzero(match) == 0:
-            LOGGER.info('There are no tracks matching the specified requirements.')
+            LOGGER.info("IBTrACS doesn't contain any tracks matching the specified requirements.")
             self.data = []
             return
 
         ibtracs_ds = ibtracs_ds.sel(storm=match)
         ibtracs_ds['valid_t'] = ibtracs_ds.time.notnull()
-        valid_st = ibtracs_ds.valid_t.any(dim="date_time")
-        invalid_st = np.nonzero(~valid_st.data)[0]
-        if invalid_st.size > 0:
-            st_ids = ', '.join(ibtracs_ds.sid.sel(storm=invalid_st).astype(str).data)
-            LOGGER.warning('No valid timestamps found for %s.', st_ids)
-            ibtracs_ds = ibtracs_ds.sel(storm=valid_st)
 
-        if not provider:
-            agency_pref, track_agency_ix = ibtracs_track_agency(ibtracs_ds)
+        if rescale_windspeeds:
+            for agency in IBTRACS_AGENCIES:
+                scale, shift = IBTRACS_AGENCY_1MIN_WIND_FACTOR[agency]
+                ibtracs_ds[f'{agency}_wind'] -= shift
+                ibtracs_ds[f'{agency}_wind'] /= scale
 
-        for var in ['wind', 'pres', 'rmw', 'poci', 'roci']:
-            if provider:
-                # enforce use of specified provider's data points
-                ibtracs_ds[var] = ibtracs_ds[f'{provider}_{var}']
-            else:
-                # array of values in order of preference
-                cols = [f'{a}_{var}' for a in agency_pref]
-                cols = [col for col in cols if col in ibtracs_ds.data_vars.keys()]
-                all_vals = ibtracs_ds[cols].to_array(dim='agency')
-                preferred_ix = all_vals.notnull().argmax(dim='agency')
+        if provider is None:
+            provider = ["official_3h"] + IBTRACS_AGENCIES
+        elif isinstance(provider, str):
+            provider = [provider]
 
-                if var in ['wind', 'pres']:
-                    # choice: wmo -> wmo_agency/usa_agency -> preferred
-                    ibtracs_ds[var] = ibtracs_ds['wmo_' + var] \
-                        .fillna(all_vals.isel(agency=track_agency_ix)) \
-                        .fillna(all_vals.isel(agency=preferred_ix))
-                else:
-                    ibtracs_ds[var] = all_vals.isel(agency=preferred_ix)
+        for tc_var in ['lat', 'lon', 'wind', 'pres', 'rmw', 'poci', 'roci']:
+            if "official" in provider or "official_3h" in provider:
+                ibtracs_add_official_variable(
+                    ibtracs_ds, tc_var, add_3h=("official_3h" in provider))
+
+            # set up dimension of agency-reported values in order of preference, including the
+            # newly created `official` and `official_3h` data if specified
+            ag_vars = [f'{ag}_{tc_var}' for ag in provider]
+            ag_vars = [ag_var for ag_var in ag_vars if ag_var in ibtracs_ds.data_vars.keys()]
+            all_vals = ibtracs_ds[ag_vars].to_array(dim='agency')
+            # argmax returns the first True (i.e. valid) along the 'agency' dimension
+            preferred_idx = all_vals.notnull().any(dim="date_time").argmax(dim='agency')
+            ibtracs_ds[tc_var] = all_vals.isel(agency=preferred_idx)
+
+            # Usually, if an agency reports about a track that crosses the antimeridian, the
+            # longitude is always chosen positive. However, it can happen, that the TC crosses the
+            # antimeridian according to one agency, but not according to another. When mixing
+            # agency data, this can yield inconsistent sign changes in longitude. We remove those:
+            if tc_var == 'lon':
+                # By IBTrACS default, no longitude should be <= -180, but this is not true for some
+                # agencies, so we have to manually enforce this policy:
+                ibtracs_ds[tc_var].values[(ibtracs_ds[tc_var] <= -180).values] += 360
+                crossing_mask = ((ibtracs_ds[tc_var] > 170).any(dim="date_time")
+                                 & (ibtracs_ds[tc_var] < -170).any(dim="date_time")
+                                 & (ibtracs_ds[tc_var] < 0)).values
+                ibtracs_ds[tc_var].values[crossing_mask] += 360
+
+            if interpolate_missing:
+                with warnings.catch_warnings():
+                    # Upstream issue, see https://github.com/pydata/xarray/issues/4167
+                    warnings.simplefilter(action="ignore", category=FutureWarning)
+
+                    # don't interpolate if there is only a single record for this variable
+                    nonsingular_mask = (
+                        ibtracs_ds[tc_var].notnull().sum(dim="date_time") > 1).values
+                    if nonsingular_mask.sum() > 0:
+                        ibtracs_ds[tc_var].values[nonsingular_mask] = (
+                            ibtracs_ds[tc_var].sel(storm=nonsingular_mask).interpolate_na(
+                                dim="date_time", method="linear"))
         ibtracs_ds = ibtracs_ds[['sid', 'name', 'basin', 'lat', 'lon', 'time', 'valid_t',
                                  'wind', 'pres', 'rmw', 'roci', 'poci']]
 
         if estimate_missing:
-            ibtracs_ds['pres'][:] = _estimate_pressure(ibtracs_ds.pres,
-                                                       ibtracs_ds.lat, ibtracs_ds.lon,
-                                                       ibtracs_ds.wind)
-            ibtracs_ds['wind'][:] = _estimate_vmax(ibtracs_ds.wind,
-                                                   ibtracs_ds.lat, ibtracs_ds.lon,
-                                                   ibtracs_ds.pres)
+            ibtracs_ds['pres'][:] = _estimate_pressure(
+                ibtracs_ds.pres, ibtracs_ds.lat, ibtracs_ds.lon, ibtracs_ds.wind)
+            ibtracs_ds['wind'][:] = _estimate_vmax(
+                ibtracs_ds.wind, ibtracs_ds.lat, ibtracs_ds.lon, ibtracs_ds.pres)
 
-        ibtracs_ds['valid_t'] &= ibtracs_ds.wind.notnull() & ibtracs_ds.pres.notnull()
-        valid_st = ibtracs_ds.valid_t.any(dim="date_time")
-        invalid_st = np.nonzero(~valid_st.data)[0]
-        if invalid_st.size > 0:
-            st_ids = ', '.join(ibtracs_ds.sid.sel(storm=invalid_st).astype(str).data)
-            LOGGER.warning('No valid wind/pressure values found for %s.', st_ids)
-            ibtracs_ds = ibtracs_ds.sel(storm=valid_st)
+        ibtracs_ds['valid_t'] &= (ibtracs_ds.lat.notnull() & ibtracs_ds.lon.notnull()
+                                  & ibtracs_ds.wind.notnull() & ibtracs_ds.pres.notnull())
+        valid_storms_mask = ibtracs_ds.valid_t.any(dim="date_time")
+        invalid_storms_idx = np.nonzero(~valid_storms_mask.data)[0]
+        if invalid_storms_idx.size > 0:
+            invalid_sids = list(ibtracs_ds.sid.sel(storm=invalid_storms_idx).astype(str).data)
+            LOGGER.warning('%d storm events are discarded because no valid wind/pressure values '
+                           'have been found: %s%s', len(invalid_sids), ", ".join(invalid_sids[:5]),
+                           ", ..." if len(invalid_sids) > 5  else ".")
+            ibtracs_ds = ibtracs_ds.sel(storm=valid_storms_mask)
+            
+        if discard_single_points:
+            valid_storms_mask = ibtracs_ds.valid_t.sum(dim="date_time") > 1
+            invalid_storms_idx = np.nonzero(~valid_storms_mask.data)[0]
+            if invalid_storms_idx.size > 0:
+                invalid_sids = list(ibtracs_ds.sid.sel(storm=invalid_storms_idx).astype(str).data)
+                LOGGER.warning('%d storm events are discarded because only one valid timestep '
+                               'has been found: %s%s', len(invalid_sids), ", ".join(invalid_sids[:5]),
+                               ", ..." if len(invalid_sids) > 5  else ".")
+                ibtracs_ds = ibtracs_ds.sel(storm=valid_storms_mask)
+
+        if ibtracs_ds.dims['storm'] == 0:
+            LOGGER.info('After discarding IBTrACS events without valid values by the selected '
+                        'reporting agencies, there are no tracks left that match the specified '
+                        'requirements.')
+            self.data = []
+            return
 
         max_wind = ibtracs_ds.wind.max(dim="date_time").data.ravel()
         category_test = (max_wind[:, None] < np.array(SAFFIR_SIM_CAT)[None])
@@ -336,11 +583,7 @@ class TCTracks():
         ibtracs_ds['id_no'] = (ibtracs_ds.sid.str.replace(b'N', b'0')
                                .str.replace(b'S', b'1')
                                .astype(float))
-        ibtracs_ds['time_step'] = xr.zeros_like(ibtracs_ds.time, dtype=float)
-        ibtracs_ds['time_step'][:, 1:] = (ibtracs_ds.time.diff(dim="date_time")
-                                          / np.timedelta64(1, 's'))
-        ibtracs_ds['time_step'][:, 0] = ibtracs_ds.time_step[:, 1]
-        provider = provider if provider else 'ibtracs'
+        provider_str = f"ibtracs_{provider[0]}" + ("" if len(provider) == 1 else "_mixed")
 
         last_perc = 0
         all_tracks = []
@@ -350,11 +593,27 @@ class TCTracks():
                 LOGGER.info("Progress: %d%%", perc)
                 last_perc = perc
             track_ds = ibtracs_ds.sel(storm=i_track, date_time=t_msk)
-            st_penv = xr.apply_ufunc(basin_fun, track_ds.basin, vectorize=True)
-            track_ds['time'][:1] = track_ds.time[:1].dt.floor('H')
+            tr_basin_penv = xr.apply_ufunc(basin_fun, track_ds.basin, vectorize=True)
+            tr_genesis_basin = track_ds.basin.values[0].astype(str).item()
+
+            # Now that the valid time steps have been selected, we discard this track if it
+            # doesn't fit the specified basin definitions:
+            if genesis_basin is not None and tr_genesis_basin != genesis_basin:
+                continue
+            if basin is not None and basin.encode() not in track_ds.basin.values:
+                continue
+
+            # A track that crosses the antimeridian in IBTrACS might be truncated by `t_msk` in
+            # such a way that the remaining part is not crossing the antimeridian:
+            if (track_ds.lon.values > 180).all():
+                track_ds['lon'] -= 360
+
+            # set time_step in hours
+            track_ds['time_step'] = xr.ones_like(track_ds.time, dtype=float)
             if track_ds.time.size > 1:
-                track_ds['time_step'][0] = (track_ds.time[1] - track_ds.time[0]) \
-                                      / np.timedelta64(1, 's')
+                track_ds.time_step.values[1:] = (track_ds.time.diff(dim="date_time")
+                                                 / np.timedelta64(1, 'h'))
+                track_ds.time_step.values[0] = track_ds.time_step[1]
 
             with warnings.catch_warnings():
                 # See https://github.com/pydata/xarray/issues/4167
@@ -372,11 +631,11 @@ class TCTracks():
                     .ffill(dim='date_time', limit=4) \
                     .bfill(dim='date_time', limit=4)
                 # this is the most time consuming line in the processing:
-                track_ds['poci'] = track_ds.poci.fillna(st_penv)
+                track_ds['poci'] = track_ds.poci.fillna(tr_basin_penv)
 
             if estimate_missing:
                 track_ds['rmw'][:] = estimate_rmw(track_ds.rmw.values, track_ds.pres.values)
-                track_ds['roci'][:] = estimate_roci(track_ds.roci.values, track_ds.rmw.values)
+                track_ds['roci'][:] = estimate_roci(track_ds.roci.values, track_ds.pres.values)
                 track_ds['roci'][:] = np.fmax(track_ds.rmw.values, track_ds.roci.values)
 
             # ensure environmental pressure >= central pressure
@@ -384,12 +643,13 @@ class TCTracks():
             track_ds['poci'][:] = np.fmax(track_ds.poci, track_ds.pres)
 
             all_tracks.append(xr.Dataset({
-                'time_step': ('time', track_ds.time_step),
+                'time_step': ('time', track_ds.time_step.data),
                 'radius_max_wind': ('time', track_ds.rmw.data),
                 'radius_oci': ('time', track_ds.roci.data),
                 'max_sustained_wind': ('time', track_ds.wind.data),
                 'central_pressure': ('time', track_ds.pres.data),
                 'environmental_pressure': ('time', track_ds.poci.data),
+                'basin': ('time', track_ds.basin.data.astype("<U2")),
             }, coords={
                 'time': track_ds.time.dt.round('s').data,
                 'lat': ('time', track_ds.lat.data),
@@ -400,57 +660,77 @@ class TCTracks():
                 'name': track_ds.name.astype(str).item(),
                 'sid': track_ds.sid.astype(str).item(),
                 'orig_event_flag': True,
-                'data_provider': provider,
-                'basin': track_ds.basin.values[0].astype(str).item(),
+                'data_provider': provider_str,
                 'id_no': track_ds.id_no.item(),
                 'category': category[i_track],
             }))
+        if last_perc != 100:
+            LOGGER.info("Progress: 100%")
+        if len(all_tracks) == 0:
+            # If all tracks have been discarded in the loop due to the basin filters:
+            LOGGER.info('There were no tracks left in the specified basin '
+                        'after discarding invalid track positions.')
         self.data = all_tracks
 
     def read_processed_ibtracs_csv(self, file_names):
         """Fill from processed ibtracs csv file(s).
 
-        Parameters:
-            file_names (str or list(str)): absolute file name(s) or
-                folder name containing the files to read.
+        Parameters
+        ----------
+        file_names : str or list of str
+            Absolute file name(s) or folder name containing the files to read.
         """
         self.data = list()
         all_file = get_file_names(file_names)
         for file in all_file:
             self._read_ibtracs_csv_single(file)
 
-    def read_simulations_emanuel(self, file_names, hemisphere='S'):
+    def read_simulations_emanuel(self, file_names, hemisphere=None):
         """Fill from Kerry Emanuel tracks.
 
-        Parameters:
-            file_names (str or list(str)): absolute file name(s) or
-                folder name containing the files to read.
-            hemisphere (str, optional): 'S', 'N' or 'both'. Default: 'S'
+        Parameters
+        ----------
+        file_names : str or list of str
+            Absolute file name(s) or folder name containing the files to read.
+        hemisphere : str or None, optional
+            For global data sets, restrict to northern ('N') or southern ('S') hemisphere.
+            Default: None (no restriction)
         """
         self.data = []
         for path in get_file_names(file_names):
-            rmw_corr = os.path.basename(path) in EMANUEL_RMW_CORR_FILES
+            rmw_corr = Path(path).name in EMANUEL_RMW_CORR_FILES
             self._read_file_emanuel(path, hemisphere=hemisphere,
                                     rmw_corr=rmw_corr)
 
-    def _read_file_emanuel(self, path, hemisphere='S', rmw_corr=False):
+    def _read_file_emanuel(self, path, hemisphere=None, rmw_corr=False):
         """Append tracks from file containing Kerry Emanuel simulations.
 
-        Parameters:
-            path (str): absolute path of file to read.
-            hemisphere (str, optional): 'S', 'N' or 'both'. Default: 'S'
-            rmw_corr (str, optional): If True, multiply the radius of
-                maximum wind by factor 2. Default: False.
+        Parameters
+        ----------
+        path : str
+            absolute path of file to read.
+        hemisphere : str or None, optional
+            For global data sets, restrict to northern ('N') or southern ('S') hemisphere.
+            Default: None (no restriction)
+        rmw_corr : str, optional
+            If True, multiply the radius of maximum wind by factor 2. Default: False.
         """
-        if hemisphere == 'S':
-            hem_min, hem_max = -90, 0
-        elif hemisphere == 'N':
-            hem_min, hem_max = 0, 90
-        else:
-            hem_min, hem_max = -90, 90
-
         LOGGER.info('Reading %s.', path)
         data_mat = matlab.loadmat(path)
+        basin = str(data_mat['bas'][0])
+
+        hem_min, hem_max = -90, 90
+        # for backwards compatibility, also check for value 'both'
+        if basin == "GB" and hemisphere != 'both' and hemisphere is not None:
+            if hemisphere == 'S':
+                hem_min, hem_max = -90, 0
+                basin = "S"
+            elif hemisphere == 'N':
+                hem_min, hem_max = 0, 90
+                basin = "N"
+            else:
+                raise ValueError(f"Unknown hemisphere: '{hemisphere}'. Use 'N' or 'S' or None.")
+
         lat = data_mat['latstore']
         ntracks, nnodes = lat.shape
         years_uniq = np.unique(data_mat['yearstore'])
@@ -470,7 +750,8 @@ class TCTracks():
         years = data_mat['yearstore'][0, hem_idx]
 
         ntracks, nnodes = lat.shape
-        LOGGER.info("Loading %s tracks on %s hemisphere.", ntracks, hemisphere)
+        LOGGER.info("Loading %s tracks%s.", ntracks,
+                    f" on {hemisphere} hemisphere" if hemisphere in ['N', 'S'] else "")
 
         # change lon format to -180 to 180
         lon[lon > 180] = lon[lon > 180] - 360
@@ -515,7 +796,8 @@ class TCTracks():
                     hours[i_track, valid_idx[reference_idx]],)
                 datetimes = [reference_date + dt.timedelta(hours=int(step * i))
                              for i in range(nnodes)]
-            datetimes = np.array(datetimes)
+            datetimes = [cftime.DatetimeProlepticGregorian(d.year, d.month, d.day, d.hour)
+                         for d in datetimes]
 
             max_sustained_wind = tc_maxwind[i_track, valid_idx]
             max_sustained_wind_unit = 'kn'
@@ -529,6 +811,7 @@ class TCTracks():
                 'max_sustained_wind': ('time', max_sustained_wind),
                 'central_pressure': ('time', tc_pressure[i_track, valid_idx]),
                 'environmental_pressure': ('time', env_pressure),
+                'basin': ('time', np.full(nnodes, basin)),
             }, coords={
                 'time': datetimes,
                 'lat': ('time', lat[i_track, valid_idx]),
@@ -540,7 +823,6 @@ class TCTracks():
                 'sid': str(hem_idx[i_track]),
                 'orig_event_flag': True,
                 'data_provider': 'Emanuel',
-                'basin': hemisphere,
                 'id_no': hem_idx[i_track],
                 'category': category,
             })
@@ -549,9 +831,12 @@ class TCTracks():
     def read_one_gettelman(self, nc_data, i_track):
         """Fill from Andrew Gettelman tracks.
 
-        Parameters:
-        nc_data (str): netCDF4.Dataset Objekt
-        i_tracks (int): track number
+        Parameters
+        ----------
+        nc_data : str
+            netCDF4.Dataset Objekt
+        i_tracks : int
+            track number
         """
         scale_to_10m = (10. / 60.)**.11
         mps2kts = 1.94384
@@ -600,12 +885,8 @@ class TCTracks():
             time_step.append((time - datetimes[i_time - 1]).total_seconds() / 3600)
         time_step.append(time_step[-1])
 
-        basins = list()
-        for basin in nc_data.variables['basin'][i_track, :][:val_len]:
-            try:
-                basins.extend([basin_dict[basin]])
-            except KeyError:
-                basins.extend([np.nan])
+        basins_numeric = nc_data.variables['basin'][i_track, :val_len]
+        basins = [basin_dict[b] if b in basin_dict else basin_dict[14] for b in basins_numeric]
 
         lon = nc_data.variables['lon'][i_track, :][:val_len]
         lon[lon > 180] = lon[lon > 180] - 360  # change lon format to -180 to 180
@@ -626,7 +907,7 @@ class TCTracks():
                               'radius_max_wind': np.ones(lat.size) * 65.,
                               'maximum_precipitation': max_prec,
                               'average_precipitation': av_prec,
-                              'basins': basins,
+                              'basin': [b[:2] for b in basins],
                               'time_step': time_step})
 
         # construct xarray
@@ -637,25 +918,230 @@ class TCTracks():
                        'central_pressure_unit': 'mb',
                        'sid': sid,
                        'name': sid, 'orig_event_flag': False,
-                       'basin': basins[0],
                        'id_no': i_track,
                        'category': set_category(wind, 'kn')}
         self.data.append(tr_ds)
 
-    def equal_timestep(self, time_step_h=1, land_params=False):
-        """Generate interpolated track values to time steps of min_time_step.
-        Parameters:
-            time_step_h (float, optional): time step in hours to which to
-                interpolate. Default: 1.
-            land_params (bool, optional): compute on_land and dist_since_lf at
-                each node. Default: False.
+    def read_simulations_chaz(self, file_names, year_range=None, ensemble_nums=None):
+        """Read track output from CHAZ simulations
+
+            Lee, C.-Y., Tippett, M.K., Sobel, A.H., Camargo, S.J. (2018): An Environmentally
+            Forced Tropical Cyclone Hazard Model. J Adv Model Earth Sy 10(1): 223–241.
+
+        Parameters
+        ----------
+        file_names : str or list of str
+            Absolute file name(s) or folder name containing the files to read.
+        year_range : tuple (min_year, max_year), optional
+            Filter by year, if given.
+        ensemble_nums : list, optional
+            Filter by ensembleNum, if given.
         """
-        LOGGER.info('Interpolating %s tracks to %sh time steps.', self.size,
-                    time_step_h)
+        self.data = []
+        for path in get_file_names(file_names):
+            LOGGER.info('Reading %s.', path)
+            chaz_ds = xr.open_dataset(path)
+            chaz_ds.time.attrs["units"] = "days since 1950-1-1"
+            chaz_ds.time.attrs["missing_value"] = -54786.0
+            chaz_ds = xr.decode_cf(chaz_ds)
+            chaz_ds['id_no'] = chaz_ds.stormID * 1000 + chaz_ds.ensembleNum
+            for var in ['time', 'longitude', 'latitude']:
+                chaz_ds[var] = chaz_ds[var].expand_dims(ensembleNum=chaz_ds.ensembleNum)
+            chaz_ds = chaz_ds.stack(id=("ensembleNum", "stormID"))
+            years_uniq = chaz_ds.time.dt.year.data
+            years_uniq = np.unique(years_uniq[~np.isnan(years_uniq)])
+            LOGGER.info("File contains %s tracks (at most %s nodes each), "
+                        "representing %s years (%d-%d).",
+                        chaz_ds.id_no.size, chaz_ds.lifelength.size,
+                        years_uniq.size, years_uniq[0], years_uniq[-1])
+
+            # filter by year range if given
+            if year_range:
+                match = ((chaz_ds.time.dt.year >= year_range[0])
+                         & (chaz_ds.time.dt.year <= year_range[1])).sel(lifelength=0)
+                if np.count_nonzero(match) == 0:
+                    LOGGER.info('No tracks in time range (%s, %s).', *year_range)
+                    self.data = []
+                    continue
+                chaz_ds = chaz_ds.sel(id=match)
+
+            # filter by ensembleNum if given
+            if ensemble_nums is not None:
+                match = np.isin(chaz_ds.ensembleNum.values, ensemble_nums)
+                if np.count_nonzero(match) == 0:
+                    LOGGER.info('No tracks with specified ensemble numbers.')
+                    self.data = []
+                    continue
+                chaz_ds = chaz_ds.sel(id=match)
+
+            # remove invalid tracks from selection
+            chaz_ds['valid_t'] = chaz_ds.time.notnull() & chaz_ds.Mwspd.notnull()
+            valid_st = chaz_ds.valid_t.any(dim="lifelength")
+            invalid_st = np.nonzero(~valid_st.data)[0]
+            if invalid_st.size > 0:
+                LOGGER.info('No valid Mwspd values found for %d out of %d storm tracks.',
+                            invalid_st.size, valid_st.size)
+                chaz_ds = chaz_ds.sel(id=valid_st)
+
+            # estimate central pressure from location and max wind
+            chaz_ds['pres'] = xr.full_like(chaz_ds.Mwspd, -1, dtype=float)
+            chaz_ds['pres'][:] = _estimate_pressure(
+                chaz_ds.pres, chaz_ds.latitude, chaz_ds.longitude, chaz_ds.Mwspd)
+
+            # compute time stepsizes
+            chaz_ds['time_step'] = xr.zeros_like(chaz_ds.time, dtype=float)
+            chaz_ds['time_step'][1:, :] = (chaz_ds.time.diff(dim="lifelength")
+                                            / np.timedelta64(1, 'h'))
+            chaz_ds['time_step'][0, :] = chaz_ds.time_step[1, :]
+
+            # determine Saffir-Simpson category
+            max_wind = chaz_ds.Mwspd.max(dim="lifelength").data.ravel()
+            category_test = (max_wind[:, None] < np.array(SAFFIR_SIM_CAT)[None])
+            chaz_ds['category'] = ("id", np.argmax(category_test, axis=1) - 1)
+
+            fname = Path(path).name
+            chaz_ds.time[:] = chaz_ds.time.dt.round('s').data
+            chaz_ds['radius_max_wind'] = xr.full_like(chaz_ds.pres, np.nan)
+            chaz_ds['environmental_pressure'] = xr.full_like(chaz_ds.pres, DEF_ENV_PRESSURE)
+            chaz_ds["track_name"] = ("id", [f"{fname}-{track_id.item()[1]}-{track_id.item()[0]}"
+                                            for track_id in chaz_ds.id])
+
+            # add tracks one by one
+            last_perc = 0
+            for i_track in chaz_ds.id_no:
+                perc = 100 * len(self.data) / chaz_ds.id_no.size
+                if perc - last_perc >= 10:
+                    LOGGER.info("Progress: %d%%", perc)
+                    last_perc = perc
+                track_ds = chaz_ds.sel(id=i_track.id.item())
+                track_ds = track_ds.sel(lifelength=track_ds.valid_t.data)
+                self.data.append(xr.Dataset({
+                    'time_step': ('time', track_ds.time_step),
+                    'max_sustained_wind': ('time', track_ds.Mwspd.data),
+                    'central_pressure': ('time', track_ds.pres.data),
+                    'radius_max_wind': ('time', track_ds.radius_max_wind.data),
+                    'environmental_pressure': ('time', track_ds.environmental_pressure.data),
+                    'basin': ('time', np.full(track_ds.time.size, "GB")),
+                }, coords={
+                    'time': track_ds.time.data,
+                    'lat': ('time', track_ds.latitude.data),
+                    'lon': ('time', track_ds.longitude.data),
+                }, attrs={
+                    'max_sustained_wind_unit': 'kn',
+                    'central_pressure_unit': 'mb',
+                    'name': track_ds.track_name.item(),
+                    'sid': track_ds.track_name.item(),
+                    'orig_event_flag': True,
+                    'data_provider': "CHAZ",
+                    'id_no': track_ds.id_no.item(),
+                    'category': track_ds.category.item(),
+                }))
+            if last_perc != 100:
+                LOGGER.info("Progress: 100%")
+
+    def read_simulations_storm(self, path, years=None):
+        """Read track output from STORM simulations
+
+            Bloemendaal et al. (2020): Generation of a global synthetic tropical cyclone hazard
+            dataset using STORM. Scientific Data 7(1): 40.
+
+        Track data available for download from
+
+            https://doi.org/10.4121/uuid:82c1dc0d-5485-43d8-901a-ce7f26cda35d
+
+        Parameters
+        ----------
+        path : str
+            Full path to a txt-file as contained in the `data.zip` archive from the official source
+            linked above.
+        years : list of int, optional
+            If given, only read the specified "years" from the txt-File. Note that a "year" refers
+            to one ensemble of tracks in the data set that represents one sample year.
+        """
+        self.data = []
+        basins = ["EP", "NA", "NI", "SI", "SP", "WP"]
+        tracks_df = pd.read_csv(path, names=['year', 'time_start', 'tc_num', 'time_delta',
+                                             'basin', 'lat', 'lon', 'pres', 'wind',
+                                             'rmw', 'category', 'landfall', 'dist_to_land'],
+                                converters={
+                                    "time_start": lambda d: dt.datetime(1980, int(float(d)), 1, 0),
+                                    "time_delta": lambda d: dt.timedelta(hours=3 * float(d)),
+                                    "basin": lambda d: basins[int(float(d))],
+                                },
+                                dtype={
+                                    "year": int,
+                                    "tc_num": int,
+                                    "category": int,
+                                })
+
+        # filter specified years
+        if years is not None:
+            tracks_df = tracks_df[np.isin(tracks_df['year'], years)]
+
+        # a bug in the data causes some storm tracks to be double-listed:
+        tracks_df = tracks_df.drop_duplicates(subset=["year", "tc_num", "time_delta"])
+
+        # conversion of units and time
+        tracks_df['rmw'] *= (1 * ureg.kilometer).to(ureg.nautical_mile).magnitude
+        tracks_df['wind'] *= (1 * ureg.meter / ureg.second).to(ureg.knot).magnitude
+        tracks_df['time'] = tracks_df['time_start'] + tracks_df['time_delta']
+        tracks_df = tracks_df.drop(
+            labels=['time_start', 'time_delta', 'landfall', 'dist_to_land'], axis=1)
+
+        # add tracks one by one
+        last_perc = 0
+        fname = Path(path).name
+        groups = tracks_df.groupby(by=["year", "tc_num"])
+        for idx, group in groups:
+            perc = 100 * len(self.data) / len(groups)
+            if perc - last_perc >= 10:
+                LOGGER.info("Progress: %d%%", perc)
+                last_perc = perc
+            track_name = f"{fname}-{idx[0]}-{idx[1]}"
+            env_pressure =  np.array([
+                BASIN_ENV_PRESSURE[basin] if basin in BASIN_ENV_PRESSURE else DEF_ENV_PRESSURE
+                for basin in group['basin'].values])
+            self.data.append(xr.Dataset({
+                'time_step': ('time', np.full(group['time'].shape, 3)),
+                'max_sustained_wind': ('time', group['wind'].values),
+                'central_pressure': ('time', group['pres'].values),
+                'radius_max_wind': ('time', group['rmw'].values),
+                'environmental_pressure': ('time', env_pressure),
+                'basin': ("time", group['basin'].values),
+            }, coords={
+                'time': ('time', group['time'].values),
+                'lat': ('time', group['lat'].values),
+                'lon': ('time', group['lon'].values),
+            }, attrs={
+                'max_sustained_wind_unit': 'kn',
+                'central_pressure_unit': 'mb',
+                'name': track_name,
+                'sid': track_name,
+                'orig_event_flag': True,
+                'data_provider': "STORM",
+                'id_no': idx[0] * 1000 + idx[1],
+                'category': group['category'].max(),
+            }))
+        if last_perc != 100:
+            LOGGER.info("Progress: 100%")
+
+    def equal_timestep(self, time_step_h=1, land_params=False):
+        """Generate interpolated track values to time steps of time_step_h.
+
+        Parameters
+        ----------
+        time_step_h : float or int, optional
+            Temporal resolution in hours (positive, may be non-integer-valued). Default: 1.
+        land_params : bool, optional
+            If True, recompute `on_land` and `dist_since_lf` at each node. Default: False.
+        """
+        if time_step_h <= 0:
+            raise ValueError(f"time_step_h is not a positive number: {time_step_h}")
+        LOGGER.info('Interpolating %s tracks to %sh time steps.', self.size, time_step_h)
 
         if land_params:
             extent = self.get_extent()
-            land_geom = coord_util.get_land_geometry(extent, resolution=10)
+            land_geom = u_coord.get_land_geometry(extent, resolution=10)
         else:
             land_geom = None
 
@@ -666,31 +1152,48 @@ class TCTracks():
                                       itertools.repeat(land_geom, self.size),
                                       chunksize=chunksize)
         else:
-            new_data = list()
+            last_perc = 0
+            new_data = []
             for track in self.data:
-                new_data.append(self._one_interp_data(track, time_step_h,
-                                                      land_geom))
+                # progress indicator
+                perc = 100 * len(new_data) / len(self.data)
+                if perc - last_perc >= 10:
+                    LOGGER.debug("Progress: %d%%", perc)
+                    last_perc = perc
+                new_data.append(
+                    self._one_interp_data(track, time_step_h, land_geom))
             self.data = new_data
 
     def calc_random_walk(self, **kwargs):
-        """See function in `climada.hazard.tc_tracks_synth`"""
-        climada.hazard.tc_tracks_synth.calc_random_walk(self, **kwargs)
+        """Deprecated. Use `TCTracks.calc_perturbed_trajectories` instead."""
+        LOGGER.warning("The use of TCTracks.calc_random_walk is deprecated."
+                       "Use TCTracks.calc_perturbed_trajectories instead.")
+        if kwargs.get('ens_size'):
+            kwargs['nb_synth_tracks'] = kwargs.pop('ens_size')
+        return self.calc_perturbed_trajectories(**kwargs)
+
+    def calc_perturbed_trajectories(self, **kwargs):
+        """See function in `climada.hazard.tc_tracks_synth`."""
+        climada.hazard.tc_tracks_synth.calc_perturbed_trajectories(self, **kwargs)
 
     @property
     def size(self):
-        """Get longitude from coord array"""
+        """Get longitude from coord array."""
         return len(self.data)
 
     def get_bounds(self, deg_buffer=0.1):
         """Get bounds as (lon_min, lat_min, lon_max, lat_max) tuple.
 
-        Parameters:
-            deg_buffer (float): A buffer to add around the bounding box
+        Parameters
+        ----------
+        deg_buffer : float
+            A buffer to add around the bounding box
 
-        Returns:
-            tuple (lon_min, lat_min, lon_max, lat_max)
+        Returns
+        -------
+        bounds : tuple (lon_min, lat_min, lon_max, lat_max)
         """
-        bounds = coord_util.latlon_bounds(
+        bounds = u_coord.latlon_bounds(
             np.concatenate([t.lat.values for t in self.data]),
             np.concatenate([t.lon.values for t in self.data]),
             buffer=deg_buffer)
@@ -704,11 +1207,14 @@ class TCTracks():
     def get_extent(self, deg_buffer=0.1):
         """Get extent as (lon_min, lon_max, lat_min, lat_max) tuple.
 
-        Parameters:
-            deg_buffer (float): A buffer to add around the bounding box
+        Parameters
+        ----------
+        deg_buffer : float
+            A buffer to add around the bounding box
 
-        Returns:
-            tuple (lon_min, lon_max, lat_min, lat_max)
+        Returns
+        -------
+        extent : tuple (lon_min, lon_max, lat_min, lat_max)
         """
         bounds = self.get_bounds(deg_buffer=deg_buffer)
         return (bounds[0], bounds[2], bounds[1], bounds[3])
@@ -718,15 +1224,27 @@ class TCTracks():
         """Exact extent of trackset as tuple, no buffer."""
         return self.get_extent(deg_buffer=0.0)
 
-    def plot(self, axis=None, **kwargs):
+    def plot(self, axis=None, figsize=(9, 13), legend=True, adapt_fontsize=True, **kwargs):
         """Track over earth. Historical events are blue, probabilistic black.
 
-        Parameters:
-            axis (matplotlib.axes._subplots.AxesSubplot, optional): axis to use
-            kwargs (optional): arguments for LineCollection matplotlib, e.g. alpha=0.5
-
-        Returns:
-            matplotlib.axes._subplots.AxesSubplot
+        Parameters
+        ----------
+        axis : matplotlib.axes._subplots.AxesSubplot, optional
+            axis to use
+        figsize: (float, float), optional
+            figure size for plt.subplots
+            The default is (9, 13)
+        legend : bool, optional
+            whether to display a legend of Tropical Cyclone categories.
+            Default: True.
+        kwargs : optional
+            arguments for LineCollection matplotlib, e.g. alpha=0.5
+        adapt_fontsize : bool, optional
+            If set to true, the size of the fonts will be adapted to the size of the figure. Otherwise
+            the default matplotlib font size is used. Default is True.
+        Returns
+        -------
+        axis : matplotlib.axes._subplots.AxesSubplot
         """
         if 'lw' not in kwargs:
             kwargs['lw'] = 2
@@ -742,7 +1260,7 @@ class TCTracks():
 
         if not axis:
             proj = ccrs.PlateCarree(central_longitude=mid_lon)
-            _, axis = u_plot.make_map(proj=proj)
+            _, axis, fontsize = u_plot.make_map(proj=proj, figsize=figsize, adapt_fontsize=adapt_fontsize)
         axis.set_extent(extent, crs=kwargs['transform'])
         u_plot.add_shapes(axis)
 
@@ -751,7 +1269,7 @@ class TCTracks():
         norm = BoundaryNorm([0] + SAFFIR_SIM_CAT, len(SAFFIR_SIM_CAT))
         for track in self.data:
             lonlat = np.stack([track.lon.values, track.lat.values], axis=-1)
-            lonlat[:, 0] = coord_util.lon_normalize(lonlat[:, 0], center=mid_lon)
+            lonlat[:, 0] = u_coord.lon_normalize(lonlat[:, 0], center=mid_lon)
             segments = np.stack([lonlat[:-1], lonlat[1:]], axis=1)
             # remove segments which cross 180 degree longitude boundary
             segments = segments[segments[:, 0, 0] * segments[:, 1, 0] >= 0, :, :]
@@ -765,25 +1283,28 @@ class TCTracks():
             track_lc.set_array(track.max_sustained_wind.values)
             axis.add_collection(track_lc)
 
-        leg_lines = [Line2D([0], [0], color=CAT_COLORS[i_col], lw=2)
-                     for i_col in range(len(SAFFIR_SIM_CAT))]
-        leg_names = [CAT_NAMES[i_col] for i_col in sorted(CAT_NAMES.keys())]
-        if synth_flag:
-            leg_lines.append(Line2D([0], [0], color='grey', lw=2, ls='solid'))
-            leg_lines.append(Line2D([0], [0], color='grey', lw=2, ls=':'))
-            leg_names.append('Historical')
-            leg_names.append('Synthetic')
-
-        axis.legend(leg_lines, leg_names, loc=0)
+        if legend:
+            leg_lines = [Line2D([0], [0], color=CAT_COLORS[i_col], lw=2)
+                         for i_col in range(len(SAFFIR_SIM_CAT))]
+            leg_names = [CAT_NAMES[i_col] for i_col in sorted(CAT_NAMES.keys())]
+            if synth_flag:
+                leg_lines.append(Line2D([0], [0], color='grey', lw=2, ls='solid'))
+                leg_lines.append(Line2D([0], [0], color='grey', lw=2, ls=':'))
+                leg_names.append('Historical')
+                leg_names.append('Synthetic')
+            axis.legend(leg_lines, leg_names, loc=0)
+        plt.tight_layout()
         return axis
 
     def write_netcdf(self, folder_name):
         """Write a netcdf file per track with track.sid name in given folder.
 
-        Parameters:
-            folder_name (str): folder name where to write files
+        Parameters
+        ----------
+        folder_name : str
+            Folder name where to write files.
         """
-        list_path = [os.path.join(folder_name, track.sid + '.nc') for track in self.data]
+        list_path = [Path(folder_name, track.sid + '.nc') for track in self.data]
         LOGGER.info('Writting %s files.', self.size)
         for track in self.data:
             track.attrs['orig_event_flag'] = int(track.orig_event_flag)
@@ -792,29 +1313,121 @@ class TCTracks():
     def read_netcdf(self, folder_name):
         """Read all netcdf files contained in folder and fill a track per file.
 
-        Parameters:
-            folder_name (str): folder name where to write files
+        Parameters
+        ----------
+        folder_name : str
+            Folder name where to write files.
         """
         file_tr = get_file_names(folder_name)
         LOGGER.info('Reading %s files.', len(file_tr))
         self.data = list()
         for file in file_tr:
-            if not os.path.splitext(file)[1] == '.nc':
+            if Path(file).suffix != '.nc':
                 continue
             track = xr.open_dataset(file)
             track.attrs['orig_event_flag'] = bool(track.orig_event_flag)
+            if "basin" in track.attrs:
+                LOGGER.warning("Track data comes with legacy basin attribute. "
+                               "We assume that the track remains in that basin during its "
+                               "whole life time.")
+                basin = track.basin
+                del track.attrs['basin']
+                track['basin'] = ("time", np.full(track.time.size, basin))
             self.data.append(track)
 
+
+    def to_geodataframe(self, as_points=False, split_lines_antimeridian=True):
+        """Transform this TCTracks instance into a GeoDataFrame.
+
+        Parameters
+        ----------
+        as_points : bool, optional
+            If False (default), one feature (row) per track with a LineString or MultiLineString
+            as geometry (or Point geometry for tracks of length one) and all track attributes
+            (sid, name, orig_event_flag, etc) as dataframe columns. If True, one feature (row)
+            per track time step, with variable values per time step (radius_max_wind,
+            max_sustained_wind, etc) as columns in addition to attributes.
+        split_lines_antimeridian : bool, optional
+            If True, tracks that cross the antimeridian are split into multiple Lines as a
+            MultiLineString, with each Line on either side of the meridian. This ensures all Lines
+            are within (-180, +180) degrees longitude. Note that lines might be split at more
+            locations than strictly necessary, due to the underlying splitting algorithm
+            (https://github.com/Toblerity/Shapely/issues/572).
+
+        Returns
+        -------
+        gdf : GeoDataFrame
+        """
+        gdf = gpd.GeoDataFrame(
+            [dict(track.attrs) for track in self.data]
+        )
+
+        if as_points:
+            gdf_long = pd.concat([track.to_dataframe().assign(idx=i)
+                                  for i, track in enumerate(self.data)])
+            gdf_long['lon'] = u_coord.lon_normalize(gdf_long['lon'].values.copy())
+            gdf_long['geometry'] = gdf_long.apply(lambda x: Point(x['lon'], x['lat']), axis=1)
+            gdf_long = gdf_long.drop(columns=['lon', 'lat'])
+            gdf_long = gpd.GeoDataFrame(gdf_long.reset_index().set_index('idx'),
+                                        geometry='geometry', crs=DEF_CRS)
+            gdf = gdf_long.join(gdf)
+
+        elif split_lines_antimeridian:
+            # enforce longitudes to be within [-180, 180] range
+            t_lons = [u_coord.lon_normalize(t.lon.values.copy()) for t in self.data]
+            t_lats = [t.lat.values for t in self.data]
+
+            # LineString only works with more than one lat/lon pair
+            gdf.geometry = gpd.GeoSeries([
+                LineString(np.c_[lons, lats]) if lons.size > 1
+                else Point(lons, lats)
+                for lons, lats in zip(t_lons, t_lats)
+            ])
+            gdf.crs = DEF_CRS
+
+            # for splitting, restrict to tracks that come close to the antimeridian
+            t_split_mask = np.asarray([
+                (lon > 170).any() and (lon < -170).any() and lon.size > 1
+                for lon in t_lons])
+
+            # note that tracks might be splitted at self-intersections as well:
+            # https://github.com/Toblerity/Shapely/issues/572
+            antimeridian = LineString([(180, -90), (180, 90)])
+            gdf.loc[t_split_mask, "geometry"] = gdf.geometry[t_split_mask] \
+                .to_crs({"proj": "longlat", "lon_wrap": 180}) \
+                .apply(lambda line: MultiLineString([
+                    LineString([(x - 360, y) for x, y in segment.coords])
+                    if any(x > 180 for x, y in segment.coords) else segment
+                    for segment in shapely.ops.split(line, antimeridian).geoms
+                ]))
+        else:
+            # LineString only works with more than one lat/lon pair
+            gdf.geometry = gpd.GeoSeries([
+                LineString(np.c_[track.lon, track.lat]) if track.lon.size > 1
+                else Point(track.lon.data, track.lat.data)
+                for track in self.data
+            ])
+            gdf.crs = DEF_CRS
+
+        return gdf
+
     @staticmethod
-    @jit(parallel=True, forceobj=True)
+    @numba.jit(forceobj=True)
     def _one_interp_data(track, time_step_h, land_geom=None):
         """Interpolate values of one track.
 
-        Parameters:
-            track (xr.Dataset): track data
+        Parameters
+        ----------
+        track : xr.Dataset
+            Track data.
+        time_step_h : int or float
+            Desired temporal resolution in hours (may be non-integer-valued).
+        land_geom : shapely.geometry.multipolygon.MultiPolygon, optional
+            Land geometry. If given, recompute `dist_since_lf` and `on_land` property.
 
-        Returns:
-            xr.Dataset
+        Returns
+        -------
+        track_int : xr.Dataset
         """
         if track.time.size >= 2:
             method = ['linear', 'quadratic', 'cubic'][min(2, track.time.size - 2)]
@@ -825,9 +1438,10 @@ class TCTracks():
                 # crosses 180 degrees east/west -> use positive degrees east
                 lon[lon < 0] += 360
 
-            time_step = '{}H'.format(time_step_h)
+            time_step = pd.tseries.frequencies.to_offset(pd.Timedelta(hours=time_step_h)).freqstr
             track_int = track.resample(time=time_step, keep_attrs=True, skipna=True)\
                              .interpolate('linear')
+            track_int['basin'] = track.basin.resample(time=time_step).nearest()
             track_int['time_step'][:] = time_step_h
             lon_int = lon.resample(time=time_step).interpolate(method)
             lon_int[lon_int > 180] -= 360
@@ -837,6 +1451,9 @@ class TCTracks():
             track_int.attrs['category'] = set_category(
                 track_int.max_sustained_wind.values,
                 track_int.max_sustained_wind_unit)
+            # restrict to time steps within original bounds
+            track_int = track_int.sel(
+                time=(track.time[0] <= track_int.time) & (track_int.time <= track.time[-1]))
         else:
             LOGGER.warning('Track interpolation not done. '
                            'Not enough elements for %s', track.name)
@@ -849,11 +1466,14 @@ class TCTracks():
     def _read_ibtracs_csv_single(self, file_name):
         """Read IBTrACS track file in CSV format.
 
-            Parameters:
-                file_name (str): File name of CSV file.
+        Parameters
+        ----------
+        file_name : str
+            File name of CSV file.
         """
         LOGGER.info('Reading %s', file_name)
-        dfr = pd.read_csv(file_name)
+        # keep_default_na=False avoids interpreting the North Atlantic ('NA') basin as a NaN-value
+        dfr = pd.read_csv(file_name, keep_default_na=False)
         name = dfr['ibtracsID'].values[0]
 
         datetimes = list()
@@ -886,15 +1506,14 @@ class TCTracks():
         tr_ds['radius_max_wind'] = ('time', dfr['rmax'].values.astype('float'))
         tr_ds['max_sustained_wind'] = ('time', max_sus_wind)
         tr_ds['central_pressure'] = ('time', cen_pres)
-        tr_ds['environmental_pressure'] = ('time',
-                                           dfr['penv'].values.astype('float'))
+        tr_ds['environmental_pressure'] = ('time', dfr['penv'].values.astype('float'))
+        tr_ds['basin'] = ('time', dfr['gen_basin'].values.astype('<U2'))
         tr_ds.attrs['max_sustained_wind_unit'] = max_sus_wind_unit
         tr_ds.attrs['central_pressure_unit'] = 'mb'
         tr_ds.attrs['name'] = name
         tr_ds.attrs['sid'] = name
         tr_ds.attrs['orig_event_flag'] = bool(dfr['original_data']. values[0])
         tr_ds.attrs['data_provider'] = dfr['data_provider'].values[0]
-        tr_ds.attrs['basin'] = dfr['gen_basin'].values[0]
         try:
             tr_ds.attrs['id_no'] = float(name.replace('N', '0').
                                          replace('S', '1'))
@@ -909,41 +1528,50 @@ class TCTracks():
 def track_land_params(track, land_geom):
     """Compute parameters of land for one track.
 
-    Parameters:
-        track (xr.Dataset): tropical cyclone track
-        land_geom (shapely.geometry.multipolygon.MultiPolygon): land geometry
+    Parameters
+    ----------
+    track : xr.Dataset
+        tropical cyclone track
+    land_geom : shapely.geometry.multipolygon.MultiPolygon
+        land geometry
     """
     track['on_land'] = ('time',
-                        coord_util.coord_on_land(track.lat.values, track.lon.values, land_geom))
+                        u_coord.coord_on_land(track.lat.values, track.lon.values, land_geom))
     track['dist_since_lf'] = ('time', _dist_since_lf(track))
 
 def _dist_since_lf(track):
     """Compute the distance to landfall in km point for every point on land.
-    Points on water get nan values.
 
-    Parameters:
-        track (xr.Dataset): tropical cyclone track
+    Parameters
+    ----------
+    track : xr.Dataset
+        Single tropical cyclone track.
 
-    Returns:
-        np.arrray
+    Returns
+    -------
+    dist : np.arrray
+        Distances in km, points on water get nan values.
     """
     dist_since_lf = np.zeros(track.time.values.shape)
 
     # Index in sea that follows a land index
-    sea_land_idx = np.where(np.diff(track.on_land.astype(int)) == 1)[0]
+    sea_land_idx, land_sea_idx = _get_landfall_idx(track, True)
     if not sea_land_idx.size:
         return (dist_since_lf + 1) * np.nan
-
-    # Index in sea that comes from previous land index
-    land_sea_idx = np.where(np.diff(track.on_land.astype(int)) == -1)[0] + 1
-    if track.on_land[-1]:
-        land_sea_idx = np.append(land_sea_idx, track.time.size)
+    
     orig_lf = np.empty((sea_land_idx.size, 2))
     for i_lf, lf_point in enumerate(sea_land_idx):
-        orig_lf[i_lf][0] = track.lat[lf_point] + \
-            (track.lat[lf_point + 1] - track.lat[lf_point]) / 2
-        orig_lf[i_lf][1] = track.lon[lf_point] + \
-            (track.lon[lf_point + 1] - track.lon[lf_point]) / 2
+        if lf_point > 0:
+            # Assume the landfall started between this and the previous point
+            orig_lf[i_lf][0] = track.lat[lf_point - 1] + \
+                (track.lat[lf_point] - track.lat[lf_point - 1]) / 2
+            orig_lf[i_lf][1] = track.lon[lf_point - 1] + \
+                (track.lon[lf_point] - track.lon[lf_point - 1]) / 2
+        else:
+            # track starts over land, assume first 'landfall' starts here
+            orig_lf[i_lf][0] = track.lat[lf_point]
+            orig_lf[i_lf][1] = track.lon[lf_point]
+
 
     dist = DistanceMetric.get_metric('haversine')
     nodes1 = np.radians(np.array([track.lat.values[1:],
@@ -952,18 +1580,56 @@ def _dist_since_lf(track):
                                   track.lon.values[:-1]]).transpose())
     dist_since_lf[1:] = dist.pairwise(nodes1, nodes0).diagonal()
     dist_since_lf[~track.on_land.values] = 0.0
-    nodes1 = np.array([track.lat.values[sea_land_idx + 1],
-                       track.lon.values[sea_land_idx + 1]]).transpose() / 180 * np.pi
-    dist_since_lf[sea_land_idx + 1] = \
+    nodes1 = np.array([track.lat.values[sea_land_idx],
+                       track.lon.values[sea_land_idx]]).transpose() / 180 * np.pi
+    dist_since_lf[sea_land_idx] = \
         dist.pairwise(nodes1, orig_lf / 180 * np.pi).diagonal()
     for sea_land, land_sea in zip(sea_land_idx, land_sea_idx):
-        dist_since_lf[sea_land + 1:land_sea] = \
-            np.cumsum(dist_since_lf[sea_land + 1:land_sea])
+        dist_since_lf[sea_land:land_sea] = \
+            np.cumsum(dist_since_lf[sea_land:land_sea])
 
     dist_since_lf *= EARTH_RADIUS_KM
     dist_since_lf[~track.on_land.values] = np.nan
 
     return dist_since_lf
+
+def _get_landfall_idx(track, include_starting_landfall=False):
+    """Get the position of the start and end of landfalls for a TC track.
+
+    Parameters
+    ----------
+    track : xr.Dataset
+        track (variable 'on_land' must exist, if not present they can be added with
+               climada.hazard.tc_tracks.track_land_params(track, land_geom))
+    include_starting_landfall : bool
+        If the track starts over land, whether to include the track segment before
+        reaching the ocean as a landfall. Default: False.
+        
+
+    Returns
+    -------
+    sea_land_idx : numpy.ndarray of dtype int
+        Indexes of the first point over land for each landfall
+    land_sea_idx : numpy.ndarrat of dtype int
+        Indexes of first point over the ocean after each landfall. If the track
+        ends over land, the last value is set to track.time.size.
+    """
+    # Index in land that comes from previous sea index
+    sea_land_idx = np.where(np.diff(track.on_land.astype(int)) == 1)[0] + 1
+    # Index in sea that comes from previous land index
+    land_sea_idx = np.where(np.diff(track.on_land.astype(int)) == -1)[0] + 1
+    if track.on_land[-1]:
+        # track ends over land: add last track point as the end of that landfall
+        land_sea_idx = np.append(land_sea_idx, track.time.size)
+    if track.on_land[0]:
+        # track starts over land: remove first land-to-sea transition (not a landfall)?
+        if include_starting_landfall:
+            sea_land_idx = np.append(0, sea_land_idx)
+        else:
+            land_sea_idx = land_sea_idx[1:]
+    if land_sea_idx.size != sea_land_idx.size:
+        raise ValueError('Mismatch')
+    return sea_land_idx,land_sea_idx
 
 def _estimate_pressure(cen_pres, lat, lon, v_max):
     """Replace missing pressure values with statistical estimate.
@@ -972,8 +1638,8 @@ def _estimate_pressure(cen_pres, lat, lon, v_max):
 
     See function `ibtracs_fit_param` for more details about the statistical estimation:
 
-    >>> ibtracs_fit_param('pres', ['lat', 'lon', 'wind'], year_range=(1980, 2019))
-    >>> r^2: 0.8746154487335112
+    >>> ibtracs_fit_param('pres', ['lat', 'lon', 'wind'], year_range=(1980, 2020))
+    >>> r^2: 0.8726728075520206
 
     Parameters
     ----------
@@ -995,7 +1661,7 @@ def _estimate_pressure(cen_pres, lat, lon, v_max):
     v_max = np.where(np.isnan(v_max), -1, v_max)
     lat, lon = [np.where(np.isnan(ar), -999, ar) for ar in [lat, lon]]
     msk = (cen_pres <= 0) & (v_max > 0) & (lat > -999) & (lon > -999)
-    c_const, c_lat, c_lon, c_vmax = 1024.392, 0.0620, -0.0335, -0.737
+    c_const, c_lat, c_lon, c_vmax = 1026.3401, -0.05504, -0.03536, -0.7357
     cen_pres[msk] = c_const + c_lat * lat[msk] \
                             + c_lon * lon[msk] \
                             + c_vmax * v_max[msk]
@@ -1008,8 +1674,8 @@ def _estimate_vmax(v_max, lat, lon, cen_pres):
 
     See function `ibtracs_fit_param` for more details about the statistical estimation:
 
-    >>> ibtracs_fit_param('wind', ['lat', 'lon', 'pres'], year_range=(1980, 2019))
-    >>> r^2: 0.8717153945288457
+    >>> ibtracs_fit_param('wind', ['lat', 'lon', 'pres'], year_range=(1980, 2020))
+    >>> r^2: 0.8683725434617979
 
     Parameters
     ----------
@@ -1031,7 +1697,7 @@ def _estimate_vmax(v_max, lat, lon, cen_pres):
     cen_pres = np.where(np.isnan(cen_pres), -1, cen_pres)
     lat, lon = [np.where(np.isnan(ar), -999, ar) for ar in [lat, lon]]
     msk = (v_max <= 0) & (cen_pres > 0) & (lat > -999) & (lon > -999)
-    c_const, c_lat, c_lon, c_pres = 1216.823, 0.0852, -0.0398, -1.182
+    c_const, c_lat, c_lon, c_pres = 1216.5223, -0.04086, -0.04190, -1.1797
     v_max[msk] = c_const + c_lat * lat[msk] \
                          + c_lon * lon[msk] \
                          + c_pres * cen_pres[msk]
@@ -1052,14 +1718,14 @@ def estimate_roci(roci, cen_pres):
     Parameters
     ----------
     roci : array-like
-        ROCI values along track in km.
+        ROCI values along track in nautical miles (nm).
     cen_pres : array-like
         Central pressure values along track in hPa (mbar).
 
     Returns
     -------
     roci_estimated : np.array
-        Estimated ROCI values in km.
+        Estimated ROCI values in nautical miles (nm).
     """
     roci = np.where(np.isnan(roci), -1, roci)
     cen_pres = np.where(np.isnan(cen_pres), -1, cen_pres)
@@ -1087,14 +1753,14 @@ def estimate_rmw(rmw, cen_pres):
     Parameters
     ----------
     rmw : array-like
-        RMW values along track in km.
+        RMW values along track in nautical miles (nm).
     cen_pres : array-like
         Central pressure values along track in hPa (mbar).
 
     Returns
     -------
     rmw : np.array
-        Estimated RMW values in km.
+        Estimated RMW values in nautical miles (nm).
     """
     rmw = np.where(np.isnan(rmw), -1, rmw)
     cen_pres = np.where(np.isnan(cen_pres), -1, cen_pres)
@@ -1110,18 +1776,24 @@ def estimate_rmw(rmw, cen_pres):
     return np.where(rmw <= 0, np.nan, rmw)
 
 def ibtracs_fit_param(explained, explanatory, year_range=(1980, 2019), order=1):
-    """Statistically fit an ibtracs parameter to other ibtracs variables
+    """Statistically fit an ibtracs parameter to other ibtracs variables.
 
     A linear ordinary least squares fit is done using the statsmodels package.
 
-    Parameters:
-        explained (str): name of explained variable
-        explanatory (iterable): names of explanatory variables
-        year_range (tuple): first and last year to include in the analysis
-        order (int or tuple): the maximal order of the explanatory variables
+    Parameters
+    ----------
+    explained : str
+        Name of explained variable.
+    explanatory : iterable
+        Names of explanatory variables.
+    year_range : tuple
+        First and last year to include in the analysis.
+    order : int or tuple
+        The maximal order of the explanatory variables.
 
-    Returns:
-        OLSResults
+    Returns
+    -------
+    result : OLSResults
     """
     wmo_vars = ['wind', 'pres', 'rmw', 'roci', 'poci']
     all_vars = ['lat', 'lon'] + wmo_vars
@@ -1129,17 +1801,22 @@ def ibtracs_fit_param(explained, explanatory, year_range=(1980, 2019), order=1):
     variables = explanatory + [explained]
     for var in variables:
         if var not in all_vars:
-            LOGGER.error("Unknown ibtracs variable: %s", var)
-            raise KeyError
+            raise KeyError("Unknown ibtracs variable: %s" % var)
 
     # load ibtracs dataset
-    fn_nc = os.path.join(os.path.abspath(SYSTEM_DIR), 'IBTrACS.ALL.v04r00.nc')
+    fn_nc = SYSTEM_DIR.joinpath('IBTrACS.ALL.v04r00.nc')
     ibtracs_ds = xr.open_dataset(fn_nc)
 
     # choose specified year range
     years = ibtracs_ds.sid.str.slice(0, 4).astype(int)
     match = (years >= year_range[0]) & (years <= year_range[1])
     ibtracs_ds = ibtracs_ds.sel(storm=match)
+
+    if "wind" in variables:
+        for agency in IBTRACS_AGENCIES:
+            scale, shift = IBTRACS_AGENCY_1MIN_WIND_FACTOR[agency]
+            ibtracs_ds[f'{agency}_wind'] -= shift
+            ibtracs_ds[f'{agency}_wind'] /= scale
 
     # fill values
     agency_pref, track_agency_ix = ibtracs_track_agency(ibtracs_ds)
@@ -1205,7 +1882,7 @@ def ibtracs_fit_param(explained, explanatory, year_range=(1980, 2019), order=1):
     return sm_results
 
 def ibtracs_track_agency(ds_sel):
-    """Get preferred IBTrACS agency for each entry in the dataset
+    """Get preferred IBTrACS agency for each entry in the dataset.
 
     Parameters
     ----------
@@ -1219,27 +1896,102 @@ def ibtracs_track_agency(ds_sel):
     track_agency_ix : xarray.DataArray of ints
         For each entry in `ds_sel`, the agency to use, given as an index into `agency_pref`.
     """
-    agency_pref = IBTRACS_AGENCIES.copy()
+    agency_pref = ["wmo"] + IBTRACS_AGENCIES
     agency_map = {a.encode('utf-8'): i for i, a in enumerate(agency_pref)}
     agency_map.update({
         a.encode('utf-8'): agency_map[b'usa'] for a in IBTRACS_USA_AGENCIES
     })
     agency_map[b''] = agency_map[b'wmo']
     agency_fun = lambda x: agency_map[x]
-    track_agency = ds_sel.wmo_agency.where(ds_sel.wmo_agency != '', ds_sel.usa_agency)
-    track_agency_ix = xr.apply_ufunc(agency_fun, track_agency, vectorize=True)
+    if "track_agency" not in ds_sel.data_vars.keys():
+        ds_sel['track_agency'] = ds_sel.wmo_agency.where(ds_sel.wmo_agency != b'',
+                                                         ds_sel.usa_agency)
+    track_agency_ix = xr.apply_ufunc(agency_fun, ds_sel.track_agency, vectorize=True)
     return agency_pref, track_agency_ix
 
+def ibtracs_add_official_variable(ibtracs_ds, tc_var, add_3h=False):
+    """Add variables for the officially responsible agencies to an IBTrACS dataset
+
+    This function adds new variables to the xarray.Dataset `ibtracs_ds` that contain values of the
+    specified TC variable `var` that have been reported by the officially responsible agencies.
+    For example, if `tc_var` is "wind", there will be a new variable "official_wind" and, if
+    `add_3h` is True, an additional variable "official_3h_wind".
+
+    Parameters
+    ----------
+    ibtracs_ds : xarray.Dataset
+        Subselection of original IBTrACS NetCDF dataset.
+    tc_var : str
+        Name of variable for which to add an "official" version, e.g. "lat", "wind", "pres".
+    add_3h : bool, optional
+        Optionally, add an "official_3h" version where also 3-hourly data by the officially
+        reporting agencies is included (if available). Default: False
+    """
+    if "nan_var" not in ibtracs_ds.data_vars.keys():
+        # add an array full of NaN as a fallback value in the procedure
+        ibtracs_ds['nan_var'] = xr.full_like(ibtracs_ds.lat, np.nan)
+
+    # determine which of the official agencies report this variable at all
+    available_agencies = [a for a in IBTRACS_AGENCIES
+                          if f'{a}_{tc_var}' in ibtracs_ds.data_vars.keys()]
+
+    # map all non-reporting agency variables to the 'nan_var' (0)
+    agency_map = {
+        a.encode("utf-8"): available_agencies.index(a) + 1 if a in available_agencies else 0
+        for a in [''] + IBTRACS_AGENCIES
+    }
+    agency_map.update({
+        a.encode('utf-8'): agency_map[b'usa'] for a in IBTRACS_USA_AGENCIES
+    })
+
+    # read from officially responsible agencies that report this variable, but only
+    # at official reporting times (usually 6-hourly)
+    official_agency_ix = xr.apply_ufunc(
+        lambda x: agency_map[x], ibtracs_ds.wmo_agency, vectorize=True)
+    available_cols = ['nan_var'] + [f'{a}_{tc_var}' for a in available_agencies]
+    all_vals = ibtracs_ds[available_cols].to_array(dim='agency')
+    ibtracs_ds[f'official_{tc_var}'] = all_vals.isel(agency=official_agency_ix)
+
+    if add_3h:
+        # create a copy in float for NaN interpolation
+        official_agency_ix_interp = official_agency_ix.astype(np.float16)
+
+        # extrapolate track agency for tracks with only a single record
+        mask_singular = ((official_agency_ix_interp > 0).sum(dim="date_time") == 1).values
+        official_agency_ix_interp.values[mask_singular,:] = \
+            official_agency_ix_interp.sel(storm=mask_singular).max(dim="date_time").values[:,None]
+
+        with warnings.catch_warnings():
+            # See https://github.com/pydata/xarray/issues/4167
+            warnings.simplefilter(action="ignore", category=FutureWarning)
+
+            # interpolate responsible agencies using nearest neighbor interpolation
+            official_agency_ix_interp.values[official_agency_ix_interp.values == 0.0] = np.nan
+            official_agency_ix_interp = official_agency_ix_interp.interpolate_na(
+                dim="date_time", method="nearest", fill_value="extrapolate")
+
+        # read from officially responsible agencies that report this variable, including
+        # 3-hour time steps if available
+        official_agency_ix_interp.values[official_agency_ix_interp.isnull().values] = 0.0
+        ibtracs_ds[f'official_3h_{tc_var}'] = all_vals.isel(
+            agency=official_agency_ix_interp.astype(int))
+
 def _change_max_wind_unit(wind, unit_orig, unit_dest):
-    """Compute maximum wind speed in unit_dest
+    """Compute maximum wind speed in unit_dest.
 
-    Parameters:
-        wind (np.array): wind
-        unit_orig (str): units of wind
-        unit_dest (str): units to change wind
+    Parameters
+    ----------
+    wind : np.array
+        Wind speed values in original units.
+    unit_orig : str
+        Original units of wind speed.
+    unit_dest : str
+        New units of the computed maximum wind speed.
 
-    Returns:
-        double
+    Returns
+    -------
+    maxwind : double
+        Maximum wind speed in specified wind speed units.
     """
     if unit_orig in ('kn', 'kt'):
         ur_orig = ureg.knot
@@ -1250,8 +2002,7 @@ def _change_max_wind_unit(wind, unit_orig, unit_dest):
     elif unit_orig == 'km/h':
         ur_orig = ureg.kilometer / ureg.hour
     else:
-        LOGGER.error('Unit not recognised %s.', unit_orig)
-        raise ValueError
+        raise ValueError('Unit not recognised %s.' % unit_orig)
     if unit_dest in ('kn', 'kt'):
         ur_dest = ureg.knot
     elif unit_dest == 'mph':
@@ -1261,37 +2012,44 @@ def _change_max_wind_unit(wind, unit_orig, unit_dest):
     elif unit_dest == 'km/h':
         ur_dest = ureg.kilometer / ureg.hour
     else:
-        LOGGER.error('Unit not recognised %s.', unit_dest)
-        raise ValueError
+        raise ValueError('Unit not recognised %s.' % unit_dest)
     return (np.nanmax(wind) * ur_orig).to(ur_dest).magnitude
 
-def set_category(max_sus_wind, wind_unit, saffir_scale=None):
-    """Add storm category according to saffir-simpson hurricane scale
+def set_category(max_sus_wind, wind_unit='kn', saffir_scale=None):
+    """Add storm category according to Saffir-Simpson hurricane scale.
 
-      - -1 tropical depression
-      - 0 tropical storm
-      - 1 Hurricane category 1
-      - 2 Hurricane category 2
-      - 3 Hurricane category 3
-      - 4 Hurricane category 4
-      - 5 Hurricane category 5
+    Parameters
+    ----------
+    max_sus_wind : np.array
+        Maximum sustained wind speed records for a single track.
+    wind_unit : str, optional
+        Units of wind speed. Default: 'kn'.
+    saffir_scale : list, optional
+        Saffir-Simpson scale in same units as wind (default scale valid for knots).
 
-    Parameters:
-        max_sus_wind (np.array): max sustained wind
-        wind_unit (str): units of max sustained wind
-        saffir_scale (list, optional): Saffir-Simpson scale in same units as wind
-
-    Returns:
-        double
+    Returns
+    -------
+    category : int
+        Intensity of given track according to the Saffir-Simpson hurricane scale:
+          * -1 : tropical depression
+          *  0 : tropical storm
+          *  1 : Hurricane category 1
+          *  2 : Hurricane category 2
+          *  3 : Hurricane category 3
+          *  4 : Hurricane category 4
+          *  5 : Hurricane category 5
     """
     if saffir_scale is None:
         saffir_scale = SAFFIR_SIM_CAT
         if wind_unit != 'kn':
             max_sus_wind = _change_max_wind_unit(max_sus_wind, wind_unit, 'kn')
-    if max_sus_wind.size != 0:
+        #max_wind = np.nanmax(max_sus_wind)
+    if max_sus_wind.size !=0:
         max_wind = np.nanmax(max_sus_wind)
     else:
-        max_wind = 0
+        max_wind=0
+    
+        
     try:
         return (np.argwhere(max_wind < saffir_scale) - 1)[0][0]
     except IndexError:

@@ -4,41 +4,38 @@ This file is part of CLIMADA.
 Copyright (C) 2017 ETH Zurich, CLIMADA contributors listed in AUTHORS.
 
 CLIMADA is free software: you can redistribute it and/or modify it under the
-terms of the GNU Lesser General Public License as published by the Free
+terms of the GNU General Public License as published by the Free
 Software Foundation, version 3.
 
 CLIMADA is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU Lesser General Public License along
+You should have received a copy of the GNU General Public License along
 with CLIMADA. If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
 Test MeasureSet and Measure classes.
 """
-import os
 import unittest
 import copy
 import numpy as np
 
+from climada import CONFIG
 from climada.hazard.base import Hazard
 from climada.entity.entity_def import Entity
-from climada.entity.exposures.base import Exposures, INDICATOR_IF
+from climada.entity.exposures.base import Exposures, INDICATOR_IMPF
 from climada.entity.impact_funcs.impact_func_set import ImpactFuncSet
 from climada.entity.impact_funcs.base import ImpactFunc
 from climada.entity.measures.measure_set import MeasureSet
-from climada.entity.measures.base import Measure, IF_ID_FACT
+from climada.entity.measures.base import Measure, IMPF_ID_FACT
 from climada.util.constants import EXP_DEMO_H5, HAZ_DEMO_H5
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir,
-                        os.pardir, 'hazard', 'test', 'data')
-HAZ_TEST_MAT = os.path.join(DATA_DIR, 'atl_prob_no_name.mat')
+DATA_DIR = CONFIG.measures.test_data.dir()
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
-ENT_TEST_MAT = os.path.join(os.path.dirname(__file__),
-                            '../../exposures/test/data/demo_today.mat')
+HAZ_TEST_MAT = CONFIG.hazard.test_data.dir().joinpath('atl_prob_no_name.mat')
+ENT_TEST_MAT = CONFIG.exposures.test_data.dir().joinpath('demo_today.mat')
 
 class TestApply(unittest.TestCase):
     """Test implement measures functions."""
@@ -83,7 +80,7 @@ class TestApply(unittest.TestCase):
         haz.read_mat(HAZ_TEST_MAT)
         exp = Exposures()
         exp.read_mat(ENT_TEST_MAT)
-        exp.rename(columns={'if_': 'if_TC'}, inplace=True)
+        exp.gdf.rename(columns={'impf': 'impf_TC'}, inplace=True)
         exp.check()
 
         imp_set = ImpactFuncSet()
@@ -120,8 +117,8 @@ class TestApply(unittest.TestCase):
         haz.read_mat(HAZ_TEST_MAT)
         exp = Exposures()
         exp.read_mat(ENT_TEST_MAT)
-        exp['region_id'] = np.zeros(exp.shape[0])
-        exp.region_id.values[10:] = 1
+        exp.gdf['region_id'] = np.zeros(exp.gdf.shape[0])
+        exp.gdf.region_id.values[10:] = 1
         exp.check()
 
         imp_set = ImpactFuncSet()
@@ -143,12 +140,12 @@ class TestApply(unittest.TestCase):
         all_haz = np.arange(haz.intensity.shape[0])
         all_haz[pos_no_null] = -1
         pos_null = np.argwhere(all_haz > 0).reshape(-1)
-        centr_null = np.unique(exp.centr_[exp.region_id == 0])
+        centr_null = np.unique(exp.gdf.centr_[exp.gdf.region_id == 0])
         for i_ev in pos_null:
             self.assertEqual(new_haz.intensity[i_ev, centr_null].max(), 0)
 
-    def test_change_exposures_if_pass(self):
-        """Test _change_exposures_if"""
+    def test_change_exposures_impf_pass(self):
+        """Test _change_exposures_impf"""
         meas = Measure()
         meas.imp_fun_map = '1to3'
         meas.haz_type = 'TC'
@@ -171,17 +168,17 @@ class TestApply(unittest.TestCase):
 
         exp = Exposures()
         exp.read_hdf5(EXP_DEMO_H5)
-        new_exp = meas._change_exposures_if(exp)
+        new_exp = meas._change_exposures_impf(exp)
 
         self.assertEqual(new_exp.ref_year, exp.ref_year)
         self.assertEqual(new_exp.value_unit, exp.value_unit)
         self.assertEqual(new_exp.tag.file_name, exp.tag.file_name)
         self.assertEqual(new_exp.tag.description, exp.tag.description)
-        self.assertTrue(np.array_equal(new_exp.value.values, exp.value.values))
-        self.assertTrue(np.array_equal(new_exp.latitude.values, exp.latitude.values))
-        self.assertTrue(np.array_equal(new_exp.longitude.values, exp.longitude.values))
-        self.assertTrue(np.array_equal(exp[INDICATOR_IF + 'TC'].values, np.ones(new_exp.shape[0])))
-        self.assertTrue(np.array_equal(new_exp[INDICATOR_IF + 'TC'].values, np.ones(new_exp.shape[0]) * 3))
+        self.assertTrue(np.array_equal(new_exp.gdf.value.values, exp.gdf.value.values))
+        self.assertTrue(np.array_equal(new_exp.gdf.latitude.values, exp.gdf.latitude.values))
+        self.assertTrue(np.array_equal(new_exp.gdf.longitude.values, exp.gdf.longitude.values))
+        self.assertTrue(np.array_equal(exp.gdf[INDICATOR_IMPF + 'TC'].values, np.ones(new_exp.gdf.shape[0])))
+        self.assertTrue(np.array_equal(new_exp.gdf[INDICATOR_IMPF + 'TC'].values, np.ones(new_exp.gdf.shape[0]) * 3))
 
     def test_change_all_hazard_pass(self):
         """Test _change_all_hazard method"""
@@ -212,17 +209,17 @@ class TestApply(unittest.TestCase):
         ref_exp.read_hdf5(EXP_DEMO_H5)
 
         exposures = Exposures()
-        exposures['latitude'] = np.ones(10)
-        exposures['longitude'] = np.ones(10)
+        exposures.gdf['latitude'] = np.ones(10)
+        exposures.gdf['longitude'] = np.ones(10)
         new_exp = meas._change_all_exposures(exposures)
 
         self.assertEqual(new_exp.ref_year, ref_exp.ref_year)
         self.assertEqual(new_exp.value_unit, ref_exp.value_unit)
         self.assertEqual(new_exp.tag.file_name, ref_exp.tag.file_name)
         self.assertEqual(new_exp.tag.description, ref_exp.tag.description)
-        self.assertTrue(np.array_equal(new_exp.value.values, ref_exp.value.values))
-        self.assertTrue(np.array_equal(new_exp.latitude.values, ref_exp.latitude.values))
-        self.assertTrue(np.array_equal(new_exp.longitude.values, ref_exp.longitude.values))
+        self.assertTrue(np.array_equal(new_exp.gdf.value.values, ref_exp.gdf.value.values))
+        self.assertTrue(np.array_equal(new_exp.gdf.latitude.values, ref_exp.gdf.latitude.values))
+        self.assertTrue(np.array_equal(new_exp.gdf.longitude.values, ref_exp.gdf.longitude.values))
 
     def test_not_filter_exposures_pass(self):
         """Test _filter_exposures method with []"""
@@ -234,14 +231,14 @@ class TestApply(unittest.TestCase):
         haz = Hazard('TC')
 
         new_exp = Exposures()
-        new_ifs = ImpactFuncSet()
+        new_impfs = ImpactFuncSet()
         new_haz = Hazard('TC')
 
         res_exp, res_ifs, res_haz = meas._filter_exposures(exp, imp_set, haz,
-            new_exp, new_ifs, new_haz)
+                                                           new_exp, new_impfs, new_haz)
 
         self.assertTrue(res_exp is new_exp)
-        self.assertTrue(res_ifs is new_ifs)
+        self.assertTrue(res_ifs is new_impfs)
         self.assertTrue(res_haz is new_haz)
 
         self.assertTrue(res_exp is not exp)
@@ -256,10 +253,10 @@ class TestApply(unittest.TestCase):
 
         exp = Exposures()
         exp.read_mat(ENT_TEST_MAT)
-        exp.rename(columns={'if_': 'if_TC', 'centr_': 'centr_TC'}, inplace=True)
-        exp['region_id'] = np.ones(exp.shape[0])
-        exp.region_id.values[:exp.shape[0] // 2] = 3
-        exp.region_id[0] = 4
+        exp.gdf.rename(columns={'impf_': 'impf_TC', 'centr_': 'centr_TC'}, inplace=True)
+        exp.gdf['region_id'] = np.ones(exp.gdf.shape[0])
+        exp.gdf.region_id.values[:exp.gdf.shape[0] // 2] = 3
+        exp.gdf.region_id[0] = 4
         exp.check()
 
         imp_set = ImpactFuncSet()
@@ -270,10 +267,10 @@ class TestApply(unittest.TestCase):
         exp.assign_centroids(haz)
 
         new_exp = copy.deepcopy(exp)
-        new_exp['value'] *= 3
-        new_exp['if_TC'].values[:20] = 2
-        new_exp['if_TC'].values[20:40] = 3
-        new_exp['if_TC'].values[40:] = 1
+        new_exp.gdf['value'] *= 3
+        new_exp.gdf['impf_TC'].values[:20] = 2
+        new_exp.gdf['impf_TC'].values[20:40] = 3
+        new_exp.gdf['impf_TC'].values[40:] = 1
 
         new_ifs = copy.deepcopy(imp_set)
         new_ifs.get_func('TC')[1].intensity += 1
@@ -283,26 +280,34 @@ class TestApply(unittest.TestCase):
         new_haz.intensity *= 4
 
         res_exp, res_ifs, res_haz = meas._filter_exposures(exp, imp_set, haz,
-            new_exp, new_ifs, new_haz)
+            new_exp.copy(deep=True), new_ifs, new_haz)
 
-        # unchanged exposures
+        # unchanged meta data
         self.assertEqual(res_exp.ref_year, exp.ref_year)
         self.assertEqual(res_exp.value_unit, exp.value_unit)
         self.assertEqual(res_exp.tag.file_name, exp.tag.file_name)
         self.assertEqual(res_exp.tag.description, exp.tag.description)
-        self.assertTrue(np.array_equal(res_exp.value.values[exp.shape[0] // 2:], new_exp.value.values[:exp.shape[0] // 2]))
-        self.assertEqual(res_exp.region_id.values[exp.shape[0] // 2], 4)
-        self.assertTrue(np.array_equal(res_exp.region_id.values[exp.shape[0] // 2 + 1:], np.ones(exp.shape[0] // 2 - 1) * 3))
-        self.assertTrue(np.array_equal(res_exp.if_TC.values[exp.shape[0] // 2:], new_exp.if_TC.values[:exp.shape[0] // 2]))
-        self.assertTrue(np.array_equal(res_exp.latitude.values[exp.shape[0] // 2:], new_exp.latitude.values[:exp.shape[0] // 2]))
-        self.assertTrue(np.array_equal(res_exp.longitude.values[exp.shape[0] // 2:], new_exp.longitude.values[:exp.shape[0] // 2]))
+        self.assertEqual(res_exp.crs, exp.crs)
+        self.assertEqual(res_exp.gdf.crs, exp.gdf.crs)
+
+        # regions (that is just input data, no need for testing, but it makes the changed and unchanged parts obious)
+        self.assertTrue(np.array_equal(res_exp.gdf.region_id.values[0], 4))
+        self.assertTrue(np.array_equal(res_exp.gdf.region_id.values[1:25], np.ones(24) * 3))
+        self.assertTrue(np.array_equal(res_exp.gdf.region_id.values[25:], np.ones(25)))
 
         # changed exposures
-        self.assertTrue(np.array_equal(res_exp.value.values[:exp.shape[0] // 2], exp.value.values[exp.shape[0] // 2:]))
-        self.assertTrue(np.array_equal(res_exp.region_id.values[:exp.shape[0] // 2], np.ones(exp.shape[0] // 2)))
-        self.assertTrue(np.array_equal(res_exp.if_TC.values[:exp.shape[0] // 2], exp.if_TC.values[exp.shape[0] // 2:]))
-        self.assertTrue(np.array_equal(res_exp.latitude.values[:exp.shape[0] // 2], exp.latitude.values[exp.shape[0] // 2:]))
-        self.assertTrue(np.array_equal(res_exp.longitude.values[:exp.shape[0] // 2], exp.longitude.values[exp.shape[0] // 2:]))
+        self.assertTrue(np.array_equal(res_exp.gdf.value.values[:25], new_exp.gdf.value.values[:25]))
+        self.assertTrue(np.all(np.not_equal(res_exp.gdf.value.values[:25], exp.gdf.value.values[:25])))
+        self.assertTrue(np.all(np.not_equal(res_exp.gdf.impf_TC.values[:25], new_exp.gdf.impf_TC.values[:25])))
+        self.assertTrue(np.array_equal(res_exp.gdf.latitude.values[:25], new_exp.gdf.latitude.values[:25]))
+        self.assertTrue(np.array_equal(res_exp.gdf.longitude.values[:25], new_exp.gdf.longitude.values[:25]))
+
+        # unchanged exposures
+        self.assertTrue(np.array_equal(res_exp.gdf.value.values[25:], exp.gdf.value.values[25:]))
+        self.assertTrue(np.all(np.not_equal(res_exp.gdf.value.values[25:], new_exp.gdf.value.values[25:])))
+        self.assertTrue(np.array_equal(res_exp.gdf.impf_TC.values[25:], exp.gdf.impf_TC.values[25:]))
+        self.assertTrue(np.array_equal(res_exp.gdf.latitude.values[25:], exp.gdf.latitude.values[25:]))
+        self.assertTrue(np.array_equal(res_exp.gdf.longitude.values[25:], exp.gdf.longitude.values[25:]))
 
         # unchanged impact functions
         self.assertEqual(list(res_ifs.get_func().keys()), [meas.haz_type])
@@ -314,17 +319,17 @@ class TestApply(unittest.TestCase):
                                        imp_set.get_func()[meas.haz_type][3].intensity))
 
         # changed impact functions
-        self.assertTrue(np.array_equal(res_ifs.get_func()[meas.haz_type][1 + IF_ID_FACT].intensity,
+        self.assertTrue(np.array_equal(res_ifs.get_func()[meas.haz_type][1 + IMPF_ID_FACT].intensity,
                         ref_ifs.get_func()[meas.haz_type][1].intensity))
-        self.assertTrue(np.array_equal(res_ifs.get_func()[meas.haz_type][1 + IF_ID_FACT].paa,
+        self.assertTrue(np.array_equal(res_ifs.get_func()[meas.haz_type][1 + IMPF_ID_FACT].paa,
                         ref_ifs.get_func()[meas.haz_type][1].paa))
-        self.assertTrue(np.array_equal(res_ifs.get_func()[meas.haz_type][1 + IF_ID_FACT].mdd,
+        self.assertTrue(np.array_equal(res_ifs.get_func()[meas.haz_type][1 + IMPF_ID_FACT].mdd,
                         ref_ifs.get_func()[meas.haz_type][1].mdd))
-        self.assertTrue(np.array_equal(res_ifs.get_func()[meas.haz_type][3 + IF_ID_FACT].intensity,
+        self.assertTrue(np.array_equal(res_ifs.get_func()[meas.haz_type][3 + IMPF_ID_FACT].intensity,
                         ref_ifs.get_func()[meas.haz_type][3].intensity))
-        self.assertTrue(np.array_equal(res_ifs.get_func()[meas.haz_type][3 + IF_ID_FACT].paa,
+        self.assertTrue(np.array_equal(res_ifs.get_func()[meas.haz_type][3 + IMPF_ID_FACT].paa,
                         ref_ifs.get_func()[meas.haz_type][3].paa))
-        self.assertTrue(np.array_equal(res_ifs.get_func()[meas.haz_type][3 + IF_ID_FACT].mdd,
+        self.assertTrue(np.array_equal(res_ifs.get_func()[meas.haz_type][3 + IMPF_ID_FACT].mdd,
                         ref_ifs.get_func()[meas.haz_type][3].mdd))
 
         # unchanged hazard
@@ -385,7 +390,7 @@ class TestApply(unittest.TestCase):
 
         entity = Entity()
         entity.read_mat(ENT_TEST_MAT)
-        entity.exposures.rename(columns={'if_': 'if_TC'}, inplace=True)
+        entity.exposures.gdf.rename(columns={'impf': 'impf_TC'}, inplace=True)
         entity.measures._data['TC'] = entity.measures._data.pop('XX')
         entity.measures.get_measure(name='Mangroves', haz_type='TC').haz_type = 'TC'
         for meas in entity.measures.get_measure('TC'):
@@ -400,8 +405,8 @@ class TestApply(unittest.TestCase):
         self.assertAlmostEqual(imp.at_event[12], 1.470194187501225e+07)
         self.assertAlmostEqual(imp.at_event[41], 4.7226357936631286e+08)
         self.assertAlmostEqual(imp.at_event[11890], 1.742110428135755e+07)
-        self.assertTrue(np.array_equal(imp.coord_exp[:, 0], entity.exposures.latitude))
-        self.assertTrue(np.array_equal(imp.coord_exp[:, 1], entity.exposures.longitude))
+        self.assertTrue(np.array_equal(imp.coord_exp[:, 0], entity.exposures.gdf.latitude))
+        self.assertTrue(np.array_equal(imp.coord_exp[:, 1], entity.exposures.gdf.longitude))
         self.assertAlmostEqual(imp.eai_exp[0], 1.15677655725858e+08)
         self.assertAlmostEqual(imp.eai_exp[-1], 7.528669956120645e+07)
         self.assertAlmostEqual(imp.tot_value, 6.570532945599105e+11)
@@ -412,7 +417,7 @@ class TestApply(unittest.TestCase):
         self.assertEqual(imp.event_name, hazard.event_name)
         self.assertEqual(imp.tag['exp'].file_name, entity.exposures.tag.file_name)
         self.assertEqual(imp.tag['haz'].file_name, hazard.tag.file_name)
-        self.assertEqual(imp.tag['if_set'].file_name, entity.impact_funcs.tag.file_name)
+        self.assertEqual(imp.tag['impf_set'].file_name, entity.impact_funcs.tag.file_name)
         self.assertEqual(risk_transf.aai_agg, 0)
 
 
@@ -424,7 +429,7 @@ class TestApply(unittest.TestCase):
 
         entity = Entity()
         entity.read_mat(ENT_TEST_MAT)
-        entity.exposures.rename(columns={'if_': 'if_TC'}, inplace=True)
+        entity.exposures.gdf.rename(columns={'impf': 'impf_TC'}, inplace=True)
         entity.measures._data['TC'] = entity.measures._data.pop('XX')
         for meas in entity.measures.get_measure('TC'):
             meas.haz_type = 'TC'
@@ -455,7 +460,7 @@ class TestApply(unittest.TestCase):
         self.assertEqual(imp.event_name, hazard.event_name)
         self.assertEqual(imp.tag['exp'].file_name, entity.exposures.tag.file_name)
         self.assertEqual(imp.tag['haz'].file_name, hazard.tag.file_name)
-        self.assertEqual(imp.tag['if_set'].file_name, entity.impact_funcs.tag.file_name)
+        self.assertEqual(imp.tag['impf_set'].file_name, entity.impact_funcs.tag.file_name)
         self.assertEqual(risk_transf.aai_agg, 2.3139691495470852e+08)
 
 # Execute Tests

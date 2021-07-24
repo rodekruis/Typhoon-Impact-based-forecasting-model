@@ -4,14 +4,14 @@ This file is part of CLIMADA.
 Copyright (C) 2017 ETH Zurich, CLIMADA contributors listed in AUTHORS.
 
 CLIMADA is free software: you can redistribute it and/or modify it under the
-terms of the GNU Lesser General Public License as published by the Free
+terms of the GNU General Public License as published by the Free
 Software Foundation, version 3.
 
 CLIMADA is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU Lesser General Public License along
+You should have received a copy of the GNU General Public License along
 with CLIMADA. If not, see <https://www.gnu.org/licenses/>.
 
 ---
@@ -26,8 +26,8 @@ import datetime as dt
 import fnmatch
 import ftplib
 import logging
-import os
 import tempfile
+from pathlib import Path
 
 # additional libraries
 import numpy as np
@@ -37,6 +37,7 @@ import tqdm
 import xarray as xr
 from pybufrkit.renderer import FlatTextRenderer
 from io import StringIO
+
 # climada dependencies
 from climada.hazard.tc_tracks import (
     TCTracks, set_category, DEF_ENV_PRESSURE, CAT_NAMES
@@ -57,16 +58,17 @@ BASINS = {
     'A': 'A - Arabian Sea (North Indian Ocean)',
     'B': 'B - Bay of Bengal (North Indian Ocean)',
     'U': 'U - Australia',
-    'S': 'S - South-West Indian Ocean'
+    'S': 'S - South-West Indian Ocean',
+    'X': 'X - Undefined Basin'
 }
 """Gleaned from the ECMWF wiki at
 https://confluence.ecmwf.int/display/FCST/Tropical+Cyclone+tracks+in+BUFR+-+including+genesis
+with added basin 'X' to deal with it appearing in operational forecasts
+(see e.g. years 2020 and 2021 in the sidebar at https://www.ecmwf.int/en/forecasts/charts/tcyclone/)
 and Wikipedia at https://en.wikipedia.org/wiki/Invest_(meteorology)
 """
 
-SAFFIR_MS_CAT_ = np.array([18, 33, 43, 50, 59, 71, 1000])
-SAFFIR_MS_CAT = np.array([34, 47, 64,80, 99, 1000])
-
+SAFFIR_MS_CAT = np.array([18, 33, 43, 50, 59, 71, 1000])
 """Saffir-Simpson Hurricane Categories in m/s"""
 
 SIG_CENTRE = 1
@@ -159,7 +161,7 @@ class TCForecast(TCTracks):
             LOGGER.info('Fetching BUFR tracks:')
             for rfile in tqdm.tqdm(remotefiles, desc='Download', unit=' files'):
                 if target_dir:
-                    lfile = open(os.path.join(target_dir, rfile), 'w+b')
+                    lfile = Path(target_dir, rfile).open('w+b')
                 else:
                     lfile = tempfile.TemporaryFile(mode='w+b')
 
@@ -173,16 +175,12 @@ class TCForecast(TCTracks):
 
         except ftplib.all_errors as err:
             con.quit()
-            LOGGER.error('Error while downloading BUFR TC tracks.')
-            raise err
+            raise type(err)('Error while downloading BUFR TC tracks: ' + str(err)) from err
 
         _ = con.quit()
 
         return localfiles
-    def label_en (row,co):
-        if row['code'] == co :
-            return int(row['Data'])
-        return np.nan
+
     def read_one_bufr_tc(self, file, id_no=None, fcast_rep=None):
         """ Read a single BUFR TC track file.
 
@@ -335,8 +333,10 @@ class TCForecast(TCTracks):
                 LOGGER.debug('Dropping empty track, subset %s', names)
             
 
-                
-                
+
+
+   
+ 
     def read_one_bufr_tc_old(self, file, id_no=None, fcast_rep=None):
         """ Read a single BUFR TC track file.
 
@@ -348,19 +348,16 @@ class TCForecast(TCTracks):
         """
 
         decoder = pybufrkit.decoder.Decoder()
- 
-
 
         if hasattr(file, 'read'):
             bufr = decoder.process(file.read())
         elif hasattr(file, 'read_bytes'):
             bufr = decoder.process(file.read_bytes())
-        elif os.path.isfile(file):
-            with open(file, 'rb') as i:
+        elif Path(file).is_file():
+            with Path(file).open('rb') as i:
                 bufr = decoder.process(i.read())
         else:
             raise FileNotFoundError('Check file argument')
-
 
         # setup parsers and querents
         npparser = pybufrkit.dataquery.NodePathParser()
@@ -418,6 +415,7 @@ class TCForecast(TCTracks):
             else:
                 LOGGER.debug('Dropping empty track %s, subset %d', name, i)
 
+
     @staticmethod
     def _subset_to_track(msg, index, provider, timestamp_origin, name, id_no):
         """Subroutine to process one BUFR subset into one xr.Dataset"""
@@ -474,17 +472,22 @@ class TCForecast(TCTracks):
         track['time_step'] = track.ts_int - \
             track.ts_int.shift({'time': 1}, fill_value=0)
 
-        # TODO use drop_vars after upgrading xarray
-        track = track.drop('ts_int')
+        track = track.drop_vars(['ts_int'])
 
-        track['radius_max_wind'] = np.full_like(track.time, np.nan,
-                                                dtype=float)
-        track['environmental_pressure'] = np.full_like(
-            track.time, DEF_ENV_PRESSURE, dtype=float
+        track['radius_max_wind'] = (('time'), np.full_like(
+            track.time, np.nan, dtype=float)
+        )
+        track['environmental_pressure'] = (('time'), np.full_like(
+            track.time, DEF_ENV_PRESSURE, dtype=float)
         )
 
         # according to specs always num-num-letter
-        track.attrs['basin'] = BASINS[sid[2]]
+        track['basin'] = ('time', np.full_like(track.time, BASINS[sid[2]], dtype=object))
+
+        if sid[2] == 'X':
+            LOGGER.info(
+                'Undefined basin %s for track name %s ensemble no. %d',
+                sid[2], track.attrs['name'], track.attrs['ensemble_number'])
 
         cat_name = CAT_NAMES[set_category(
             max_sus_wind=track.max_sustained_wind.values,
@@ -502,13 +505,13 @@ class TCForecast(TCTracks):
         Parameters:
             bufr_message: An in-memory pybufrkit BUFR message
         """
-        if len(descriptors) == 1:
-            delayed_replicators=descriptors
-        else:
-            delayed_replicators = [d for d in descriptors if 100000 < d < 200000 and d % 1000 == 0]
+        delayed_replicators = [
+            d for d in descriptors
+            if 100000 < d < 200000 and d % 1000 == 0
+        ]
 
         if len(delayed_replicators) != 1:
-            LOGGER.error('Could not find fcast_rep, please set manually.')
-            raise ValueError('More than one delayed replicator in BUFR file')
+            raise ValueError('Could not find fcast_rep, please set manually. '
+                             'More than one delayed replicator in BUFR file')
 
         return str(delayed_replicators[0])

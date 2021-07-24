@@ -4,14 +4,14 @@ This file is part of CLIMADA.
 Copyright (C) 2017 ETH Zurich, CLIMADA contributors listed in AUTHORS.
 
 CLIMADA is free software: you can redistribute it and/or modify it under the
-terms of the GNU Lesser General Public License as published by the Free
+terms of the GNU General Public License as published by the Free
 Software Foundation, version 3.
 
 CLIMADA is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU Lesser General Public License along
+You should have received a copy of the GNU General Public License along
 with CLIMADA. If not, see <https://www.gnu.org/licenses/>.
 
 ---
@@ -33,11 +33,14 @@ class TestKnutson(unittest.TestCase):
         for crit_val in criterion:
             self.assertTrue('year' in crit_val)
             self.assertTrue('change' in crit_val)
-            self.assertTrue('criteria' in crit_val)
             self.assertTrue('variable' in crit_val)
-            self.assertTrue('function' in crit_val)
-        self.assertEqual(criterion[0]['change'], 1.045)
-        self.assertEqual(criterion[-1]['change'], 1 - 0.583)
+        self.assertEqual(criterion[0]['variable'], "frequency")
+        self.assertEqual(criterion[0]['change'], 1)
+        self.assertEqual(criterion[4]['variable'], "intensity")
+        self.assertEqual(criterion[4]['change'], 1.045)
+        self.assertEqual(criterion[-10]['basin'], "SP")
+        self.assertEqual(criterion[-10]['variable'], "frequency")
+        self.assertEqual(criterion[-10]['change'], 1 - 0.583)
 
     def test_scale_pass(self):
         """Test calc_scale_knutson function."""

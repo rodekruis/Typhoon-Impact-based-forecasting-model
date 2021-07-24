@@ -4,14 +4,14 @@ This file is part of CLIMADA.
 Copyright (C) 2017 ETH Zurich, CLIMADA contributors listed in AUTHORS.
 
 CLIMADA is free software: you can redistribute it and/or modify it under the
-terms of the GNU Lesser General Public License as published by the Free
+terms of the GNU General Public License as published by the Free
 Software Foundation, version 3.
 
 CLIMADA is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU Lesser General Public License along
+You should have received a copy of the GNU General Public License along
 with CLIMADA. If not, see <https://www.gnu.org/licenses/>.
 
 ---
@@ -26,7 +26,7 @@ __all__ = ['interpol_index',
 
 import logging
 import numpy as np
-from numba import jit
+import numba
 
 from sklearn.neighbors import BallTree
 from climada.util.constants import ONE_LAT_KM, EARTH_RADIUS_KM
@@ -43,14 +43,14 @@ THRESHOLD = 100
 """Distance threshold in km. Nearest neighbors with greater distances are
 not considered."""
 
-@jit(nopython=True, parallel=True)
+@numba.njit
 def dist_approx(lats1, lons1, cos_lats1, lats2, lons2):
     """Compute equirectangular approximation distance in km."""
     d_lon = lons1 - lons2
     d_lat = lats1 - lats2
     return np.sqrt(d_lon * d_lon * cos_lats1 * cos_lats1 + d_lat * d_lat) * ONE_LAT_KM
 
-@jit(nopython=True, parallel=True)
+@numba.njit
 def dist_sqr_approx(lats1, lons1, cos_lats1, lats2, lons2):
     """Compute squared equirectangular approximation distance. Values need
     to be sqrt and multiplicated by ONE_LAT_KM to obtain distance in km."""
@@ -85,9 +85,8 @@ def interpol_index(centroids, coordinates, method=METHOD[0],
         # haversine formula. This is done with a Ball tree.
         interp = index_nn_haversine(centroids, coordinates, threshold)
     else:
-        LOGGER.error('Interpolation using %s with distance %s is not '
-                     'supported.', method, distance)
-        interp = np.array([])
+        raise ValueError(
+            f'Interpolation using {method} with distance {distance} is not supported.')
     return interp
 
 def index_nn_aprox(centroids, coordinates, threshold=THRESHOLD):

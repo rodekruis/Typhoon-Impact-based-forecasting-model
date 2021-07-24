@@ -4,14 +4,14 @@ This file is part of CLIMADA.
 Copyright (C) 2017 ETH Zurich, CLIMADA contributors listed in AUTHORS.
 
 CLIMADA is free software: you can redistribute it and/or modify it under the
-terms of the GNU Lesser General Public License as published by the Free
+terms of the GNU General Public License as published by the Free
 Software Foundation, version 3.
 
 CLIMADA is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU Lesser General Public License along
+You should have received a copy of the GNU General Public License along
 with CLIMADA. If not, see <https://www.gnu.org/licenses/>.
 
 ---
@@ -20,30 +20,25 @@ Define GDPAsset class.
 """
 
 __all__ = ['GDP2Asset']
-import os
+import logging
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import xarray as xr
 import scipy as sp
-import logging
-import geopandas as gpd
 from climada.entity.tag import Tag
-from climada.entity.exposures.base import Exposures, INDICATOR_IF
-from climada.util.coordinates import pts_to_raster_meta
-from climada.util.coordinates import country_iso2natid, get_region_gridpoints, region2isos
-from climada.util.constants import RIVER_FLOOD_REGIONS_CSV, DEF_CRS, SYSTEM_DIR
+import climada.util.coordinates as u_coord
+from climada.util.constants import RIVER_FLOOD_REGIONS_CSV, SYSTEM_DIR
+from .base import Exposures, INDICATOR_IMPF
+
 LOGGER = logging.getLogger(__name__)
 
 DEF_HAZ_TYPE = 'RF'
 
-CONVERTER = os.path.join(SYSTEM_DIR, 'GDP2Asset_converter_2.5arcmin.nc')
+CONVERTER = SYSTEM_DIR.joinpath('GDP2Asset_converter_2.5arcmin.nc')
 
 
 class GDP2Asset(Exposures):
-
-    @property
-    def _constructor(self):
-        return GDP2Asset
 
     def set_countries(self, countries=[], reg=[], ref_year=2000,
                       path=None):
@@ -60,48 +55,47 @@ class GDP2Asset(Exposures):
         tag = Tag()
 
         if path is None:
-            LOGGER.error('No path for exposure data set')
-            raise NameError
+            raise NameError('No path for exposure data set')
 
-        if not os.path.exists(path):
-            LOGGER.error('Invalid path %s', path)
-            raise NameError
+        if not Path(path).is_file():
+            raise NameError('Invalid path %s' % path)
         try:
 
             if not countries:
                 if reg:
-                    natISO = region2isos(reg)
+                    natISO = u_coord.region2isos(reg)
                     countries = np.array(natISO)
                 else:
-                    LOGGER.error('set_countries requires countries or reg')
-                    raise ValueError
+                    raise ValueError('set_countries requires countries or reg')
 
             for cntr_ind in range(len(countries)):
                 gdp2a_list.append(self._set_one_country(countries[cntr_ind],
                                                         ref_year, path))
                 tag.description += ("{} GDP2Asset \n").\
                     format(countries[cntr_ind])
-            Exposures.__init__(self, gpd.GeoDataFrame(
-                pd.concat(gdp2a_list, ignore_index=True)))
-        except KeyError:
-            LOGGER.error('Exposure countries: %s or reg %s could not be set, check ISO3 or'
-                         ' reference year %s', countries, reg, ref_year)
-            raise KeyError
-        self.tag = tag
-        self.ref_year = ref_year
-        self.value_unit = 'USD'
-        self.tag.description = 'GDP2Asset ' + str(self.ref_year)
-        self.crs = DEF_CRS
+        except KeyError as err:
+            raise KeyError(f'Exposure countries: {countries} or reg {reg} could not be set, '
+                           f'check ISO3 or reference year {ref_year}') from err
+
+        tag.description += 'GDP2Asset ' + str(self.ref_year)
+        Exposures.__init__(
+            self,
+            data=Exposures.concat(gdp2a_list).gdf,
+            ref_year=ref_year,
+            tag=tag,
+            value_unit='USD'
+        )
+
         # set meta
         res = 0.0416666
 
-
-        rows, cols, ras_trans = pts_to_raster_meta((self.longitude.min(),
-                                                    self.latitude.min(),
-                                                    self.longitude.max(),
-                                                    self.latitude.max()), res)
+        rows, cols, ras_trans = u_coord.pts_to_raster_meta(
+            (self.gdf.longitude.min(), self.gdf.latitude.min(),
+             self.gdf.longitude.max(), self.gdf.latitude.max()), res)
         self.meta = {'width': cols, 'height': rows, 'crs': self.crs,
                      'transform': ras_trans}
+
+
 
     @staticmethod
     def _set_one_country(countryISO, ref_year, path=None):
@@ -114,23 +108,23 @@ class GDP2Asset(Exposures):
         Raises:
             KeyError, OSError
         Returns:
-            np.array
+            GDP2Asset
         """
-        natID = country_iso2natid(countryISO)
+        natID = u_coord.country_iso2natid(countryISO)
         natID_info = pd.read_csv(RIVER_FLOOD_REGIONS_CSV)
-        reg_id, if_rf = _fast_if_mapping(natID, natID_info)
-        lat, lon = get_region_gridpoints(countries=[natID], iso=False, basemap="isimip")
+        reg_id, impf_rf = _fast_impf_mapping(natID, natID_info)
+        lat, lon = u_coord.get_region_gridpoints(countries=[natID], iso=False, basemap="isimip")
         coord = np.stack([lat, lon], axis=1)
         assets = _read_GDP(coord, ref_year, path)
         reg_id_info = np.full((len(assets),), reg_id)
-        if_rf_info = np.full((len(assets),), if_rf)
+        impf_rf_info = np.full((len(assets),), impf_rf)
 
         exp_gdpasset = GDP2Asset()
-        exp_gdpasset['value'] = assets
-        exp_gdpasset['latitude'] = coord[:, 0]
-        exp_gdpasset['longitude'] = coord[:, 1]
-        exp_gdpasset[INDICATOR_IF + DEF_HAZ_TYPE] = if_rf_info
-        exp_gdpasset['region_id'] = reg_id_info
+        exp_gdpasset.gdf['value'] = assets
+        exp_gdpasset.gdf['latitude'] = coord[:, 0]
+        exp_gdpasset.gdf['longitude'] = coord[:, 1]
+        exp_gdpasset.gdf[INDICATOR_IMPF + DEF_HAZ_TYPE] = impf_rf_info
+        exp_gdpasset.gdf['region_id'] = reg_id_info
         return exp_gdpasset
 
 
@@ -151,14 +145,12 @@ def _read_GDP(shp_exposures, ref_year, path=None):
         gdp_lon = gdp_file.lon.data
         gdp_lat = gdp_file.lat.data
         time = gdp_file.time.dt.year
-    except OSError:
-        LOGGER.error('Problems while reading %s check exposure_file specifications', path)
-        raise OSError
+    except OSError as err:
+        raise OSError(f'Problems while reading {path} check exposure_file specifications') from err
     try:
         year_index = np.where(time == ref_year)[0][0]
-    except IndexError:
-        LOGGER.error('No data available for year %s', ref_year)
-        raise KeyError
+    except IndexError as err:
+        raise KeyError(f'No data available for year {ref_year}') from err
     conv_lon = asset_converter.lon.data
     conv_lat = asset_converter.lat.data
     gridX, gridY = np.meshgrid(conv_lon, conv_lat)
@@ -205,11 +197,10 @@ def _test_gdp_centr_match(gdp_lat, gdp_lon, shp_exposures):
            (min(gdp_lat) - 0.5 > min(shp_exposures[:, 0])) or\
            (min(gdp_lon) - 0.5 > min(shp_exposures[:, 1])):
 
-        LOGGER.error('Asset Data does not match selected country')
-        raise IOError
+        raise IOError('Asset Data does not match selected country')
 
 
-def _fast_if_mapping(countryID, natID_info):
+def _fast_impf_mapping(countryID, natID_info):
     """Assign region-ID and impact function id.
         Parameters:
             countryID (int)
@@ -220,18 +211,17 @@ def _fast_if_mapping(countryID, natID_info):
             float,float
         """
     nat = natID_info['ID']
-    if_RF = natID_info['if_RF']
+    impf_RF = natID_info['impf_RF']
     reg_ID = natID_info['Reg_ID']
-    fancy_if = np.zeros((max(nat) + 1))
-    fancy_if[:] = np.nan
-    fancy_if[nat] = if_RF
+    fancy_impf = np.zeros((max(nat) + 1))
+    fancy_impf[:] = np.nan
+    fancy_impf[nat] = impf_RF
     fancy_reg = np.zeros((max(nat) + 1))
     fancy_reg[:] = np.nan
     fancy_reg[nat] = reg_ID
     try:
         reg_id = fancy_reg[countryID]
-        if_rf = fancy_if[countryID]
-    except KeyError:
-        LOGGER.error('Country ISO unknown')
-        raise KeyError
-    return reg_id, if_rf
+        impf_rf = fancy_impf[countryID]
+    except KeyError as err:
+        raise KeyError(f'Country ISO unknown: {countryID}') from err
+    return reg_id, impf_rf

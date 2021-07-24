@@ -4,14 +4,14 @@ This file is part of CLIMADA.
 Copyright (C) 2017 ETH Zurich, CLIMADA contributors listed in AUTHORS.
 
 CLIMADA is free software: you can redistribute it and/or modify it under the
-terms of the GNU Lesser General Public License as published by the Free
+terms of the GNU General Public License as published by the Free
 Software Foundation, version 3.
 
 CLIMADA is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU Lesser General Public License along
+You should have received a copy of the GNU General Public License along
 with CLIMADA. If not, see <https://www.gnu.org/licenses/>.
 
 ---
@@ -27,7 +27,7 @@ from cartopy.io import shapereader
 from climada.entity.exposures.black_marble import country_iso_geom, \
 _cut_country, fill_econ_indicators, _set_econ_indicators, _fill_admin1_geom, \
 _cut_admin1, _resample_land
-from climada.entity.exposures.nightlight import NOAA_BORDER, NOAA_RESOLUTION_DEG
+from climada.entity.exposures.litpop.nightlight import NOAA_BORDER, NOAA_RESOLUTION_DEG
 
 SHP_FN = shapereader.natural_earth(resolution='10m', category='cultural',
                                    name='admin_0_countries')
@@ -112,10 +112,9 @@ class TestProvinces(unittest.TestCase):
         admin1_rec = list(ADM1_FILE.records())
 
         prov_list = ['Barcelona']
-        with self.assertRaises(ValueError):
-            with self.assertLogs('climada.entity.exposures.black_marble', level='ERROR') as cm:
-                _fill_admin1_geom(iso3, admin1_rec, prov_list)
-        self.assertIn('Barcelona not found. Possible provinces of CHE are: ', cm.output[0])
+        with self.assertRaises(ValueError) as cm:
+            _fill_admin1_geom(iso3, admin1_rec, prov_list)
+        self.assertIn('Barcelona not found. Possible provinces of CHE are: ', str(cm.exception))
 
     def test_country_iso_geom_pass(self):
         """Test country_iso_geom pass."""
@@ -250,8 +249,8 @@ class TestNightLight(unittest.TestCase):
 
         self.assertTrue(np.allclose(lat_ref[on_ref], lat_res))
         self.assertTrue(np.allclose(lon_ref[on_ref], lon_res))
-        self.assertAlmostEqual(nightlight_res[0], 0.1410256410256411)
-        self.assertAlmostEqual(nightlight_res[1], 0.3589743589743589)
+        self.assertAlmostEqual(nightlight_res[0], 0.1683201638775818)
+        self.assertAlmostEqual(nightlight_res[1], 0.33167983612241814)
 
 class TestEconIndices(unittest.TestCase):
     """Test functions to get economic indices."""
@@ -263,16 +262,16 @@ class TestEconIndices(unittest.TestCase):
                         'ZMB': [2, 'Zambia', 'zmb_geom']
                        }
         fill_econ_indicators(ref_year, country_isos, SHP_FILE)
-        country_isos_ref = {'CHE': [1, 'Switzerland', 'che_geom', 2015, 679832291693, 4],
-                            'ZMB': [2, 'Zambia', 'zmb_geom', 2015, 21243347377, 2]
+        country_isos_ref = {'CHE': [1, 'Switzerland', 'che_geom', 2015, 702149.0e6, 4],
+                            'ZMB': [2, 'Zambia', 'zmb_geom', 2015, 21243.3e6, 2]
                            }
         self.assertEqual(country_isos.keys(), country_isos_ref.keys())
         for country in country_isos_ref.keys():
             for i in [0, 1, 2, 3, 5]:  # test elements one by one:
                 self.assertEqual(country_isos[country][i],
                                  country_isos_ref[country][i])
-            self.assertAlmostEqual(country_isos[country][4] * 1e-6,
-                                   country_isos_ref[country][4] * 1e-6, places=0)
+            self.assertAlmostEqual(country_isos[country][4] * 1e-12,
+                                   country_isos_ref[country][4] * 1e-12, places=0)
 
     def test_fill_econ_indicators_kwargs_pass(self):
         """Test fill_econ_indicators with kwargs inputs."""
@@ -300,17 +299,16 @@ class TestEconIndices(unittest.TestCase):
         inc_grp = {'CHE': '', 'ZMB': 4}
         kwargs = {'gdp': gdp, 'inc_grp': inc_grp}
         fill_econ_indicators(ref_year, country_isos, SHP_FILE, **kwargs)
+        # GDP might change if worldbank input data changes,
+        # check magnitude and adjust value in country_isos_ref if test fails
         country_isos_ref = {'CHE': [1, 'Switzerland', 'che_geom', 2019, gdp['CHE'], 4],
-                            'ZMB': [2, 'Zambia', 'zmb_geom', 2019, 23064722446, inc_grp['ZMB']]
+                            'ZMB': [2, 'Zambia', 'zmb_geom', 2019, 23309773922, inc_grp['ZMB']]
                            }
         self.assertEqual(country_isos.keys(), country_isos_ref.keys())
         for country in country_isos_ref.keys():
             for i in [0, 1, 2, 3, 5]:  # test elements one by one:
                 self.assertEqual(country_isos[country][i],
                                  country_isos_ref[country][i])
-            self.assertAlmostEqual(country_isos[country][4] * 1e-6,
-                                   country_isos_ref[country][4] * 1e-6, places=0)
-
 
     def test_set_econ_indicators_pass(self):
         """Test _set_econ_indicators pass."""

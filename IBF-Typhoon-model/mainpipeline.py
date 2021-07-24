@@ -19,7 +19,7 @@ from pybufrkit.decoder import Decoder
 import numpy as np
 from geopandas.tools import sjoin
 import geopandas as gpd
-
+import click
 # Set up logger
 level = logging.INFO
 logging.basicConfig(level=level,
@@ -45,26 +45,37 @@ from utility_fun import track_data_clean,Check_for_active_typhoon,Sendemail,ucl_
 from utility_fun import Rainfall_data
 
 
-#@click.command()
-#@click.option('--path', default='./', help='main directory')
-#@click.option('--remote_dir_', default='20210421120000', help='remote directory')
-#@click.option('--active_typhoon', default='SURIGAE',help='name for active typhoon')
 
-def main(path='./',remote_dir_='20210421120000',active_typhoon='SURIGAE'):
+def ecmwf_check():
+    try:
+         bufr_files = TCForecast.fetch_bufr_ftp(remote_dir=remote_dir)
+         fcast = TCForecast()
+         fcast.fetch_ecmwf(files=bufr_files)
+         return fcast
+    except:
+        return -1
+        
+@click.command()
+@click.option('--path', default='./', help='main directory')
+@click.option('--remote_directory', default='20210421120000', help='remote directory for ECMWF forecast data') 
+@click.option('--typhoonname', default='SURIGAE',help='name for active typhoon')
+
+def main(path,remote_directory,typhoonname):
     print('---------------------AUTOMATION SCRIPT STARTED---------------------------------')
     print(str(datetime.now()))
-    #%% check for active typhoons
+    #check for active typhoons
     print('---------------------check for active typhoons---------------------------------')
     print(str(datetime.now()))
     Activetyphoon=Check_for_active_typhoon.check_active_typhoon()
     if Activetyphoon==[]:
-      remote_dir=remote_dir_#'20210421120000' #for downloading test data otherwise set it to None
-      Activetyphoon=[active_typhoon]  #name of typhoon for test
+      remote_dir=remote_directory#'20210421120000' #for downloading test data otherwise set it to None
+      Activetyphoon=[typhoonname]  #name of typhoon for test
+      logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")
     else:
       remote_dir=None #'20210518120000' #for downloading test data  Activetyphoon=['SURIGAE']
     print("currently active typhoon list= %s"%Activetyphoon)
 
-    #%% Download Rainfaall
+    #% Download Rainfaall
     Alternative_data_point=(datetime.strptime(datetime.now().strftime("%Y%m%d%H"), "%Y%m%d%H")-timedelta(hours=24)).strftime("%Y%m%d")
          
     Input_folder=os.path.join(path,'forecast/Input/%s/Input/'%(datetime.now().strftime("%Y%m%d%H")))
@@ -81,20 +92,22 @@ def main(path='./',remote_dir_='20210421120000',active_typhoon='SURIGAE'):
         rainfall_error=False
     except:
         traceback.print_exc()
-        logger.warning(f'Rainfall download failed, performing download in R script')
+        #logger.warning(f'Rainfall download failed, performing download in R script')
+        logging.info(f'Rainfall download failed, performing download in R script')
         rainfall_error=True
     ###### download UCL data
       
     try:
         ucl_data.create_ucl_metadata(path,uCL_USERNAME,uCL_PASSWORD)
         ucl_data.process_ucl_data(path,Input_folder,uCL_USERNAME,uCL_PASSWORD)
+        logging.info(f'UCL download failed')
 
     except:
         pass
     #%%
     ##Create grid points to calculate Winfield
     cent = Centroids()
-    cent.set_raster_from_pnt_bounds((118,6,127,19), res=0.1)
+    cent.set_raster_from_pnt_bounds((118,6,127,19), res=0.05)
     cent.check()
     cent.plot()
     ####
@@ -109,20 +122,37 @@ def main(path='./',remote_dir_='20210421120000',active_typhoon='SURIGAE'):
     df.crs = {'init': 'epsg:4326'}
     df_admin = sjoin(df, admin, how="left")
     df_admin=df_admin.dropna()
-    #%% Download ECMWF forecast for typhoon tracks 
-    bufr_files = TCForecast.fetch_bufr_ftp(remote_dir=remote_dir)
-    fcast = TCForecast()
-    fcast.fetch_ecmwf(files=bufr_files)
+    #%% Download ECMWF forecast for typhoon tracks
+    # error=-1
+    # attempt=1
+    # while error==-1:
+        # print('{} attempt to download ecmwf data'.format(attempt))
+        # fcast=ecmwf_check()
+        # attempt=attempt+1
+        # error=fcast      
+    
+    try:    
+        bufr_files = TCForecast.fetch_bufr_ftp(remote_dir=remote_dir)
+        fcast = TCForecast()
+        fcast.fetch_ecmwf(files=bufr_files)
+    except:
+        logging.error(f' Data downloding from ECMWF failed')
+        exit(0)
     #%% filter data downloaded in the above step for active typhoons  in PAR
     # filter tracks with name of current typhoons and drop tracks with only one timestep
-    fcast.data = [tr for tr in fcast.data if tr.name in Activetyphoon]
-    fcast.data = [tr for tr in fcast.data if tr.time.size>1]    
+    fcast.data = [track_data_clean.track_data_clean(tr) for tr in fcast.data if (tr.time.size>1 and tr.name in Activetyphoon)]  
+     
+    # fcast.data = [tr for tr in fcast.data if tr.name in Activetyphoon]
+    # fcast.data = [tr for tr in fcast.data if tr.time.size>1]    
     for typhoons in Activetyphoon:
         #typhoons=Activetyphoon[0]
+        logging.info(f'Processing data {typhoons}')
         fname=open(os.path.join(path,'forecast/Input/',"typhoon_info_for_model.csv"),'w')
-        fname.write('source,filename,event,time'+'\n')            
-        line_='Rainfall,'+'%srainfall' % Input_folder +',' +typhoons+','+ datetime.now().strftime("%Y%m%d%H")  #StormName #
-        fname.write(line_+'\n')
+        fname.write('source,filename,event,time'+'\n')   
+        if not rainfall_error:
+            line_='Rainfall,'+'%srainfall' % Input_folder +',' +typhoons+','+ datetime.now().strftime("%Y%m%d%H")  #StormName #
+            fname.write(line_+'\n')        
+
         line_='Output_folder,'+'%s' % Output_folder +',' +typhoons+',' + datetime.now().strftime("%Y%m%d%H")  #StormName #
         #line_='Rainfall,'+'%sRainfall/' % Input_folder +','+ typhoons + ',' + datetime.now().strftime("%Y%m%d%H") #StormName #
         fname.write(line_+'\n')
@@ -132,32 +162,43 @@ def main(path='./',remote_dir_='20210421120000',active_typhoon='SURIGAE'):
                     
         fcast.data=[tr for tr in fcast.data if tr.name==typhoons]
         tr_HRS=[tr for tr in fcast.data if (tr.is_ensemble=='False')]
-        HRS_SPEED=(tr_HRS[0].max_sustained_wind.values/0.84).tolist()  ############# 0.84 is conversion factor for ECMWF 10MIN TO 1MIN AVERAGE
-        
-        dfff=tr_HRS[0].to_dataframe()
-        dfff[['VMAX','LAT','LON']]=dfff[['max_sustained_wind','lat','lon']]
-        dfff['YYYYMMDDHH']=dfff.index.values
-        dfff['YYYYMMDDHH']=dfff['YYYYMMDDHH'].apply(lambda x: x.strftime("%Y%m%d%H%M") )
-        dfff['STORMNAME']=typhoons
-        dfff[['YYYYMMDDHH','VMAX','LAT','LON','STORMNAME']].to_csv(os.path.join(Input_folder,'ecmwf_hrs_track.csv'), index=False)
-        
-        
-        line_='ecmwf,'+'%secmwf_hrs_track.csv' % Input_folder+ ',' +typhoons+','+ datetime.now().strftime("%Y%m%d%H")   #StormName #
-        #line_='Rainfall,'+'%sRainfall/' % Input_folder +','+ typhoons + ',' + datetime.now().strftime("%Y%m%d%H") #StormName #
-        fname.write(line_+'\n')
-        
-        # Adjust track time step
-        
-        data_forced=[tr.where(tr.time <= max(tr_HRS[0].time.values),drop=True) for tr in fcast.data]
-         
-        data_forced = [track_data_clean.track_data_force_HRS(tr,HRS_SPEED) for tr in data_forced] # forced with HRS windspeed
-        
-        
-      
-        data_forced= [track_data_clean.track_data_clean(tr) for tr in data_forced] # taking speed of ENS
-        # interpolate to 3h steps from the original 6h
-        #fcast.equal_timestep(3)
-     
+
+        if tr_HRS !=[]:
+            HRS_SPEED=(tr_HRS[0].max_sustained_wind.values/0.84).tolist()  ############# 0.84 is conversion factor for ECMWF 10MIN TO 1MIN AVERAGE
+            dfff=tr_HRS[0].to_dataframe()
+            dfff[['VMAX','LAT','LON']]=dfff[['max_sustained_wind','lat','lon']]
+            dfff['YYYYMMDDHH']=dfff.index.values
+            dfff['YYYYMMDDHH']=dfff['YYYYMMDDHH'].apply(lambda x: x.strftime("%Y%m%d%H%M") )
+            dfff['STORMNAME']=typhoons
+            dfff[['YYYYMMDDHH','VMAX','LAT','LON','STORMNAME']].to_csv(os.path.join(Input_folder,'ecmwf_hrs_track.csv'), index=False)
+            line_='ecmwf,'+'%secmwf_hrs_track.csv' % Input_folder+ ',' +typhoons+','+ datetime.now().strftime("%Y%m%d%H")   #StormName #
+            #line_='Rainfall,'+'%sRainfall/' % Input_folder +','+ typhoons + ',' + datetime.now().strftime("%Y%m%d%H") #StormName #
+            fname.write(line_+'\n')        
+            # Adjust track time step
+            data_forced=[tr.where(tr.time <= max(tr_HRS[0].time.values),drop=True) for tr in fcast.data]             
+            data_forced = [track_data_clean.track_data_force_HRS(tr,HRS_SPEED) for tr in data_forced] # forced with HRS windspeed
+           
+            #data_forced= [track_data_clean.track_data_clean(tr) for tr in fcast.data] # taking speed of ENS
+            # interpolate to 3h steps from the original 6h
+            #fcast.equal_timestep(3)
+        else:
+            len_ar=np.min([ len(var.lat.values) for var in fcast.data ])
+            lat_ = np.ma.mean( [ var.lat.values[:len_ar] for var in fcast.data ], axis=0 )
+            lon_ = np.ma.mean( [ var.lon.values[:len_ar] for var in fcast.data ], axis=0 )             
+            YYYYMMDDHH =pd.date_range(fcast.data[0].time.values[0], periods=len_ar, freq="H")
+            vmax_ = np.ma.mean( [ var.max_sustained_wind.values[:len_ar] for var in fcast.data ], axis=0 )
+            d = {'YYYYMMDDHH':YYYYMMDDHH,
+                 "VMAX":vmax_,
+                 "LAT": lat_,
+                  "LON": lon_} 
+            dfff = pd.DataFrame(d)
+            dfff['STORMNAME']=typhoons
+            dfff['YYYYMMDDHH']=dfff['YYYYMMDDHH'].apply(lambda x: x.strftime("%Y%m%d%H%M") )
+            dfff[['YYYYMMDDHH','VMAX','LAT','LON','STORMNAME']].to_csv(os.path.join(Input_folder,'ecmwf_hrs_track.csv'), index=False)
+            line_='ecmwf,'+'%secmwf_hrs_track.csv' % Input_folder+ ',' +typhoons+','+ datetime.now().strftime("%Y%m%d%H")   #StormName #
+            #line_='Rainfall,'+'%sRainfall/' % Input_folder +','+ typhoons + ',' + datetime.now().strftime("%Y%m%d%H") #StormName #
+            fname.write(line_+'\n') 
+            data_forced=fcast.data
         
         # calculate windfields for each ensamble
         threshold=0            #(threshold to filter dataframe /reduce data )
@@ -175,7 +216,7 @@ def main(path='./',remote_dir_='20210421120000',active_typhoon='SURIGAE'):
             track = TCTracks() 
             typhoon = TropCyclone()
             track.data=[tr]
-            track.equal_timestep(3)
+            #track.equal_timestep(3)
             tr=track.data[0]
             typhoon.set_from_tracks(track, cent, store_windfields=True)
             windfield=typhoon.windfields
@@ -237,11 +278,13 @@ def main(path='./',remote_dir_='20210421120000',active_typhoon='SURIGAE'):
             try:
                 p = subprocess.check_call(["Rscript", "run_model_V2.R", str(rainfall_error)])
             except subprocess.CalledProcessError as e:
+                logging.error(f'failed to excute R sript')
                 raise ValueError(str(e))
         elif platform == "win32": #if OS is windows edit the path for Rscript
             try:
                 p = subprocess.check_call(["C:/Program Files/R/R-4.1.0/bin/Rscript", "run_model_V2.R", str(rainfall_error)])
             except subprocess.CalledProcessError as e:
+                logging.error(f'failed to excute R sript')
                 raise ValueError(str(e))
             
         
@@ -250,6 +293,7 @@ def main(path='./',remote_dir_='20210421120000',active_typhoon='SURIGAE'):
         #############################################################
 
         landfall_typhones=[] #model_output_file_names
+
         try:
             #fname2=open("forecast/%s_file_names.csv" % typhoons,'r')
             fname2=open(os.path.join(Output_folder,"model_output_file_names.csv"),'r')

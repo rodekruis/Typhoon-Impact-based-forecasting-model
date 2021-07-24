@@ -60,6 +60,7 @@ def download_rainfall_nomads(Input_folder, path, Alternative_data_point):
                                ) as ds:
             filepath = os.path.join(rainfall_path, output_filename)
             logger.info(f'Writing to file {filepath}')
+            ds = ds.median(dim='number') #store only the median of the ensemble members
             ds.to_netcdf(filepath)
 
 

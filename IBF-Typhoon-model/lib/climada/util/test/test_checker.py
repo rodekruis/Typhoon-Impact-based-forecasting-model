@@ -4,25 +4,26 @@ This file is part of CLIMADA.
 Copyright (C) 2017 ETH Zurich, CLIMADA contributors listed in AUTHORS.
 
 CLIMADA is free software: you can redistribute it and/or modify it under the
-terms of the GNU Lesser General Public License as published by the Free
+terms of the GNU General Public License as published by the Free
 Software Foundation, version 3.
 
 CLIMADA is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU Lesser General Public License along
+You should have received a copy of the GNU General Public License along
 with CLIMADA. If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
+Test variable check util functions.
 """
 
 import unittest
 import numpy as np
 import scipy.sparse as sparse
 
-from climada.util.checker import check_oligatories, check_optionals
+import climada.util.checker as u_check
 
 class DummyClass(object):
 
@@ -43,56 +44,48 @@ class TestChecks(unittest.TestCase):
     def test_check_oligatories_pass(self):
         """Correct DummyClass definition"""
         dummy = DummyClass()
-        check_oligatories(dummy.__dict__, dummy.vars_oblig, "DummyClass.",
-                          dummy.id.size, dummy.id.size, 2)
+        u_check.check_oligatories(dummy.__dict__, dummy.vars_oblig, "DummyClass.",
+                                  dummy.id.size, dummy.id.size, 2)
 
     def test_check_oligatories_fail(self):
         """Wrong DummyClass definition"""
         dummy = DummyClass()
         dummy.array = np.arange(3)
-        with self.assertLogs('climada.util.checker', level='ERROR') as cm:
-            with self.assertRaises(ValueError):
-                check_oligatories(dummy.__dict__, dummy.vars_oblig, "DummyClass.",
-                                  dummy.id.size, dummy.id.size, 2)
-        self.assertIn('Invalid DummyClass.array size: 25 != 3.', cm.output[0])
+        with self.assertRaises(ValueError) as cm:
+            u_check.check_oligatories(dummy.__dict__, dummy.vars_oblig, "DummyClass.",
+                                      dummy.id.size, dummy.id.size, 2)
+        self.assertIn('Invalid DummyClass.array size: 25 != 3.', str(cm.exception))
 
         dummy = DummyClass()
         dummy.sparse_arr = sparse.csr.csr_matrix(np.zeros((25, 1)))
-        with self.assertLogs('climada.util.checker', level='ERROR') as cm:
-            with self.assertRaises(ValueError):
-                check_oligatories(dummy.__dict__, dummy.vars_oblig, "DummyClass.",
-                                  dummy.id.size, dummy.id.size, 2)
-        self.assertIn('Invalid DummyClass.sparse_arr column size: 2 != 1.', cm.output[0])
+        with self.assertRaises(ValueError) as cm:
+            u_check.check_oligatories(dummy.__dict__, dummy.vars_oblig, "DummyClass.",
+                                      dummy.id.size, dummy.id.size, 2)
+        self.assertIn('Invalid DummyClass.sparse_arr column size: 2 != 1.', str(cm.exception))
 
     def test_check_optionals_pass(self):
         """Correct DummyClass definition"""
         dummy = DummyClass()
-        check_optionals(dummy.__dict__, dummy.vars_opt, "DummyClass.",
-                        dummy.id.size)
+        u_check.check_optionals(dummy.__dict__, dummy.vars_opt, "DummyClass.", dummy.id.size)
 
     def test_check_optionals_fail(self):
         """Correct DummyClass definition"""
         dummy = DummyClass()
         dummy.array_opt = np.arange(3)
-        with self.assertLogs('climada.util.checker', level='ERROR') as cm:
-            with self.assertRaises(ValueError):
-                check_optionals(dummy.__dict__, dummy.vars_opt, "DummyClass.",
-                                dummy.id.size)
-        self.assertIn('Invalid DummyClass.array_opt size: 25 != 3.', cm.output[0])
+        with self.assertRaises(ValueError) as cm:
+            u_check.check_optionals(dummy.__dict__, dummy.vars_opt, "DummyClass.", dummy.id.size)
+        self.assertIn('Invalid DummyClass.array_opt size: 25 != 3.', str(cm.exception))
 
         dummy.array_opt = np.array([], int)
         with self.assertLogs('climada.util.checker', level='DEBUG') as cm:
-            check_optionals(dummy.__dict__, dummy.vars_opt, "DummyClass.",
-                            dummy.id.size)
+            u_check.check_optionals(dummy.__dict__, dummy.vars_opt, "DummyClass.", dummy.id.size)
         self.assertIn('DummyClass.array_opt not set.', cm.output[0])
 
         dummy = DummyClass()
         dummy.list = np.arange(3).tolist()
-        with self.assertLogs('climada.util.checker', level='ERROR') as cm:
-            with self.assertRaises(ValueError):
-                check_optionals(dummy.__dict__, dummy.vars_opt, "DummyClass.",
-                                dummy.id.size)
-        self.assertIn('Invalid DummyClass.list size: 25 != 3.', cm.output[0])
+        with self.assertRaises(ValueError) as cm:
+            u_check.check_optionals(dummy.__dict__, dummy.vars_opt, "DummyClass.", dummy.id.size)
+        self.assertIn('Invalid DummyClass.list size: 25 != 3.', str(cm.exception))
 
 # Execute Tests
 if __name__ == "__main__":

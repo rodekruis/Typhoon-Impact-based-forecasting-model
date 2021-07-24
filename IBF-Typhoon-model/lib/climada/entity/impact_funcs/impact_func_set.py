@@ -4,14 +4,14 @@ This file is part of CLIMADA.
 Copyright (C) 2017 ETH Zurich, CLIMADA contributors listed in AUTHORS.
 
 CLIMADA is free software: you can redistribute it and/or modify it under the
-terms of the GNU Lesser General Public License as published by the Free
+terms of the GNU General Public License as published by the Free
 Software Foundation, version 3.
 
 CLIMADA is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
-You should have received a copy of the GNU Lesser General Public License along
+You should have received a copy of the GNU General Public License along
 with CLIMADA. If not, see <https://www.gnu.org/licenses/>.
 
 ---
@@ -32,7 +32,7 @@ import xlsxwriter
 from climada.entity.impact_funcs.base import ImpactFunc
 from climada.entity.tag import Tag
 import climada.util.plot as u_plot
-import climada.util.hdf5_handler as hdf5
+import climada.util.hdf5_handler as u_hdf5
 
 LOGGER = logging.getLogger(__name__)
 
@@ -109,8 +109,7 @@ class ImpactFuncSet():
             ValueError
         """
         if not isinstance(func, ImpactFunc):
-            LOGGER.error("Input value is not of type ImpactFunc.")
-            raise ValueError
+            raise ValueError("Input value is not of type ImpactFunc.")
         if not func.haz_type:
             LOGGER.warning("Input ImpactFunc's hazard type not set.")
         if not func.id:
@@ -247,13 +246,11 @@ class ImpactFuncSet():
         for key_haz, vul_dict in self._data.items():
             for fun_id, vul in vul_dict.items():
                 if (fun_id != vul.id) | (fun_id == ''):
-                    LOGGER.error("Wrong ImpactFunc.id: %s != %s.", fun_id,
-                                 vul.id)
-                    raise ValueError
+                    raise ValueError("Wrong ImpactFunc.id: %s != %s."
+                                     % (fun_id, vul.id))
                 if (key_haz != vul.haz_type) | (key_haz == ''):
-                    LOGGER.error("Wrong ImpactFunc.haz_type: %s != %s.",
-                                 key_haz, vul.haz_type)
-                    raise ValueError
+                    raise ValueError("Wrong ImpactFunc.haz_type: %s != %s."
+                                     % (key_haz, vul.haz_type))
                 vul.check()
 
     def extend(self, impact_funcs):
@@ -326,7 +323,7 @@ class ImpactFuncSet():
         dfr = pd.read_excel(file_name, var_names['sheet_name'])
 
         self.clear()
-        self.tag.file_name = file_name
+        self.tag.file_name = str(file_name)
         self.tag.description = description
         self._fill_dfr(dfr, var_names)
 
@@ -344,7 +341,7 @@ class ImpactFuncSet():
             for row, (fun_id, fun_type) in enumerate(
                     zip(imp[var_names['var_name']['fun_id']].squeeze(),
                         imp[var_names['var_name']['peril']].squeeze())):
-                type_str = hdf5.get_str_from_ref(file_name, fun_type)
+                type_str = u_hdf5.get_str_from_ref(file_name, fun_type)
                 key = (type_str, int(fun_id))
                 if key not in func_pos:
                     func_pos[key] = list()
@@ -355,17 +352,16 @@ class ImpactFuncSet():
             """Get rows with same string in var_name."""
             prev_str = ""
             for row in idxs:
-                cur_str = hdf5.get_str_from_ref(file_name, imp[var_name][row][0])
+                cur_str = u_hdf5.get_str_from_ref(file_name, imp[var_name][row][0])
                 if prev_str == "":
                     prev_str = cur_str
                 elif prev_str != cur_str:
-                    LOGGER.error("Impact function with two different %s.", var_name)
-                    raise ValueError
+                    raise ValueError("Impact function with two different %s." % var_name)
             return prev_str
 
-        imp = hdf5.read(file_name)
+        imp = u_hdf5.read(file_name)
         self.clear()
-        self.tag.file_name = file_name
+        self.tag.file_name = str(file_name)
         self.tag.description = description
 
         try:
@@ -397,8 +393,7 @@ class ImpactFuncSet():
                 func.paa = np.take(imp[var_names['var_name']['paa']], imp_rows)
                 self.append(func)
         except KeyError as err:
-            LOGGER.error("Not existing variable: %s", str(err))
-            raise err
+            raise KeyError("Not existing variable: %s" % str(err)) from err
 
     def write_excel(self, file_name, var_names=DEF_VAR_EXCEL):
         """Write excel file following template.
@@ -407,7 +402,7 @@ class ImpactFuncSet():
             file_name (str): absolute file name to write
             var_names (dict, optional): name of the variables in the file
         """
-        def write_if(row_ini, imp_ws, xls_data):
+        def write_impf(row_ini, imp_ws, xls_data):
             """Write one impact function"""
             for icol, col_dat in enumerate(xls_data):
                 for irow, data in enumerate(col_dat, row_ini):
@@ -430,7 +425,7 @@ class ImpactFuncSet():
                             fun.paa, repeat(fun_haz_id, n_inten),
                             repeat(fun.intensity_unit, n_inten),
                             repeat(fun.name, n_inten)]
-                write_if(row_ini, imp_ws, xls_data)
+                write_impf(row_ini, imp_ws, xls_data)
                 row_ini += n_inten
         imp_wb.close()
 
@@ -480,5 +475,4 @@ class ImpactFuncSet():
                 self.append(func)
 
         except KeyError as err:
-            LOGGER.error("Not existing variable: %s", str(err))
-            raise err
+            raise KeyError("Not existing variable: %s" % str(err)) from err
