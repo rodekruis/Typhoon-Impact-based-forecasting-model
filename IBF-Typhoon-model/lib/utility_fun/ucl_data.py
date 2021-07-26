@@ -165,7 +165,7 @@ def extract_ucl_data(Input_folder):
 def process_ucl_data(path,Input_folder,uCL_USERNAME,uCL_PASSWORD):
     update=download_ucl_data(path,Input_folder,uCL_USERNAME,uCL_PASSWORD)
     time.sleep(10)
-    php_admin3 = gpd.read_file(path+'data-raw/phl_admin3_simpl2.shp')
+    php_admin3 = gpd.read_file(path+'data-raw/phl_admin3_simpl2.geojson')
     filname1_=extract_ucl_data(Input_folder)
     for key,value in filname1_.items():
         ile_names = [fn for fn in os.listdir(value) if any(fn.endswith(ext) for ext in ['.shp'])]

@@ -24,7 +24,7 @@ decoder = Decoder()
 #%%
 sys.path.insert(0, '/home/fbf/lib')
 #os.chdir(path)
-from settings import fTP_LOGIN, fTP_PASSWORD, uCL_USERNAME, uCL_PASSWORD
+from settings import fTP_LOGIN,fTP_PASSWORD, uCL_USERNAME, uCL_PASSWORD,sMTP_SERVER,eMAIL_LOGIN,eMAIL_FROM,eMAIL_PASSWORD,eMAIL_LIST,eMAIL_LIST_ERROR,cC_LIST
 from climada.hazard import Centroids, TropCyclone,TCTracks
 from climada.hazard.tc_tracks import estimate_roci,estimate_rmw
 from climada.hazard.tc_tracks_forecast import TCForecast
@@ -327,17 +327,17 @@ def main(path,remote_directory,typhoonname):
             </body>
             </html>
             """
-            Sendemail.sendemail(from_addr  = EMAIL_FROM,
-                    to_addr_list = EMAIL_LIST,
-                    cc_addr_list = CC_LIST,
+            Sendemail.sendemail(from_addr  = eMAIL_FROM,
+                    to_addr_list = eMAIL_LIST,
+                    cc_addr_list = cC_LIST,
                     message = message(
                         subject='Updated impact map for a new Typhoon in PAR',
                         html=html,
                         textfile=data_filename,
                         image=image_filename),
-                    login  = EMAIL_LOGIN,
-                    password= EMAIL_PASSWORD,
-                    smtpserver=SMTP_SERVER)
+                    login  = eMAIL_LOGIN,
+                    password= eMAIL_PASSWORD,
+                    smtpserver=sMTP_SERVER)
 
 
     print('---------------------AUTOMATION SCRIPT FINISHED---------------------------------')
