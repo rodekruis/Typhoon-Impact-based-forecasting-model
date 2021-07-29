@@ -40,4 +40,3 @@ feedparser==6.0.8
 beautifulsoup4==4.9.1
 lxml==4.6.3
 Rtree==0.9.4
-#click
