@@ -18,8 +18,8 @@ RUN apt-get update && apt-get install -y \
 
 # Install additional dependencies with pip
 COPY requirements.txt /home/fbf/
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy code and install
 ADD IBF-Typhoon-model .
-RUN pip3 install .
+RUN pip install .
