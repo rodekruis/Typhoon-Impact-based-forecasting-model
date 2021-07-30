@@ -100,8 +100,8 @@ def main(path,remote_directory,typhoonname):
     ###### download UCL data
       
     try:
-        ucl_data.create_ucl_metadata(path,uCL_USERNAME,uCL_PASSWORD)
-        ucl_data.process_ucl_data(path,Input_folder,uCL_USERNAME,uCL_PASSWORD)
+        ucl_data.create_ucl_metadata(path,settings.uCL_USERNAME,settings.uCL_PASSWORD)
+        ucl_data.process_ucl_data(path,Input_folder,settings.uCL_USERNAME,settings.uCL_PASSWORD)
         logging.info(f'UCL download failed')
 
     except:
