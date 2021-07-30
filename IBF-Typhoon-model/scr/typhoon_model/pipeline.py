@@ -23,10 +23,8 @@ decoder = Decoder()
 
 #%%
 sys.path.insert(0, '/home/fbf/lib')
-#os.chdir(path)
-from settings import fTP_LOGIN,fTP_PASSWORD, uCL_USERNAME, uCL_PASSWORD,sMTP_SERVER,eMAIL_LOGIN,eMAIL_FROM,eMAIL_PASSWORD,eMAIL_LIST,eMAIL_LIST_ERROR,cC_LIST
+import settings
 from climada.hazard import Centroids, TropCyclone,TCTracks
-from climada.hazard.tc_tracks import estimate_roci,estimate_rmw
 from climada.hazard.tc_tracks_forecast import TCForecast
 from utility_fun import track_data_clean,Check_for_active_typhoon,Sendemail,ucl_data
 
@@ -313,12 +311,10 @@ def main(path,remote_directory,typhoonname):
         except:
             pass
         
-        if not landfall_typhones==[]:
-            #image_filename=landfall_typhones[0]
-            image_filename=[i for i in landfall_typhones if i.endswith('.png')][0]
-            data_filename=[i for i in landfall_typhones if i.endswith('.csv')][0]
-            #data_filename=landfall_typhones[1]
-            html = """\
+        if landfall_typhones:
+            image_filename = [i for i in landfall_typhones if i.endswith('.png')][0]
+            data_filename = [i for i in landfall_typhones if i.endswith('.csv')][0]
+            message_html = """\
             <html>
             <body>
             <h1>IBF model run result </h1>
@@ -327,18 +323,18 @@ def main(path,remote_directory,typhoonname):
             </body>
             </html>
             """
-            Sendemail.sendemail(from_addr  = eMAIL_FROM,
-                    to_addr_list = eMAIL_LIST,
-                    cc_addr_list = cC_LIST,
-                    message = message(
-                        subject='Updated impact map for a new Typhoon in PAR',
-                        html=html,
-                        textfile=data_filename,
-                        image=image_filename),
-                    login  = eMAIL_LOGIN,
-                    password= eMAIL_PASSWORD,
-                    smtpserver=sMTP_SERVER)
-
+            Sendemail.sendemail(
+                smtp_server=settings.sMTP_SERVER,
+                email_username=settings.eMAIL_LOGIN,
+                email_password=settings.eMAIL_PASSWORD,
+                email_subject='Updated impact map for a new Typhoon in PAR',
+                from_address=settings.eMAIL_FROM,
+                to_address_list=settings.eMAIL_LIST,
+                cc_address_list=settings.cC_LIST,
+                message_html=message_html,
+                csv_filename=data_filename,
+                image_filename=image_filename
+            )
 
     print('---------------------AUTOMATION SCRIPT FINISHED---------------------------------')
     print(str(datetime.now()))
