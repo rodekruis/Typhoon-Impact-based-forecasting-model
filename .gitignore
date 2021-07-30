@@ -14,7 +14,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+#lib/
 lib64/
 parts/
 sdist/
@@ -140,12 +140,13 @@ cython_debug/
 # PyCharm
 .idea/
 
+# Python notebooks
+*.ipynb
+
 # Cutsom by Aki
 PostLandfallAnalysis
-analysis
 typhoon_infographic
 trigger_level_analysis
 home
 otherfiles
 temp
-
