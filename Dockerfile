@@ -1,7 +1,7 @@
 FROM rocker/geospatial:4.1.0
 
 # Set up main directory
-RUN mkdir --parents /home/fbf/
+RUN mkdir --parents /home/fbf/forecast
 WORKDIR /home/fbf/
 
 # Install additional R-packages
@@ -15,8 +15,7 @@ RUN apt-get update && apt-get install -y \
     python3-eccodes \
     && rm -rf /var/lib/apt/lists/*
 
-
-# Install additional dependencies with pip
+# Install Python dependencies
 COPY requirements.txt /home/fbf/
 RUN pip install --no-cache-dir -r requirements.txt
 
