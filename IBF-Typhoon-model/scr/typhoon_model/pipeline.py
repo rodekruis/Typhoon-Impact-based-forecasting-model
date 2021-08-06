@@ -325,6 +325,7 @@ def main(path,remote_directory,typhoonname):
             """
             Sendemail.sendemail(
                 smtp_server=settings.sMTP_SERVER,
+                smtp_port=settings.sMTP_PORT,
                 email_username=settings.eMAIL_LOGIN,
                 email_password=settings.eMAIL_PASSWORD,
                 email_subject='Updated impact map for a new Typhoon in PAR',
