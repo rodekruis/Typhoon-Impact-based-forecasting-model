@@ -4,10 +4,9 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 
-PORT = 587  # TLS
-
 
 def sendemail(smtp_server: str,
+              smtp_port: int,
               email_username: str,
               email_password: str,
               email_subject: str,
@@ -33,7 +32,7 @@ def sendemail(smtp_server: str,
             message.attach(MIMEApplication(file.read(), Name=filename))
 
     context = ssl.create_default_context()
-    with smtplib.SMTP(smtp_server, PORT) as server:
+    with smtplib.SMTP(smtp_server, smtp_port) as server:
         server.starttls(context=context)
         server.login(email_username, email_password)
         server.sendmail(from_address,
