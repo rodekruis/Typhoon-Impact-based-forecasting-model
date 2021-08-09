@@ -38,12 +38,16 @@ the output data to go. Then run:
 ```
 docker run --rm -it --name=fbf-phv3 -v $path-to-output-directory:/home/fbf/forecast rodekruis510/typhoonibf bash
 ```
+
 To run the pipeline, enter the container and execute:
 ```
 run-typhoon-model [OPTIONS]
 
 Options:
   --path TEXT             main directory defult 
-  --remote_dir_ TEXT                  remote directory 
-  --active_typhoon TEXT               name for active typhoon
+  --remote_directory TEXT                  remote directory 
+  --typhoonname TEXT               name for active typhoon
 ```
+
+When there is an active typhoon in the PAR polygon the model will run for the active typhoons,
+unless you specify a remote directory and typhoon name. 

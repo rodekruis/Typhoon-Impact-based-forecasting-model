@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -145,3 +146,21 @@ cython_debug/
 
 # Cutsom by Aki
 settings.py
+PostLandfallAnalysis
+analysis
+typhoon_infographic
+trigger_level_analysis
+home
+otherfiles
+temp
+IBF-Typhoon-model/forecast/
+IBF-Typhoon-model/typhoon_infographic/
+IBF-Typhoon-model/old_scripts/
+IBF-Typhoon-model/models/other_models/*
+IBF-Typhoon-model/lib/secrets.py
+IBF-Typhoon-model/lib/settings.py
+IBF-Typhoon-model/lib/variables.py
+IBF-Typhoon-model/lib/climada_python-main
+IBF-Typhoon-model/mainpipeline_win.py
+IBF-Typhoon-model/model_trigger.py
+IBF-Typhoon-model/credentials
