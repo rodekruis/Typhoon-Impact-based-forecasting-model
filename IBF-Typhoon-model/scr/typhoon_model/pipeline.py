@@ -70,16 +70,23 @@ def main(path,remote_directory,typhoonname):
     print('---------------------check for active typhoons---------------------------------')
     print(str(datetime.now()))
     Activetyphoon=Check_for_active_typhoon.check_active_typhoon()
-    if Activetyphoon==[]:
-      remote_dir='20210421120000' #for downloading test data otherwise set it to None
-      Activetyphoon=[typhoonname]  #name of typhoon for test
+    TEST_REMOTE_DIR = '20210421120000'
+    remote_dir = remote_directory
+    if not Activetyphoon:
       logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")
+      if remote_dir is None:
+         remote_dir = TEST_REMOTE_DIR
+         #remote_dir='20210421120000' #for downloading test data otherwise set it to None
+      Activetyphoon=[typhoonname]  #name of typhoon for test
+      #logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")
     elif remote_directory is not None:
-      remote_dir='20210421120000' #for downloading test data otherwise set it to None
+      logging.info(f"There is an active typhoon, but the user has requested to run for typhoon{typhoonname}")
+      #remote_dir='20210421120000' #for downloading test data otherwise set it to None
       Activetyphoon=[typhoonname]  #name of typhoon for test
       logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")    
     else:
-      remote_dir=None # for downloading test data      Activetyphoon=['SURIGAE']
+      logging.info(f"Running on active Typhoon(s) {Activetyphoon}")
+      #remote_dir=None # for downloading test data      Activetyphoon=['SURIGAE']
     print("currently active typhoon list= %s"%Activetyphoon)
 
     #%% Download Rainfaall
