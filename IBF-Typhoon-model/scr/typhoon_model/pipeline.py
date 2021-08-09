@@ -74,7 +74,7 @@ def main(path,remote_directory,typhoonname):
       remote_dir='20210421120000' #for downloading test data otherwise set it to None
       Activetyphoon=[typhoonname]  #name of typhoon for test
       logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")
-    elif remote_directory!=None:
+    elif remote_directory is not None:
       remote_dir='20210421120000' #for downloading test data otherwise set it to None
       Activetyphoon=[typhoonname]  #name of typhoon for test
       logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")    
@@ -319,16 +319,16 @@ def main(path,remote_directory,typhoonname):
         if not landfall_typhones==[]:
             #image_filename=landfall_typhones[0]
             image_filename=[i for i in landfall_typhones if i.endswith('.png')][0]
-            data_filename=[i for i in landfall_typhones if i.endswith('.csv')][0]
-            data_filename1=[i for i in landfall_typhones if i.endswith('.csv')][1]
+            data_filename1=[i for i in landfall_typhones if i.endswith('.csv')][0]
+            data_filename2=[i for i in landfall_typhones if i.endswith('.csv')][1]
             #data_filename=landfall_typhones[1]
             message_text = """\
             IBF model run result \n
             Please find attached a map and data with updated model run\n
             """
             email_content=Sendemail_v2.create_message_with_attachment(message_text=message_text,
-                                  file=data_filename,
-                                  file1=data_filename1,
+                                  file=data_filename1,
+                                  file1=data_filename2,
                                   file2=image_filename)
             Sendemail_v2.sendemail(emails=eMAIL_LIST,
                  subject='Updated typhoon impact map and trigger info',
