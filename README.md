@@ -42,19 +42,23 @@ Then run:
 ```
 docker build -t rodekruis510/typhoonibf .
 ```
+
+## Running
+
+To spin up and enter the docker container, change directory to "IBF-Typhoon-model" and execute:
+```
+docker run --rm -it --name=fbf-phv4 -v IBF-Typhoon-model:/home/fbf  rodekruis510/typhoonibf bash
+
+
 Create a docker container
 ```
 docker run --name typhoonibf rodekruis510/typhoonibf
 
 ```
+
 Run and access the container
 ```
 docker run -it --entrypoint /bin/bash rodekruis510/typhoonibf
-```
-## Running
-To spin up and enter the docker container, execute:
-```
-docker run --rm -it --name=fbf-phv3 -v ${PWD}:/home/fbf  rodekruis510/typhoonibf bash
 ```
 To run the pipeline, enter the container and execute:
 ```
@@ -62,9 +66,26 @@ run-typhoon-model [OPTIONS]
 
 Options:
   --path TEXT             main directory defult 
-  --remote_dir_ TEXT                  remote directory 
-  --active_typhoon TEXT               name for active typhoon
+  --remote_directory TEXT                  remote directory 
+  --typhoonname TEXT               name for active typhoon
+
+run-typhoon-model --remote_directory='20210421120000' to test running the model when there is active typhoon
+```
+When there is an active typhoon in the PAR polygon the model will run for the active typhoons. 
+when there is active typhoon in PAR you If you want to test running the model for a previous event "SURIGAE"
 
 ```
+ --remote_directory='20210421120000'
+ 
+```
 
+#old 
+
+
+To spin up and enter the docker container, change directory to "IBF-Typhoon-model" and execute:
+```
+docker run --rm -it --name=fbf-phv4 -v IBF-Typhoon-model:/home/fbf  rodekruis510/typhoonibf bash
+
+docker run --rm -it --name=fbf-phv3 -v ${PWD}:/home/fbf  rodekruis510/typhoonibf bash
+```
 If you need to inspect the log files, you can find them in `/var/log/cron.log`.

@@ -71,13 +71,13 @@ typhoon_info_for_model <- read.csv(paste0(main_directory,"/forecast/Input/typhoo
 #typhoon_events <- read.csv(paste0(main_directory,'/forecast/Input/typhoon_info_for_model.csv')) 
 
 
-rain_directory <- as.character(typhoon_info_for_model[typhoon_info_for_model$source=='Rainfall',]$filename)
-windfield_data <- as.character(typhoon_info_for_model[typhoon_info_for_model$source=='windfield',]$filename)
-ECMWF_ <- as.character(typhoon_info_for_model[typhoon_info_for_model$source=='ecmwf',]$filename)
+rain_directory <- as.character(typhoon_info_for_model[typhoon_info_for_model[['source']]=='Rainfall',][['filename']])
+windfield_data <- as.character(typhoon_info_for_model[typhoon_info_for_model[['source']]=='windfield',][['filename']])
+ECMWF_ <- as.character(typhoon_info_for_model[typhoon_info_for_model[['source']]=='ecmwf',][['filename']])
 TRACK_DATA <- read.csv(ECMWF_)#%>%dplyr::mutate(STORMNAME=Typhoon_stormname, YYYYMMDDHH=format(strptime(YYYYMMDDHH, format = "%Y-%m-%d %H:%M:%S"), '%Y%m%d%H%00'))
 
-Output_folder<-as.character(typhoon_info_for_model[typhoon_info_for_model$source=='Output_folder',]$filename)
-forecast_time<-as.character(typhoon_info_for_model[typhoon_info_for_model$source=='ecmwf',]$time)
+Output_folder<-as.character(typhoon_info_for_model[typhoon_info_for_model[['source']]=='Output_folder',][['filename']])
+forecast_time<-as.character(typhoon_info_for_model[typhoon_info_for_model[['source']]=='ecmwf',][['time']])
  
 #------------------------- define functions ---------------------------------
 
@@ -173,7 +173,7 @@ df_imact_forecast <- as.data.frame(y_predicted)%>%
   )%>%drop_na()
 
 
-Typhoon_stormname <- as.character(unique(wind_grid$name)[1])
+Typhoon_stormname <- as.character(unique(wind_grid[['name']])[1])
 
 ####################################################################################################
 # ------------------------ calculate  probability only for region 5 and 8  -----------------------------------
@@ -225,13 +225,13 @@ write.csv(df_imact_forecast_dref, file = paste0(Output_folder,'DREF_TRIGGER_LEVE
 
 # ------------------------ calculate average impact vs probability   -----------------------------------
 
-number_ensambles<-length(unique(df_imact_forecast$GEN_typhoon_id))
+number_ensambles<-length(unique(df_imact_forecast[['GEN_typhoon_id']]))
 
-df_imact_dist50  <- aggregate(df_imact_forecast$dist50, by=list(GEN_mun_code=df_imact_forecast$GEN_mun_code), FUN=sum)%>%
+df_imact_dist50  <- aggregate(df_imact_forecast[['dist50']], by=list(GEN_mun_code=df_imact_forecast[['GEN_mun_code']]), FUN=sum)%>%
   dplyr::mutate(probability_dist50=100*x/number_ensambles)%>%dplyr::select(GEN_mun_code,probability_dist50)%>%
-  left_join(aggregate(df_imact_forecast$e_impact, by=list(GEN_mun_code=df_imact_forecast$GEN_mun_code), FUN=sum)%>%
+  left_join(aggregate(df_imact_forecast[['e_impact']], by=list(GEN_mun_code=df_imact_forecast[['GEN_mun_code']]), FUN=sum)%>%
               dplyr::mutate(impact=x/number_ensambles)%>%dplyr::select(GEN_mun_code,impact),by='GEN_mun_code')%>%
-  left_join(aggregate(df_imact_forecast$WEA_dist_track, by=list(GEN_mun_code=df_imact_forecast$GEN_mun_code), FUN=sum)%>%
+  left_join(aggregate(df_imact_forecast[['WEA_dist_track']], by=list(GEN_mun_code=df_imact_forecast[['GEN_mun_code']]), FUN=sum)%>%
               dplyr::mutate(WEA_dist_track=x/number_ensambles)%>%dplyr::select(GEN_mun_code,WEA_dist_track),by='GEN_mun_code')
 
 df_impact<-df_imact_forecast%>%left_join(df_imact_dist50,by='GEN_mun_code')
@@ -262,16 +262,8 @@ df_impact<-df_imact_forecast%>%left_join(df_imact_dist50,by='GEN_mun_code')
 
 event_impact <- php_admin3%>%left_join(df_imact_dist50%>%dplyr::mutate(adm3_pcode=GEN_mun_code),by='adm3_pcode')
 
-
-
-
-
-
-
-
 track <- track_interpolation(TRACK_DATA) %>%dplyr::mutate(Data_Provider='ECMWF_HRS')
 
- 
 maps <- Make_maps_avg(php_admin1,event_impact,track,TYF='ECMWF',Typhoon_stormname)
 
 ####################################################################################################
@@ -285,6 +277,8 @@ tmap_save(maps,filename = paste0(Output_folder,'Average_Impact_','_',forecast_ti
 write.csv(event_impact, file = paste0(Output_folder,'Average_Impact_','_',forecast_time,'_',  Typhoon_stormname,'.csv'))
  
 file_names<- c(paste0(Output_folder,'Average_Impact_','_',forecast_time,'_',  Typhoon_stormname,'.png'),
+			   paste0(Output_folder,'DREF_TRIGGER_LEVEL_',forecast_time,'_',  Typhoon_stormname,'.csv'),
+			   paste0(Output_folder,'CERF_TRIGGER_LEVEL_',forecast_time,'_',  Typhoon_stormname,'.csv'),
                paste0(Output_folder,'Average_Impact_','_',forecast_time,'_',  Typhoon_stormname,'.csv'))
  
 write.table(file_names, file =paste0(Output_folder,'model_output_file_names.csv'),sep=';',append=FALSE, col.names = FALSE)

@@ -24,11 +24,11 @@ decoder = Decoder()
 #%%
 sys.path.insert(0, '/home/fbf/lib')
 #os.chdir(path)
-from settings import fTP_LOGIN,fTP_PASSWORD, uCL_USERNAME, uCL_PASSWORD,sMTP_SERVER,eMAIL_LOGIN,eMAIL_FROM,eMAIL_PASSWORD,eMAIL_LIST,eMAIL_LIST_ERROR,cC_LIST
+from settings import fTP_LOGIN,fTP_PASSWORD, uCL_USERNAME, uCL_PASSWORD,sMTP_SERVER,eMAIL_LOGIN,eMAIL_FROM,eMAIL_PASSWORD,eMAIL_LIST,eMAIL_LIST_ERROR,cC_LIST,server_port
 from climada.hazard import Centroids, TropCyclone,TCTracks
 from climada.hazard.tc_tracks import estimate_roci,estimate_rmw
 from climada.hazard.tc_tracks_forecast import TCForecast
-from utility_fun import track_data_clean,Check_for_active_typhoon,Sendemail,ucl_data
+from utility_fun import track_data_clean,Check_for_active_typhoon,Sendemail_v2,ucl_data
 
 if platform == "linux" or platform == "linux2": #check if running on linux or windows os
     from utility_fun import Rainfall_data
@@ -60,7 +60,7 @@ def ecmwf_check():
 
 @click.command()
 @click.option('--path', default='./', help='main directory')
-@click.option('--remote_directory', default='20210421120000', help='remote directory for ECMWF forecast data') 
+@click.option('--remote_directory', default=None, help='remote directory for ECMWF forecast data') #'20210421120000'
 @click.option('--typhoonname', default='SURIGAE',help='name for active typhoon')
        
 def main(path,remote_directory,typhoonname):
@@ -71,12 +71,15 @@ def main(path,remote_directory,typhoonname):
     print(str(datetime.now()))
     Activetyphoon=Check_for_active_typhoon.check_active_typhoon()
     if Activetyphoon==[]:
-      remote_dir=remote_directory#'20210421120000' #for downloading test data otherwise set it to None
+      remote_dir='20210421120000' #for downloading test data otherwise set it to None
       Activetyphoon=[typhoonname]  #name of typhoon for test
       logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")
+    elif remote_directory!=None:
+      remote_dir='20210421120000' #for downloading test data otherwise set it to None
+      Activetyphoon=[typhoonname]  #name of typhoon for test
+      logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")    
     else:
-      remote_dir='20210518120000' #None for downloading test data       
-      Activetyphoon=['SURIGAE']
+      remote_dir=None # for downloading test data      Activetyphoon=['SURIGAE']
     print("currently active typhoon list= %s"%Activetyphoon)
 
     #%% Download Rainfaall
@@ -317,27 +320,25 @@ def main(path,remote_directory,typhoonname):
             #image_filename=landfall_typhones[0]
             image_filename=[i for i in landfall_typhones if i.endswith('.png')][0]
             data_filename=[i for i in landfall_typhones if i.endswith('.csv')][0]
+            data_filename1=[i for i in landfall_typhones if i.endswith('.csv')][1]
             #data_filename=landfall_typhones[1]
-            html = """\
-            <html>
-            <body>
-            <h1>IBF model run result </h1>
-            <p>Please find below a map and data with updated model run</p>
-            <img src="cid:Impact_Data">
-            </body>
-            </html>
+            message_text = """\
+            IBF model run result \n
+            Please find attached a map and data with updated model run\n
             """
-            Sendemail.sendemail(from_addr  = eMAIL_FROM,
-                    to_addr_list = eMAIL_LIST,
-                    cc_addr_list = cC_LIST,
-                    message = message(
-                        subject='Updated impact map for a new Typhoon in PAR',
-                        html=html,
-                        textfile=data_filename,
-                        image=image_filename),
-                    login  = eMAIL_LOGIN,
-                    password= eMAIL_PASSWORD,
-                    smtpserver=sMTP_SERVER)
+            email_content=Sendemail_v2.create_message_with_attachment(message_text=message_text,
+                                  file=data_filename,
+                                  file1=data_filename1,
+                                  file2=image_filename)
+            Sendemail_v2.sendemail(emails=eMAIL_LIST,
+                 subject='Updated typhoon impact map and trigger info',
+                 content=email_content,
+                 smtp_server_domain_name=sMTP_SERVER,
+                 port=server_port,
+                 sender_mail=eMAIL_FROM,
+                 password=eMAIL_PASSWORD)
+            
+
 
 
     print('---------------------AUTOMATION SCRIPT FINISHED---------------------------------')
