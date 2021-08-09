@@ -10,3 +10,5 @@ lib/climada_python-main
 home/
 otherfiles/
 temp/
+model_trigger.py
+credentials

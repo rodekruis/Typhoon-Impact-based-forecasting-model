@@ -31,7 +31,7 @@ for log_name, log_obj in logging.Logger.manager.loggerDict.items():
         logging.getLogger(log_name).setLevel(max(logging.WARNING, level))
 
 decoder = Decoder()
-#path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/Typhoon-Impact-based-forecasting-model/IBF-Typhoon-model/'
+#path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/IBF-Typhoon-model/'
 #path='/home/fbf/'
 path = './'
 
@@ -88,13 +88,13 @@ if not os.path.exists(Output_folder):
 #download NOAA rainfall
 
 
-try:
-    Rainfall_data.download_rainfall_nomads(Input_folder,path,Alternative_data_point)
-    rainfall_error=False
-except:
-    traceback.print_exc()
-    logger.warning(f'Rainfall download failed, performing download in R script')
-    rainfall_error=True
+#try:
+#    Rainfall_data.download_rainfall_nomads(Input_folder,path,Alternative_data_point)
+#    rainfall_error=False
+#except:
+#    traceback.print_exc()
+#    logger.warning(f'Rainfall download failed, performing download in R script')
+#    rainfall_error=True
 
 ###### download UCL data
     

@@ -8,6 +8,7 @@ suppressMessages(library(tidyr))
 suppressMessages(library(tmap))
 suppressMessages(library(httr))
 suppressMessages(library(sf))
+suppressMessages(library(geojsonsf))
 suppressMessages(library(raster))
 suppressMessages(library(ranger))
 suppressMessages(library(rlang))
@@ -19,9 +20,9 @@ suppressMessages(library(huxtable))
 suppressMessages(library(xgboost))
 rainfall_error = args[1]
 sf_use_s2(FALSE)
-#path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/'
-#path='/home/fbf/'
-path='./'
+#path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/IBF-Typhoon-model/'
+path='/home/fbf/'
+#path='./'
 main_directory<-path
 
 ###########################################################################
@@ -166,7 +167,7 @@ df_imact_forecast <- as.data.frame(y_predicted)%>%
                                              #GEN_mun_code,
                                              e_impact,
                                              dist50,
-                                             Damaged_houses
+                                             Damaged_houses,
                                              #GEN_typhoon_name,
                                              #GEN_typhoon_id,
   )%>%drop_na()
@@ -177,22 +178,17 @@ Typhoon_stormname <- as.character(unique(wind_grid$name)[1])
 ####################################################################################################
 # ------------------------ calculate  probability only for region 5 and 8  -----------------------------------
 
-df_imact_forecast_CERF<-df_imact_forecast%>%filter(region%in%c('PH05','PH08'))%>%
-  dplyr::summarise(CDamaged_houses = sum(Damaged_houses))%>%
-  dplyr::mutate(DM_CLASS = ifelse(CDamaged_houses >= 80000,5,
+df_imact_forecast_CERF<-df_imact_forecast%>%filter(region%in%c('PH02','PH08'))%>%group_by(GEN_typhoon_name,GEN_typhoon_id)%>%
+  dplyr::summarise(CDamaged_houses = sum(Damaged_houses))%>%dplyr::mutate(DM_CLASS = ifelse(CDamaged_houses >= 80000,5,
                                   ifelse(CDamaged_houses >= 50000,4,
                                          ifelse(CDamaged_houses >= 30000,3,
                                                 ifelse(CDamaged_houses >= 10000,2,
-                                                       ifelse(CDamaged_houses >= 5000,1, 0))))))%>%
-  ungroup()%>%group_by(GEN_typhoon_name)%>%
+                                                       ifelse(CDamaged_houses >= 5000,1, 0))))))%>%ungroup()%>%group_by(GEN_typhoon_name)%>%
   dplyr::summarise(VH_80K = round(100*sum(DM_CLASS>=5)/52),
                    H_50K = round(100*sum(DM_CLASS>=4)/52),
                    H_30K = round(100*sum(DM_CLASS>=3)/52),
                    M_10K = round(100*sum(DM_CLASS >=2)/52),
-                   L_5K = round(100*sum(DM_CLASS>=1)/52))%>%dplyr::rename(Typhoon_name=GEN_typhoon_name)%>% 
-  mutate(
-    Typhoon_name = toupper(Typhoon_name)
-  )
+                   L_5K = round(100*sum(DM_CLASS>=1)/52))%>%ungroup()%>%dplyr::rename(Typhoon_name=GEN_typhoon_name)
 
 write.csv(df_imact_forecast_CERF, file = paste0(Output_folder,'CERF_TRIGGER_LEVEL_',forecast_time,'_',  Typhoon_stormname,'.csv'))
 
@@ -215,10 +211,7 @@ df_imact_forecast_dref<-df_imact_forecast%>%group_by(GEN_typhoon_name,GEN_typhoo
                    H_80K = round(100*sum(DM_CLASS>=4)/52),
                    H_70K = round(100*sum(DM_CLASS>=3)/52),
                    M_50K = round(100*sum(DM_CLASS >=2)/52),
-                   L_30K = round(100*sum(DM_CLASS>=1)/52))%>%dplyr::rename(Typhoon_name=GEN_typhoon_name)%>% 
-  mutate(
-    Typhoon_name = toupper(Typhoon_name)
-  )
+                   L_30K = round(100*sum(DM_CLASS>=1)/52))%>%ungroup%>%dplyr::rename(Typhoon_name=GEN_typhoon_name)
 
 
 df_imact_forecast_dref%>%as_hux()%>%

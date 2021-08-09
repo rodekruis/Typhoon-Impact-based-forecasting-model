@@ -51,17 +51,27 @@ import climada.hazard.tc_tracks_synth
 
 LOGGER = logging.getLogger(__name__)
 
-SAFFIR_SIM_CAT = [34, 64, 83, 96, 113, 137, 1000]
+SAFFIR_SIM_CAT_ = [34, 64, 83, 96, 113, 137, 1000]
+SAFFIR_SIM_CAT = [34, 47, 64,80, 99, 1000]
 """Saffir-Simpson Hurricane Wind Scale in kn based on NOAA"""
 
+CAT_NAMES_ = {
+    -1: 'Tropical Depression',
+    0: 'Tropical Storm',
+    1: 'Hurricane Cat. 1', 
+    2: 'Hurricane Cat. 2',
+    3: 'Hurricane Cat. 3', 
+    4: 'Hurricane Cat. 4',
+    5: 'Hurricane Cat. 5', 
+}
 CAT_NAMES = {
     -1: 'Tropical Depression',
     0: 'Tropical Storm',
-    1: 'Hurricane Cat. 1',
-    2: 'Hurricane Cat. 2',
-    3: 'Hurricane Cat. 3',
-    4: 'Hurricane Cat. 4',
-    5: 'Hurricane Cat. 5',
+    1: 'Severe Tropical Storm', 
+    2: 'Typhoon', 
+    3: 'Severe Typhoon', 
+    4: 'Super Typhoon', 
+
 }
 """Saffir-Simpson category names."""
 
