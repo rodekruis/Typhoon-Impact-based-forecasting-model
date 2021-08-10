@@ -322,9 +322,8 @@ def main(path,remote_directory,typhoonname):
             pass
         
         if landfall_typhones:
-            image_filename = [i for i in landfall_typhones if i.endswith('.png')][0]
-            data_filename1 = [i for i in landfall_typhones if i.endswith('.csv')][0]
-            data_filename2 = [i for i in landfall_typhones if i.endswith('.csv')][1]
+            image_filenames = [i for i in landfall_typhones if i.endswith('.png')]
+            data_filenames = [i for i in landfall_typhones if i.endswith('.csv')]
 
             message_html = """\
             <html>
@@ -345,8 +344,7 @@ def main(path,remote_directory,typhoonname):
                 to_address_list=settings.eMAIL_LIST,
                 cc_address_list=settings.cC_LIST,
                 message_html=message_html,
-                csv_filename=data_filename1,
-                image_filename=image_filename
+                filename_list=image_filenames + data_filenames
             )
 
     print('---------------------AUTOMATION SCRIPT FINISHED---------------------------------')
