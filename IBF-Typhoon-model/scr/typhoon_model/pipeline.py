@@ -23,12 +23,10 @@ decoder = Decoder()
 
 #%%
 sys.path.insert(0, '/home/fbf/lib')
-#os.chdir(path)
-from settings import fTP_LOGIN,fTP_PASSWORD, uCL_USERNAME, uCL_PASSWORD,sMTP_SERVER,eMAIL_LOGIN,eMAIL_FROM,eMAIL_PASSWORD,eMAIL_LIST,eMAIL_LIST_ERROR,cC_LIST,server_port
+import settings
 from climada.hazard import Centroids, TropCyclone,TCTracks
-from climada.hazard.tc_tracks import estimate_roci,estimate_rmw
 from climada.hazard.tc_tracks_forecast import TCForecast
-from utility_fun import track_data_clean,Check_for_active_typhoon,Sendemail_v2,ucl_data
+from utility_fun import track_data_clean,Check_for_active_typhoon,Sendemail,ucl_data
 
 if platform == "linux" or platform == "linux2": #check if running on linux or windows os
     from utility_fun import Rainfall_data
@@ -112,8 +110,8 @@ def main(path,remote_directory,typhoonname):
     ###### download UCL data
       
     try:
-        ucl_data.create_ucl_metadata(path,uCL_USERNAME,uCL_PASSWORD)
-        ucl_data.process_ucl_data(path,Input_folder,uCL_USERNAME,uCL_PASSWORD)
+        ucl_data.create_ucl_metadata(path,settings.uCL_USERNAME,settings.uCL_PASSWORD)
+        ucl_data.process_ucl_data(path,Input_folder,settings.uCL_USERNAME,settings.uCL_PASSWORD)
         logging.info(f'UCL download failed')
 
     except:
@@ -323,30 +321,31 @@ def main(path,remote_directory,typhoonname):
         except:
             pass
         
-        if not landfall_typhones==[]:
-            #image_filename=landfall_typhones[0]
-            image_filename=[i for i in landfall_typhones if i.endswith('.png')][0]
-            data_filename1=[i for i in landfall_typhones if i.endswith('.csv')][0]
-            data_filename2=[i for i in landfall_typhones if i.endswith('.csv')][1]
-            #data_filename=landfall_typhones[1]
-            message_text = """\
-            IBF model run result \n
-            Please find attached a map and data with updated model run\n
+        if landfall_typhones:
+            image_filenames = [i for i in landfall_typhones if i.endswith('.png')]
+            data_filenames = [i for i in landfall_typhones if i.endswith('.csv')]
+
+            message_html = """\
+            <html>
+            <body>
+            <h1>IBF model run result </h1>
+            <p>Please find attached a map and data with updated model run</p>
+            <img src="cid:Impact_Data">
+            </body>
+            </html>
             """
-            email_content=Sendemail_v2.create_message_with_attachment(message_text=message_text,
-                                  file=data_filename1,
-                                  file1=data_filename2,
-                                  file2=image_filename)
-            Sendemail_v2.sendemail(emails=eMAIL_LIST,
-                 subject='Updated typhoon impact map and trigger info',
-                 content=email_content,
-                 smtp_server_domain_name=sMTP_SERVER,
-                 port=server_port,
-                 sender_mail=eMAIL_FROM,
-                 password=eMAIL_PASSWORD)
-            
-
-
+            Sendemail.sendemail(
+                smtp_server=settings.sMTP_SERVER,
+                smtp_port=settings.sMTP_PORT,
+                email_username=settings.eMAIL_LOGIN,
+                email_password=settings.eMAIL_PASSWORD,
+                email_subject='Updated impact map for a new Typhoon in PAR',
+                from_address=settings.eMAIL_FROM,
+                to_address_list=settings.eMAIL_LIST,
+                cc_address_list=settings.cC_LIST,
+                message_html=message_html,
+                filename_list=image_filenames + data_filenames
+            )
 
     print('---------------------AUTOMATION SCRIPT FINISHED---------------------------------')
     print(str(datetime.now()))
