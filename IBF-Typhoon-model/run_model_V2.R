@@ -220,7 +220,7 @@ Typhoon_stormname <- as.character(unique(wind_grid[["name"]])[1])
 # ------------------------ calculate  probability only for region 5 and 8  -----------------------------------
 
 df_impact_forecast_CERF <- df_impact_forecast %>%
-  filter(region %in% c("PH02", "PH08")) %>%
+  filter(region %in% c("PH05", "PH08")) %>%
   group_by(GEN_typhoon_name, GEN_typhoon_id) %>%
   dplyr::summarise(CDamaged_houses = sum(Damaged_houses)) %>%
   dplyr::mutate(DM_CLASS = ifelse(CDamaged_houses >= 80000, 5,
