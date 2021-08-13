@@ -154,9 +154,9 @@ data_new_typhoon1 <- geo_variable %>%
   na.omit()
 
 
-data <- clean_typhoon_forecast_data_ensamble(data_new_typhoon1) # %>%na.omit() # Randomforests don't handle NAs, you can impute in the future
+typhoon_data_cleaned <- clean_typhoon_forecast_data_ensamble(data_new_typhoon1) # %>%na.omit() # Randomforests don't handle NAs, you can impute in the future
 
-model_input <- data %>% dplyr::select(
+model_input <- typhoon_data_cleaned %>% dplyr::select(
   -GEN_typhoon_name,
   -GEN_typhoon_id,
   -GEO_n_households,
