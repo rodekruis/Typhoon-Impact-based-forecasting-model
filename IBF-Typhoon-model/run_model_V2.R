@@ -212,7 +212,30 @@ df_impact_forecast <- as.data.frame(y_predicted) %>%
     # GEN_typhoon_id,
   ) %>%
   drop_na()
+  # Add 0 damage tracks to any municipalities with missing members
+  # Note that after this step the index is NA for the 0 damage members
+  complete(
+    GEN_typhoon_id, 
+    nesting(
+      region, 
+      GEN_mun_code,
+      GEN_mun_name,
+      GEO_n_households,
+      GEN_typhoon_name
+    ),
+    fill=list(
+      WEA_vmax_sust_mhp=0,
+      e_impact=0,
+      dist50=0,
+      Damaged_houses=0
+    )
+  )
 
+# For debugging if needed: a boxplot showing ensemble distribution of 
+# damanged houses per municipality 
+# boxplot(Damaged_houses~GEN_mun_code, data=df_impact_forecast, range=0, las=2)
+
+Typhoon_stormname <- as.character(unique(wind_grid[['name']])[1])
 
 Typhoon_stormname <- as.character(unique(wind_grid[["name"]])[1])
 
