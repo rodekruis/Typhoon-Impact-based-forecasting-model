@@ -22,7 +22,7 @@ rainfall_error <- args[1]
 sf_use_s2(FALSE)
 # path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/IBF-Typhoon-model/'
 path <- "/home/fbf/"
-#path='./'
+path='./'
 main_directory <- path
 
 ###########################################################################
@@ -82,8 +82,8 @@ rain_directory <- as.character(
   typhoon_info_for_model[typhoon_info_for_model[["source"]] == "Rainfall", ][["filename"]])
 windfield_data <- as.character(
   typhoon_info_for_model[typhoon_info_for_model[["source"]] == "windfield", ][["filename"]])
-ECMWF_ <- as.character
-(typhoon_info_for_model[typhoon_info_for_model[["source"]] == "ecmwf", ][["filename"]])
+ECMWF_ <- as.character(
+  typhoon_info_for_model[typhoon_info_for_model[["source"]] == "ecmwf", ][["filename"]])
 TRACK_DATA <- read.csv(ECMWF_) # %>%dplyr::mutate(STORMNAME=Typhoon_stormname, YYYYMMDDHH=format(strptime(YYYYMMDDHH, format = "%Y-%m-%d %H:%M:%S"), '%Y%m%d%H%00'))
 
 Output_folder <- as.character(
