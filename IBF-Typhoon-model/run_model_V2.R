@@ -243,7 +243,6 @@ Typhoon_stormname <- as.character(unique(wind_grid[["name"]])[1])
 
 # Items needed for probability calculation
 
-
 get_damage_probability <- function(damaged_houses, threshold, n_ensemble) {
   return(round(100 * sum(damaged_houses >= threshold) / n_ensemble))
 }
@@ -267,15 +266,18 @@ get_total_impact_forecast <- function(df_impact_forecast, damage_thresholds, org
      ) 
 
   # Rename the columns
+  # TODO: Are the prefixes really needed?
   cname_prefix = c("VH", "H", "H", "M", "L")
   cnames = paste0(cname_prefix, "_", damage_thresholds / 1000, "k")
   colnames(df_total_impact_forecast) = c("Tyhoon_name", cnames)
 
   write.csv(df_total_impact_forecast,
             file = paste0(Output_folder, organization, "_TRIGGER_LEVEL_",
-                          forecast_time, "_", Typhoon_stormname, ".csv"))
+                          forecast_time, "_", Typhoon_stormname, ".csv"),
+            row.names=FALSE)
 
   # Print results to terminal
+  # TODO: Doesn't seem to work at the moment
   df_total_impact_forecast %>%
     as_hux() %>%
     set_text_color(1, everywhere, "blue") %>%
