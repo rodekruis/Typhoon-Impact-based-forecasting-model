@@ -41,7 +41,7 @@ source("lib_r/run_prediction_model.R")
 source("lib_r/Make_maps.R")
 
 source("lib_r/Check_landfall_time.R")
-
+source("lib_r/damage_probability.R")
 
 # ------------------------ import DATA  -----------------------------------
 
@@ -204,12 +204,9 @@ df_impact_forecast <- as.data.frame(y_predicted) %>%
     GEN_typhoon_id,
     WEA_dist_track,
     WEA_vmax_sust_mhp,
-    # GEN_mun_code,
     e_impact,
     dist50,
     Damaged_houses,
-    # GEN_typhoon_name,
-    # GEN_typhoon_id,
   ) %>%
   drop_na() %>%
   # Add 0 damage tracks to any municipalities with missing members
@@ -237,60 +234,6 @@ df_impact_forecast <- as.data.frame(y_predicted) %>%
 
 Typhoon_stormname <- as.character(unique(wind_grid[["name"]])[1])
 
-
-
-###################################################################################################
-
-# Items needed for probability calculation
-
-get_damage_probability <- function(damaged_houses, threshold, n_ensemble) {
-  return(round(100 * sum(damaged_houses >= threshold) / n_ensemble))
-}
-
-get_total_impact_forecast <- function(df_impact_forecast, damage_thresholds, organization){
-  
-  n_ensemble <- length(unique(df_impact_forecast[["GEN_typhoon_id"]])) # usually 52
-
-  # For some reason if <- is used here the method can't find this var
-  df_total_impact_forecast = df_impact_forecast %>%
-    group_by(GEN_typhoon_name, GEN_typhoon_id) %>%
-    dplyr::summarise(CDamaged_houses = sum(Damaged_houses)) %>%
-    group_by(GEN_typhoon_name) %>%
-     dplyr::summarise(
-       # TODO: Is there a more elegant way to do this?
-       c1=get_damage_probability(CDamaged_houses, cerf_damage_thresholds[1], n_ensemble), 
-       c2=get_damage_probability(CDamaged_houses, cerf_damage_thresholds[2], n_ensemble), 
-       c3=get_damage_probability(CDamaged_houses, cerf_damage_thresholds[3], n_ensemble), 
-       c4=get_damage_probability(CDamaged_houses, cerf_damage_thresholds[4], n_ensemble), 
-       c5=get_damage_probability(CDamaged_houses, cerf_damage_thresholds[5], n_ensemble), 
-     ) 
-
-  # Rename the columns
-  # TODO: Are the prefixes really needed?
-  cname_prefix = c("VH", "H", "H", "M", "L")
-  cnames = paste0(cname_prefix, "_", damage_thresholds / 1000, "k")
-  colnames(df_total_impact_forecast) = c("Tyhoon_name", cnames)
-
-  write.csv(df_total_impact_forecast,
-            file = paste0(Output_folder, organization, "_TRIGGER_LEVEL_",
-                          forecast_time, "_", Typhoon_stormname, ".csv"),
-            row.names=FALSE)
-
-  # Print results to terminal
-  # TODO: Doesn't seem to work at the moment
-  df_total_impact_forecast %>%
-    as_hux() %>%
-    set_text_color(1, everywhere, "blue") %>%
-    theme_article() %>%
-    set_caption(
-      paste0(
-        organization,
-        " PROBABILITY FOR THE NUMBER OF COMPLETELY DAMAGED BUILDINGS"
-      )
-    )
-
-  return(df_total_impact_forecast)
-}
 ####################################################################################################
 # ------------------------ calculate  probability only for region 5 and 8  -----------------------------------
 
@@ -298,7 +241,7 @@ cerf_regions = c("PH02", "PH08")
 cerf_damage_thresholds = c(80000, 50000, 30000, 10000, 5000)
 
 df_impact_forecast_CERF <- get_total_impact_forecast(
-  df_impact_forecast, #%>% filter(region %in% cerf_regions),
+  df_impact_forecast %>% filter(region %in% cerf_regions),
   cerf_damage_thresholds, "CERF")
 
 
