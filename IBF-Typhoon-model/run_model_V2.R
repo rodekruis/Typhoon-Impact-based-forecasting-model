@@ -204,14 +204,11 @@ df_impact_forecast <- as.data.frame(y_predicted) %>%
     GEN_typhoon_id,
     WEA_dist_track,
     WEA_vmax_sust_mhp,
-    # GEN_mun_code,
     e_impact,
     dist50,
     Damaged_houses,
-    # GEN_typhoon_name,
-    # GEN_typhoon_id,
   ) %>%
-  drop_na()
+  drop_na() %>%
   # Add 0 damage tracks to any municipalities with missing members
   # Note that after this step the index is NA for the 0 damage members
   complete(
