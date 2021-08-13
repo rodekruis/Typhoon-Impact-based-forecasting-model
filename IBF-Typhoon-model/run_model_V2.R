@@ -186,7 +186,7 @@ df_impact_forecast <- as.data.frame(y_predicted) %>%
     index = 1:length(y_predicted),
     impact = y_predicted
   ) %>%
-  left_join(data, by = "index") %>%
+  left_join(typhoon_data_cleaned, by = "index") %>%
   dplyr::mutate(
     dist50 = ifelse(WEA_dist_track >= 50, 0, 1),
     e_impact = ifelse(impact > 100, 100, impact),
