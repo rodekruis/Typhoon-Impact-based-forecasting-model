@@ -22,7 +22,7 @@ rainfall_error <- args[1]
 sf_use_s2(FALSE)
 # path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/IBF-Typhoon-model/'
 path <- "/home/fbf/"
-path='./'
+# path='./'
 main_directory <- path
 
 ###########################################################################
