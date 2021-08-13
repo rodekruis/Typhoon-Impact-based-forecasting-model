@@ -235,8 +235,6 @@ df_impact_forecast <- as.data.frame(y_predicted) %>%
 # damanged houses per municipality 
 # boxplot(Damaged_houses~GEN_mun_code, data=df_impact_forecast, range=0, las=2)
 
-Typhoon_stormname <- as.character(unique(wind_grid[['name']])[1])
-
 Typhoon_stormname <- as.character(unique(wind_grid[["name"]])[1])
 
 ####################################################################################################
