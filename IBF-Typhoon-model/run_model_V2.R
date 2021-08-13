@@ -181,7 +181,7 @@ y_predicted <- predict(xgmodel, xgb_test)
 
 
 
-df_imact_forecast <- as.data.frame(y_predicted) %>%
+df_impact_forecast <- as.data.frame(y_predicted) %>%
   dplyr::mutate(
     index = 1:length(y_predicted),
     impact = y_predicted
@@ -219,7 +219,7 @@ Typhoon_stormname <- as.character(unique(wind_grid[["name"]])[1])
 ####################################################################################################
 # ------------------------ calculate  probability only for region 5 and 8  -----------------------------------
 
-df_imact_forecast_CERF <- df_imact_forecast %>%
+df_impact_forecast_CERF <- df_impact_forecast %>%
   filter(region %in% c("PH02", "PH08")) %>%
   group_by(GEN_typhoon_name, GEN_typhoon_id) %>%
   dplyr::summarise(CDamaged_houses = sum(Damaged_houses)) %>%
@@ -244,10 +244,10 @@ df_imact_forecast_CERF <- df_imact_forecast %>%
   ungroup() %>%
   dplyr::rename(Typhoon_name = GEN_typhoon_name)
 
-write.csv(df_imact_forecast_CERF, 
+write.csv(df_impact_forecast_CERF, 
           file = paste0(Output_folder, "CERF_TRIGGER_LEVEL_", forecast_time, "_", Typhoon_stormname, ".csv"))
 
-df_imact_forecast_CERF %>%
+df_impact_forecast_CERF %>%
   as_hux() %>%
   set_text_color(1, everywhere, "blue") %>%
   theme_article() %>%
@@ -256,7 +256,7 @@ df_imact_forecast_CERF %>%
 ####################################################################################################
 # ------------------------ calculate and plot probability National -----------------------------------
 
-df_imact_forecast_dref <- df_imact_forecast %>%
+df_impact_forecast_dref <- df_impact_forecast %>%
   group_by(GEN_typhoon_name, GEN_typhoon_id) %>%
   dplyr::summarise(CDamaged_houses = sum(Damaged_houses)) %>%
   dplyr::mutate(DM_CLASS = ifelse(CDamaged_houses >= 100000, 5,
@@ -281,7 +281,7 @@ df_imact_forecast_dref <- df_imact_forecast %>%
   dplyr::rename(Typhoon_name = GEN_typhoon_name)
 
 
-df_imact_forecast_dref %>%
+df_impact_forecast_dref %>%
   as_hux() %>%
   set_text_color(1, everywhere, "blue") %>%
   theme_article() %>%
@@ -289,39 +289,39 @@ df_imact_forecast_dref %>%
 
 
 
-write.csv(df_imact_forecast_dref, file = paste0(Output_folder, "DREF_TRIGGER_LEVEL_", forecast_time, "_", Typhoon_stormname, ".csv"))
+write.csv(df_impact_forecast_dref, file = paste0(Output_folder, "DREF_TRIGGER_LEVEL_", forecast_time, "_", Typhoon_stormname, ".csv"))
 
 
 # ------------------------ calculate average impact vs probability   -----------------------------------
 
-number_ensambles <- length(unique(df_imact_forecast[["GEN_typhoon_id"]]))
+number_ensambles <- length(unique(df_impact_forecast[["GEN_typhoon_id"]]))
 
-df_imact_dist50 <- aggregate(
-    df_imact_forecast[["dist50"]], 
-    by = list(GEN_mun_code = df_imact_forecast[["GEN_mun_code"]]), 
+df_impact_dist50 <- aggregate(
+    df_impact_forecast[["dist50"]], 
+    by = list(GEN_mun_code = df_impact_forecast[["GEN_mun_code"]]), 
     FUN = sum
   ) %>%
   dplyr::mutate(probability_dist50 = 100 * x / number_ensambles) %>%
   dplyr::select(GEN_mun_code, probability_dist50) %>%
   left_join(
     aggregate(
-      df_imact_forecast[["e_impact"]], 
-      by = list(GEN_mun_code = df_imact_forecast[["GEN_mun_code"]]), 
+      df_impact_forecast[["e_impact"]], 
+      by = list(GEN_mun_code = df_impact_forecast[["GEN_mun_code"]]), 
       FUN = sum
     ) %>%
     dplyr::mutate(impact = x / number_ensambles) %>%
       dplyr::select(GEN_mun_code, impact), by = "GEN_mun_code") %>%
   left_join(
     aggregate(
-      df_imact_forecast[["WEA_dist_track"]], 
-      by = list(GEN_mun_code = df_imact_forecast[["GEN_mun_code"]]), 
+      df_impact_forecast[["WEA_dist_track"]], 
+      by = list(GEN_mun_code = df_impact_forecast[["GEN_mun_code"]]), 
       FUN = sum
     ) %>%
     dplyr::mutate(WEA_dist_track = x / number_ensambles) %>% 
       dplyr::select(GEN_mun_code, WEA_dist_track), by = "GEN_mun_code")
 
-df_impact <- df_imact_forecast %>% 
-  left_join(df_imact_dist50, by = "GEN_mun_code")
+df_impact <- df_impact_forecast %>% 
+  left_join(df_impact_dist50, by = "GEN_mun_code")
 
 
 ####################################################################################################
@@ -329,7 +329,7 @@ df_impact <- df_imact_forecast %>%
 
 # ------------------------ calculate and plot probability   -----------------------------------
 
-# df_imact_forecast%>%group_by(GEN_typhoon_id)%>%
+# df_impact_forecast%>%group_by(GEN_typhoon_id)%>%
 # dplyr::summarise(CDamaged_houses = sum(Damaged_houses))%>%
 # dplyr::mutate(DM_CLASS = ifelse(CDamaged_houses >= 100000,4,
 # ifelse(CDamaged_houses >= 80000,3,
@@ -349,7 +349,7 @@ df_impact <- df_imact_forecast %>%
 
 event_impact <- php_admin3 %>% 
   left_join(
-    df_imact_dist50 %>% 
+    df_impact_dist50 %>% 
       dplyr::mutate(adm3_pcode = GEN_mun_code), 
     by = "adm3_pcode")
 
