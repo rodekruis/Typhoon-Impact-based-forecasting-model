@@ -1,14 +1,7 @@
 # Functions for calculating the damage probabilities
 
 
-get_damage_probability <- function(damaged_houses, threshold, n_ensemble) {
-  return(round(100 * sum(damaged_houses >= threshold) / n_ensemble))
-}
-
-
 get_total_impact_forecast <- function(df_impact_forecast, damage_thresholds, organization){
-  
-  n_ensemble <- length(unique(df_impact_forecast[["GEN_typhoon_id"]])) # usually 52
   
   # Get the total summarized impact
   # For some reason if <- is used here the method can't find this var
@@ -18,11 +11,11 @@ get_total_impact_forecast <- function(df_impact_forecast, damage_thresholds, org
     group_by(GEN_typhoon_name) %>%
     dplyr::summarise(
       # TODO: Is there a more elegant way to do this?
-      c1=get_damage_probability(CDamaged_houses, cerf_damage_thresholds[1], n_ensemble), 
-      c2=get_damage_probability(CDamaged_houses, cerf_damage_thresholds[2], n_ensemble), 
-      c3=get_damage_probability(CDamaged_houses, cerf_damage_thresholds[3], n_ensemble), 
-      c4=get_damage_probability(CDamaged_houses, cerf_damage_thresholds[4], n_ensemble), 
-      c5=get_damage_probability(CDamaged_houses, cerf_damage_thresholds[5], n_ensemble), 
+      c1=get_damage_probability(CDamaged_houses, cerf_damage_thresholds[1]), 
+      c2=get_damage_probability(CDamaged_houses, cerf_damage_thresholds[2]), 
+      c3=get_damage_probability(CDamaged_houses, cerf_damage_thresholds[3]), 
+      c4=get_damage_probability(CDamaged_houses, cerf_damage_thresholds[4]), 
+      c5=get_damage_probability(CDamaged_houses, cerf_damage_thresholds[5]), 
     ) 
   
   # Rename the columns
@@ -55,16 +48,22 @@ get_total_impact_forecast <- function(df_impact_forecast, damage_thresholds, org
   probabilities = c(0.95, 0.80, 0.70, 0.60, 0.50)
   cnames =  paste0("p", int(probabilities*100))
   df_mun_impact_forecast = df_impact_forecast %>%
-    group_by(GEN_typhoon_name, GEN_mun_code) %>%
+    group_by(GEN_typhoon_name, GEN_mun_code, GEN_mun_name) %>%
     dplyr::summarise(
-      c1=quantile(Damaged_houses, c(1-probabilities[1])),
-      c2=quantile(Damaged_houses, c(1-probabilities[2])),
-      c3=quantile(Damaged_houses, c(1-probabilities[3])),
-      c4=quantile(Damaged_houses, c(1-probabilities[4])),
-      c5=quantile(Damaged_houses, c(1-probabilities[5])),
+      c1=get_percentile(Damaged_houses, probabilities[1]),
+      c2=get_percentile(Damaged_houses, probabilities[2]),
+      c3=get_percentile(Damaged_houses, probabilities[3]),
+      c4=get_percentile(Damaged_houses, probabilities[4]),
+      c5=get_percentile(Damaged_houses, probabilities[5]),
+    ) %>%
+    ungroup %>%
+    add_row(
+      GEN_mun_name = "TOTAL", 
+      dplyr::summarise(., across(where(is.numeric), sum))
     )
   # Rename the columns
-  colnames(df_mun_impact_forecast) = c("Tyhoon_name", "Municipality", cnames)
+  colnames(df_mun_impact_forecast) = c("Tyhoon_name", "Municipality_code", 
+                                       "Municipality_name", cnames)
   # Save to CSV
   write.csv(df_mun_impact_forecast,
             file = paste0(Output_folder, organization, "_municipality_breakdown_",
@@ -73,3 +72,14 @@ get_total_impact_forecast <- function(df_impact_forecast, damage_thresholds, org
   
   return(df_total_impact_forecast)
 }
+
+
+get_damage_probability <- function(damaged_houses, threshold) {
+  return(round(100 * sum(damaged_houses >= threshold) / length(damaged_houses)))
+}
+
+
+get_percentile <- function(damaged_houses, percentile) {
+  return(quantile(damaged_houses, c(1-percentile)))
+}
+
