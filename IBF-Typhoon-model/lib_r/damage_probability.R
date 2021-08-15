@@ -57,11 +57,11 @@ get_total_impact_forecast <- function(df_impact_forecast, damage_thresholds, org
   df_mun_impact_forecast = df_impact_forecast %>%
     group_by(GEN_typhoon_name, GEN_mun_code) %>%
     dplyr::summarise(
-      c1=quantile(Damaged_houses, c(probabilities[1])),
-      c2=quantile(Damaged_houses, c(probabilities[2])),
-      c3=quantile(Damaged_houses, c(probabilities[3])),
-      c4=quantile(Damaged_houses, c(probabilities[4])),
-      c5=quantile(Damaged_houses, c(probabilities[5])),
+      c1=quantile(Damaged_houses, c(1-probabilities[1])),
+      c2=quantile(Damaged_houses, c(1-probabilities[2])),
+      c3=quantile(Damaged_houses, c(1-probabilities[3])),
+      c4=quantile(Damaged_houses, c(1-probabilities[4])),
+      c5=quantile(Damaged_houses, c(1-probabilities[5])),
     )
   # Rename the columns
   colnames(df_mun_impact_forecast) = c("Tyhoon_name", "Municipality", cnames)

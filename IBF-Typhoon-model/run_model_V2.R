@@ -237,7 +237,8 @@ Typhoon_stormname <- as.character(unique(wind_grid[["name"]])[1])
 ####################################################################################################
 # ------------------------ calculate  probability only for region 5 and 8  -----------------------------------
 
-cerf_regions = c("PH02", "PH08")
+# Only select regions 5 and 8
+cerf_regions = c("PH05", "PH08")
 cerf_damage_thresholds = c(80000, 50000, 30000, 10000, 5000)
 
 df_impact_forecast_CERF <- get_total_impact_forecast(
