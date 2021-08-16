@@ -211,7 +211,7 @@ df_impact_forecast <- as.data.frame(y_predicted) %>%
   drop_na() %>%
   # Add 0 damage tracks to any municipalities with missing members
   # Note that after this step the index is NA for the 0 damage members
-  complete(
+  tidyr::complete(
     GEN_typhoon_id, 
     nesting(
       region, 
