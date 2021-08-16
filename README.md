@@ -36,7 +36,7 @@ docker build -t rodekruis510/typhoonibf .
 To spin up and enter the docker container, create a directory where you would like
 the output data to go. Then run:
 ```
-docker run --rm -it --name=fbf-phv3 -v $path-to-output-directory:/home/fbf/forecast rodekruis510/typhoonibf bash
+docker run --rm -it --name=fbf-phv3 -v $path-to-output-directory:/home/fbf/forecast -p 587:587 rodekruis510/typhoonibf bash
 ```
 
 To run the pipeline, enter the container and execute:
