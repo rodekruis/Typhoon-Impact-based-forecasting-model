@@ -223,8 +223,8 @@ df_impact_forecast <- as.data.frame(y_predicted) %>%
   drop_na() %>%
   # Add 0 damage tracks to any municipalities with missing members
   # Note that after this step the index is NA for the 0 damage members
-  complete(
-    GEN_typhoon_id,
+  tidyr::complete(
+    GEN_typhoon_id, 
     nesting(
       region,
       GEN_mun_code,
@@ -252,11 +252,11 @@ Typhoon_stormname <- as.character(unique(wind_grid[["name"]])[1])
 # Only select regions 5 and 8
 cerf_regions <- c("PH05", "PH08")
 cerf_damage_thresholds <- c(80000, 50000, 30000, 10000, 5000)
-probabilities <- c(0.95, 0.80, 0.70, 0.60, 0.50)
+cerf_probabilities <- c(0.95, 0.80, 0.70, 0.60, 0.50)
 
 df_impact_forecast_CERF <- get_total_impact_forecast(
   df_impact_forecast %>% filter(region %in% cerf_regions),
-  cerf_damage_thresholds, probabilities, "CERF"
+  cerf_damage_thresholds, cerf_probabilities, "CERF"
 )
 
 
@@ -264,9 +264,10 @@ df_impact_forecast_CERF <- get_total_impact_forecast(
 # ------------------------ calculate and plot probability National -----------------------------------
 
 dref_damage_thresholds <- c(100000, 80000, 70000, 50000, 30000)
+dref_probabilities <- c(0.95, 0.80, 0.70, 0.60, 0.50)
 
 df_impact_forecast_DREF <- get_total_impact_forecast(
-  df_impact_forecast, dref_damage_thresholds, probabilities, "DREF"
+  df_impact_forecast, dref_damage_thresholds, dref_probabilities, "DREF"
 )
 
 
