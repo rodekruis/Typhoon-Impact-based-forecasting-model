@@ -1,3 +1,4 @@
+import os
 import smtplib
 import ssl
 from typing import List
@@ -32,7 +33,7 @@ def sendemail(smtp_server: str,
             message.add_attachment(file.read(),
                                    maintype=maintype,
                                    subtype=subtype,
-                                   filename=filename)
+                                   filename=os.path.basename(filename))
 
     # Open SSL connection and send the email
     context = ssl.create_default_context()
