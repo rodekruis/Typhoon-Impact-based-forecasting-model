@@ -41,25 +41,30 @@ source("lib_r/run_prediction_model.R")
 source("lib_r/Make_maps.R")
 
 source("lib_r/Check_landfall_time.R")
-
+source("lib_r/damage_probability.R")
 
 # ------------------------ import DATA  -----------------------------------
 
 # php_admin3 <- st_read(dsn=paste0(main_directory,'data-raw'),layer='phl_admin3_simpl2')
 php_admin3 <- geojsonsf::geojson_sf(
-  paste0(main_directory, "data-raw/phl_admin3_simpl2.geojson"))
+  paste0(main_directory, "data-raw/phl_admin3_simpl2.geojson")
+)
 
 # php_admin1 <- st_read(dsn=paste0(main_directory,'data-raw'),layer='phl_admin1_gadm_pcode')
 php_admin1 <- geojsonsf::geojson_sf(
-  paste0(main_directory, "data-raw/phl_admin1_gadm_pcode.geojson"))
+  paste0(main_directory, "data-raw/phl_admin1_gadm_pcode.geojson")
+)
 
 wshade <- php_admin3
 material_variable2 <- read.csv(
-  paste0(main_directory, "data/material_variable2.csv"))
+  paste0(main_directory, "data/material_variable2.csv")
+)
 data_matrix_new_variables <- read.csv(
-  paste0(main_directory, "data/data_matrix_new_variables.csv"))
+  paste0(main_directory, "data/data_matrix_new_variables.csv")
+)
 geo_variable <- read.csv(
-  paste0(main_directory, "data/geo_variable.csv"))
+  paste0(main_directory, "data/geo_variable.csv")
+)
 
 wshade <- php_admin3
 # load the rr model
@@ -68,28 +73,34 @@ wshade <- php_admin3
 # mode_classification1 <- readRDS(paste0(main_directory,"./models/xgboost_classify.rds"))
 
 xgmodel <- readRDS(
-  paste0(main_directory, "/models/operational/xgboost_regression_v2.RDS"), 
+  paste0(main_directory, "/models/operational/xgboost_regression_v2.RDS"),
   refhook = NULL
-  )
+)
 
 # load forecast data
 typhoon_info_for_model <- read.csv(
-  paste0(main_directory, "/forecast/Input/typhoon_info_for_model.csv"))
+  paste0(main_directory, "/forecast/Input/typhoon_info_for_model.csv")
+)
 # typhoon_events <- read.csv(paste0(main_directory,'/forecast/Input/typhoon_info_for_model.csv'))
 
 
 rain_directory <- as.character(
-  typhoon_info_for_model[typhoon_info_for_model[["source"]] == "Rainfall", ][["filename"]])
+  typhoon_info_for_model[typhoon_info_for_model[["source"]] == "Rainfall", ][["filename"]]
+)
 windfield_data <- as.character(
-  typhoon_info_for_model[typhoon_info_for_model[["source"]] == "windfield", ][["filename"]])
+  typhoon_info_for_model[typhoon_info_for_model[["source"]] == "windfield", ][["filename"]]
+)
 ECMWF_ <- as.character(
-  typhoon_info_for_model[typhoon_info_for_model[["source"]] == "ecmwf", ][["filename"]])
+  typhoon_info_for_model[typhoon_info_for_model[["source"]] == "ecmwf", ][["filename"]]
+)
 TRACK_DATA <- read.csv(ECMWF_) # %>%dplyr::mutate(STORMNAME=Typhoon_stormname, YYYYMMDDHH=format(strptime(YYYYMMDDHH, format = "%Y-%m-%d %H:%M:%S"), '%Y%m%d%H%00'))
 
 Output_folder <- as.character(
-  typhoon_info_for_model[typhoon_info_for_model[["source"]] == "Output_folder", ][["filename"]])
+  typhoon_info_for_model[typhoon_info_for_model[["source"]] == "Output_folder", ][["filename"]]
+)
 forecast_time <- as.character(
-  typhoon_info_for_model[typhoon_info_for_model[["source"]] == "ecmwf", ][["time"]])
+  typhoon_info_for_model[typhoon_info_for_model[["source"]] == "ecmwf", ][["time"]]
+)
 
 #------------------------- define functions ---------------------------------
 
@@ -107,10 +118,10 @@ ntile_na <- function(x, n) {
 
 
 
-wind_grid <- read.csv(windfield_data) %>% 
+wind_grid <- read.csv(windfield_data) %>%
   dplyr::mutate(
-    dis_track_min = ifelse(dis_track_min < 1, 1, dis_track_min), 
-    Mun_Code = adm3_pcode, 
+    dis_track_min = ifelse(dis_track_min < 1, 1, dis_track_min),
+    Mun_Code = adm3_pcode,
     pcode = as.factor(substr(adm3_pcode, 1, 10))
   )
 
@@ -132,23 +143,24 @@ typhoon_hazard <- wind_grid %>%
     vmax_sust = v_max
   ) %>%
   # 1.21 is conversion factor for 10 min average to 1min average
-  dplyr::select(Mun_Code, vmax_gust, 
-                vmax_gust_mph, vmax_sust_mph, 
-                vmax_sust, dist_track, 
-                rainfall_24h, gust_dur, 
-                sust_dur, ranfall_sum, 
-                storm_id, typhoon_name
-                )
+  dplyr::select(
+    Mun_Code, vmax_gust,
+    vmax_gust_mph, vmax_sust_mph,
+    vmax_sust, dist_track,
+    rainfall_24h, gust_dur,
+    sust_dur, ranfall_sum,
+    storm_id, typhoon_name
+  )
 
 
 # BUILD DATA MATRIC FOR NEW TYPHOON
 data_new_typhoon1 <- geo_variable %>%
-  left_join(material_variable2 %>% 
-              dplyr::select(
-                -Region, 
-                -Province, 
-                -Municipality_City
-              ), by = "Mun_Code") %>%
+  left_join(material_variable2 %>%
+    dplyr::select(
+      -Region,
+      -Province,
+      -Municipality_City
+    ), by = "Mun_Code") %>%
   left_join(data_matrix_new_variables, by = "Mun_Code") %>%
   left_join(typhoon_hazard, by = "Mun_Code") %>%
   na.omit()
@@ -214,22 +226,22 @@ df_impact_forecast <- as.data.frame(y_predicted) %>%
   tidyr::complete(
     GEN_typhoon_id, 
     nesting(
-      region, 
+      region,
       GEN_mun_code,
       GEN_mun_name,
       GEO_n_households,
       GEN_typhoon_name
     ),
-    fill=list(
-      WEA_vmax_sust_mhp=0,
-      e_impact=0,
-      dist50=0,
-      Damaged_houses=0
+    fill = list(
+      WEA_vmax_sust_mhp = 0,
+      e_impact = 0,
+      dist50 = 0,
+      Damaged_houses = 0
     )
   )
 
-# For debugging if needed: a boxplot showing ensemble distribution of 
-# damanged houses per municipality 
+# For debugging if needed: a boxplot showing ensemble distribution of
+# damanged houses per municipality
 # boxplot(Damaged_houses~GEN_mun_code, data=df_impact_forecast, range=0, las=2)
 
 Typhoon_stormname <- as.character(unique(wind_grid[["name"]])[1])
@@ -237,108 +249,61 @@ Typhoon_stormname <- as.character(unique(wind_grid[["name"]])[1])
 ####################################################################################################
 # ------------------------ calculate  probability only for region 5 and 8  -----------------------------------
 
-df_impact_forecast_CERF <- df_impact_forecast %>%
-  filter(region %in% c("PH05", "PH08")) %>%
-  group_by(GEN_typhoon_name, GEN_typhoon_id) %>%
-  dplyr::summarise(CDamaged_houses = sum(Damaged_houses)) %>%
-  dplyr::mutate(DM_CLASS = ifelse(CDamaged_houses >= 80000, 5,
-    ifelse(CDamaged_houses >= 50000, 4,
-      ifelse(CDamaged_houses >= 30000, 3,
-        ifelse(CDamaged_houses >= 10000, 2,
-          ifelse(CDamaged_houses >= 5000, 1, 0)
-        )
-      )
-    )
-  )) %>%
-  ungroup() %>%
-  group_by(GEN_typhoon_name) %>%
-  dplyr::summarise(
-    VH_80K = round(100 * sum(DM_CLASS >= 5) / 52),
-    H_50K = round(100 * sum(DM_CLASS >= 4) / 52),
-    H_30K = round(100 * sum(DM_CLASS >= 3) / 52),
-    M_10K = round(100 * sum(DM_CLASS >= 2) / 52),
-    L_5K = round(100 * sum(DM_CLASS >= 1) / 52)
-  ) %>%
-  ungroup() %>%
-  dplyr::rename(Typhoon_name = GEN_typhoon_name)
+# Only select regions 5 and 8
+cerf_regions <- c("PH05", "PH08")
+cerf_damage_thresholds <- c(80000, 50000, 30000, 10000, 5000)
+cerf_probabilities <- c(0.95, 0.80, 0.70, 0.60, 0.50)
 
-write.csv(df_impact_forecast_CERF, 
-          file = paste0(Output_folder, "CERF_TRIGGER_LEVEL_", forecast_time, "_", Typhoon_stormname, ".csv"))
+df_impact_forecast_CERF <- get_total_impact_forecast(
+  df_impact_forecast %>% filter(region %in% cerf_regions),
+  cerf_damage_thresholds, cerf_probabilities, "CERF"
+)
 
-df_impact_forecast_CERF %>%
-  as_hux() %>%
-  set_text_color(1, everywhere, "blue") %>%
-  theme_article() %>%
-  set_caption("PROBABILITY FOR THE NUMBER OF COMPLETELY DAMAGED BUILDINGS") # (Region 5 and 8)
 
 ####################################################################################################
 # ------------------------ calculate and plot probability National -----------------------------------
 
-df_impact_forecast_dref <- df_impact_forecast %>%
-  group_by(GEN_typhoon_name, GEN_typhoon_id) %>%
-  dplyr::summarise(CDamaged_houses = sum(Damaged_houses)) %>%
-  dplyr::mutate(DM_CLASS = ifelse(CDamaged_houses >= 100000, 5,
-    ifelse(CDamaged_houses >= 80000, 4,
-      ifelse(CDamaged_houses >= 70000, 3,
-        ifelse(CDamaged_houses >= 50000, 2,
-          ifelse(CDamaged_houses >= 30000, 1, 0)
-        )
-      )
-    )
-  )) %>%
-  ungroup() %>%
-  group_by(GEN_typhoon_name) %>%
-  dplyr::summarise(
-    VH_100K = round(100 * sum(DM_CLASS >= 5) / 52),
-    H_80K = round(100 * sum(DM_CLASS >= 4) / 52),
-    H_70K = round(100 * sum(DM_CLASS >= 3) / 52),
-    M_50K = round(100 * sum(DM_CLASS >= 2) / 52),
-    L_30K = round(100 * sum(DM_CLASS >= 1) / 52)
-  ) %>%
-  ungroup() %>%
-  dplyr::rename(Typhoon_name = GEN_typhoon_name)
+dref_damage_thresholds <- c(100000, 80000, 70000, 50000, 30000)
+dref_probabilities <- c(0.95, 0.80, 0.70, 0.60, 0.50)
 
-
-df_impact_forecast_dref %>%
-  as_hux() %>%
-  set_text_color(1, everywhere, "blue") %>%
-  theme_article() %>%
-  set_caption("PROBABILITY FOR THE NUMBER OF COMPLETELY DAMAGED BUILDINGS")
-
-
-
-write.csv(df_impact_forecast_dref, file = paste0(Output_folder, "DREF_TRIGGER_LEVEL_", forecast_time, "_", Typhoon_stormname, ".csv"))
+df_impact_forecast_DREF <- get_total_impact_forecast(
+  df_impact_forecast, dref_damage_thresholds, dref_probabilities, "DREF"
+)
 
 
 # ------------------------ calculate average impact vs probability   -----------------------------------
 
-number_ensambles <- length(unique(df_impact_forecast[["GEN_typhoon_id"]]))
+n_ensemble <- length(unique(df_impact_forecast[["GEN_typhoon_id"]])) # usually 52
 
 df_impact_dist50 <- aggregate(
-    df_impact_forecast[["dist50"]], 
-    by = list(GEN_mun_code = df_impact_forecast[["GEN_mun_code"]]), 
-    FUN = sum
-  ) %>%
-  dplyr::mutate(probability_dist50 = 100 * x / number_ensambles) %>%
+  df_impact_forecast[["dist50"]],
+  by = list(GEN_mun_code = df_impact_forecast[["GEN_mun_code"]]),
+  FUN = sum
+) %>%
+  dplyr::mutate(probability_dist50 = 100 * x / n_ensemble) %>%
   dplyr::select(GEN_mun_code, probability_dist50) %>%
   left_join(
     aggregate(
-      df_impact_forecast[["e_impact"]], 
-      by = list(GEN_mun_code = df_impact_forecast[["GEN_mun_code"]]), 
+      df_impact_forecast[["e_impact"]],
+      by = list(GEN_mun_code = df_impact_forecast[["GEN_mun_code"]]),
       FUN = sum
     ) %>%
-    dplyr::mutate(impact = x / number_ensambles) %>%
-      dplyr::select(GEN_mun_code, impact), by = "GEN_mun_code") %>%
+      dplyr::mutate(impact = x / n_ensemble) %>%
+      dplyr::select(GEN_mun_code, impact),
+    by = "GEN_mun_code"
+  ) %>%
   left_join(
     aggregate(
-      df_impact_forecast[["WEA_dist_track"]], 
-      by = list(GEN_mun_code = df_impact_forecast[["GEN_mun_code"]]), 
+      df_impact_forecast[["WEA_dist_track"]],
+      by = list(GEN_mun_code = df_impact_forecast[["GEN_mun_code"]]),
       FUN = sum
     ) %>%
-    dplyr::mutate(WEA_dist_track = x / number_ensambles) %>% 
-      dplyr::select(GEN_mun_code, WEA_dist_track), by = "GEN_mun_code")
+      dplyr::mutate(WEA_dist_track = x / n_ensemble) %>%
+      dplyr::select(GEN_mun_code, WEA_dist_track),
+    by = "GEN_mun_code"
+  )
 
-df_impact <- df_impact_forecast %>% 
+df_impact <- df_impact_forecast %>%
   left_join(df_impact_dist50, by = "GEN_mun_code")
 
 
@@ -365,44 +330,49 @@ df_impact <- df_impact_forecast %>%
 
 # ------------------------ calculate probability   -----------------------------------
 
-event_impact <- php_admin3 %>% 
+event_impact <- php_admin3 %>%
   left_join(
-    df_impact_dist50 %>% 
-      dplyr::mutate(adm3_pcode = GEN_mun_code), 
-    by = "adm3_pcode")
+    df_impact_dist50 %>%
+      dplyr::mutate(adm3_pcode = GEN_mun_code),
+    by = "adm3_pcode"
+  )
 
-track <- track_interpolation(TRACK_DATA) %>% 
+track <- track_interpolation(TRACK_DATA) %>%
   dplyr::mutate(Data_Provider = "ECMWF_HRS")
 
-maps <- Make_maps_avg(php_admin1, 
-                      event_impact, 
-                      track, 
-                      TYF = "ECMWF", 
-                      Typhoon_stormname)
+maps <- Make_maps_avg(php_admin1,
+  event_impact,
+  track,
+  TYF = "ECMWF",
+  Typhoon_stormname
+)
 
 ####################################################################################################
 # ------------------------ save impact data to file   -
 
-tmap_save(maps, 
-          filename = paste0(Output_folder, "Average_Impact_", "_", forecast_time, "_", Typhoon_stormname, ".png"), 
-          width = 20, height = 24, dpi = 600, units = "cm")
+tmap_save(maps,
+  filename = paste0(Output_folder, "Average_Impact", "_", forecast_time, "_", Typhoon_stormname, ".png"),
+  width = 20, height = 24, dpi = 600, units = "cm"
+)
 
 ####################################################################################################
 # ------------------------ save impact data to file   -----------------------------------
 
-write.csv(event_impact, 
-          file = paste0(Output_folder, "Average_Impact_", "_", forecast_time, "_", Typhoon_stormname, ".csv"))
-
-file_names <- c(
-  paste0(Output_folder, "Average_Impact_", "_", forecast_time, "_", Typhoon_stormname, ".png"),
-  paste0(Output_folder, "DREF_TRIGGER_LEVEL_", forecast_time, "_", Typhoon_stormname, ".csv"),
-  paste0(Output_folder, "CERF_TRIGGER_LEVEL_", forecast_time, "_", Typhoon_stormname, ".csv"),
-  paste0(Output_folder, "Average_Impact_", "_", forecast_time, "_", Typhoon_stormname, ".csv")
+write.csv(data.frame(event_impact) %>% dplyr::select(-c(geometry)),
+  file = paste0(Output_folder, "Average_Impact", "_", forecast_time, "_", Typhoon_stormname, ".csv")
 )
 
-write.table(file_names, 
-            file = paste0(Output_folder, "model_output_file_names.csv"), 
-            sep = ";", append = FALSE, col.names = FALSE)
+file_names <- c(
+  paste0(Output_folder, "Average_Impact", "_", forecast_time, "_", Typhoon_stormname, ".png"),
+  paste0(Output_folder, "DREF_TRIGGER_LEVEL_", forecast_time, "_", Typhoon_stormname, ".csv"),
+  paste0(Output_folder, "CERF_TRIGGER_LEVEL_", forecast_time, "_", Typhoon_stormname, ".csv"),
+  paste0(Output_folder, "Average_Impact", "_", forecast_time, "_", Typhoon_stormname, ".csv")
+)
+
+write.table(file_names,
+  file = paste0(Output_folder, "model_output_file_names.csv"),
+  sep = ";", append = FALSE, col.names = FALSE
+)
 
 
 
