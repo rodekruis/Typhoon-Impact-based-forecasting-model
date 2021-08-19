@@ -350,22 +350,22 @@ maps <- Make_maps_avg(php_admin1,
 # ------------------------ save impact data to file   -
 
 tmap_save(maps,
-  filename = paste0(Output_folder, "Average_Impact_", "_", forecast_time, "_", Typhoon_stormname, ".png"),
+  filename = paste0(Output_folder, "Average_Impact", "_", forecast_time, "_", Typhoon_stormname, ".png"),
   width = 20, height = 24, dpi = 600, units = "cm"
 )
 
 ####################################################################################################
 # ------------------------ save impact data to file   -----------------------------------
 
-write.csv(event_impact,
-  file = paste0(Output_folder, "Average_Impact_", "_", forecast_time, "_", Typhoon_stormname, ".csv")
+write.csv(data.frame(event_impact) %>% dplyr::select(-c(geometry)),
+  file = paste0(Output_folder, "Average_Impact", "_", forecast_time, "_", Typhoon_stormname, ".csv")
 )
 
 file_names <- c(
-  paste0(Output_folder, "Average_Impact_", "_", forecast_time, "_", Typhoon_stormname, ".png"),
+  paste0(Output_folder, "Average_Impact", "_", forecast_time, "_", Typhoon_stormname, ".png"),
   paste0(Output_folder, "DREF_TRIGGER_LEVEL_", forecast_time, "_", Typhoon_stormname, ".csv"),
   paste0(Output_folder, "CERF_TRIGGER_LEVEL_", forecast_time, "_", Typhoon_stormname, ".csv"),
-  paste0(Output_folder, "Average_Impact_", "_", forecast_time, "_", Typhoon_stormname, ".csv")
+  paste0(Output_folder, "Average_Impact", "_", forecast_time, "_", Typhoon_stormname, ".csv")
 )
 
 write.table(file_names,

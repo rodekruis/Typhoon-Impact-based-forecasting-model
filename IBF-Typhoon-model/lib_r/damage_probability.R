@@ -7,7 +7,6 @@ get_total_impact_forecast <- function(df_impact_forecast, damage_thresholds,
   cnames <- paste0(">=", damage_thresholds / 1000, "k")
   damage_thresholds_named <- setNames(damage_thresholds, cnames)
   # Get the total summarized impact
-  # For some reason if <- is used here the method can't find this var
   df_total_impact_forecast <- df_impact_forecast %>%
     group_by(GEN_typhoon_name, GEN_typhoon_id) %>%
     dplyr::summarise(CDamaged_houses = sum(Damaged_houses)) %>%
@@ -54,6 +53,8 @@ get_total_impact_forecast <- function(df_impact_forecast, damage_thresholds,
     ) %>%
     ungroup() %>%
     add_row(
+      GEN_typhoon_name = "TOTAL",
+      GEN_mun_code = "TOTAL", 
       GEN_mun_name = "TOTAL",
       dplyr::summarise(., across(where(is.numeric), sum))
     ) %>%
