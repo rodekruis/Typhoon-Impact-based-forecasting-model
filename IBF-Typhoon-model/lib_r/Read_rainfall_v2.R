@@ -5,7 +5,7 @@ Read_rainfall_v2<-function(wshade){
 ########### Read_rainfall ###################
             if(file.exists(paste0(rain_directory, "/rainfall_24.nc") )) {
               
-              e <- extent(114,145,4,28) # clip data to polygon around 
+              e <- raster::extent(114,145,4,28) # clip data to polygon around 
               NOAA_rain <- brick(paste0(rain_directory, "/rainfall_24.nc"))
               NOAA_rain <- crop(NOAA_rain, e)
               rainfall <-raster::extract(NOAA_rain, y=wshade, method='bilinear',fun=max,df=TRUE,sp=TRUE)

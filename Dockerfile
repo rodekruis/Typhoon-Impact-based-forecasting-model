@@ -6,7 +6,7 @@ WORKDIR /home/fbf/
 
 # Install additional R-packages
 RUN Rscript -e \
-    "install.packages(c('ggmap', 'RFmarkerDetector', 'kernlab', 'MLmetrics',  'rNOMADS', 'xgboost', 'huxtable'))"
+    "install.packages(c('xgboost', 'huxtable'))"
 
 # Install packages needed for Python
 RUN apt-get update && apt-get install -y \
