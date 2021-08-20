@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
-Make_maps_avg<-function(php_admin1,php_admin3_,my_track,TYF,Typhoon_stormname){
-
+Make_maps_avg<-function(php_admin1,php_admin3_,my_track,TYF,Typhoon_stormname,map_type){
+  # map_type can either be "impact" or "probability_dist50"
   
   ################################### Make maps #########
   Landfall_check <- st_intersection(php_admin1, my_track)
@@ -37,7 +37,7 @@ Make_maps_avg<-function(php_admin1,php_admin3_,my_track,TYF,Typhoon_stormname){
   }
   #######################################################################
   # caculate time for landfll
-  php_admin4 <- php_admin3_ %>%  dplyr::mutate(dam_perc_comp_prediction_lm_quantile = ntile_na(impact,5))# %>% filter(WEA_dist_track < 300)
+  php_admin4 <- php_admin3_ %>%  dplyr::mutate(dam_perc_comp_prediction_lm_quantile = ntile_na(map_type,5))# %>% filter(WEA_dist_track < 300)
   region2<-extent(php_admin4)
   
   typhoon_region = st_bbox(c(xmin =as.vector(region2@xmin),
@@ -48,21 +48,39 @@ Make_maps_avg<-function(php_admin1,php_admin3_,my_track,TYF,Typhoon_stormname){
   
   model_run_time<-lubridate::with_tz(lubridate::force_tz(Sys.time()), tz="Asia/Manila")
   
-  subtitle =paste0("Predicted damage per Municipality for ", Typhoon_stormname,'\n',
-                   "Impact map generated at:",model_run_time,'\n',
-                   "Source of wind speed forecast ",TYF,'\n',
-                   "Only Areas within 100km of forecasted track are included",'\n',
-                   "Prediction is about completely damaged houses only",'\n',
-                   'Expected Landfall at : ',dt,' PST in (',time_for_landfall,' hrs)')
+  if (map_type == "impact") {
+    subtitle =paste0("Predicted damage per Municipality for ", Typhoon_stormname,'\n',
+                     "Impact map generated at:",model_run_time,'\n',
+                     "Source of wind speed forecast ",TYF,'\n',
+                     "Only Areas within 100km of forecasted track are included",'\n',
+                     "Prediction is about completely damaged houses only",'\n',
+                     'Expected Landfall at : ',dt,' PST in (',time_for_landfall,' hrs)')
+    legend_title = 'Predicted % of Damaged '
+    breaks = c(0,0.1,1,2,5,9.5,10)
+    
+    legend_labels = c(' No Damage',' < 1%',' 1 to 2%',' 2 to 5%',' 5 to 10%',' > 10%')
+    palette = c('#ffffe5','#fdd0a2','#fdae6b','#fd8d3c','#e6550d','#a63603')
+  } else if (map_type == "probability_dist50") {
+      subtitle =paste0("Probability that typhoon ", Typhoon_stormname, " will come within 50 km", '\n',
+                       "Distance map generated at:",model_run_time,'\n',
+                       "Source of wind speed forecast ",TYF,'\n',
+                       "Only Areas within 100km of forecasted track are included",'\n',
+                       'Expected Landfall at : ',dt,' PST in (',time_for_landfall,' hrs)')
+      legend_title = 'Probability that typhoon will strike within 50 km'
+      breaks = c(0,0.1,1,2,5,9.5,10)
+      legend_labels = c('0%',' < 1%',' 1 to 2%',' 2 to 5%',' 5 to 10%',' > 10%')
+      palette = c("#f6eff7","#bdc9e1","#67a9cf","#1c9099","#016c59")
+  }
   
   tmap_mode(mode = "plot")
   
   impact_map=tm_shape(php_admin4) + 
-    tm_fill(col = "impact",showNA=FALSE, border.col = "black",lwd = 3,lyt='dotted',
-            breaks = c(0,0.1,1,2,5,9.5,10),
-            title='Predicted % of Damaged ',
-            labels=c(' No Damage',' < 1%',' 1 to 2%',' 2 to 5%',' 5 to 10%',' > 10%'),
-            palette = c('#ffffe5','#fdd0a2','#fdae6b','#fd8d3c','#e6550d','#a63603')) + #,style = "cat")+
+    tm_fill(
+      col = map_type, showNA=FALSE, border.col = "black",lwd = 3,lyt='dotted',
+      breaks = c(0,0.1,1,2,5,9.5,10),
+      palette = palette,
+      legend.show=FALSE
+    )
     
     tm_borders(col = NA, lwd = .25, lty = "solid", alpha = .25, group = NA) +
     
@@ -80,11 +98,13 @@ Make_maps_avg<-function(php_admin1,php_admin3_,my_track,TYF,Typhoon_stormname){
   
   impact_map2=tm_shape(php_admin4) + 
     
-    tm_fill(col = "impact",showNA=FALSE, border.col = "black",lwd = 3,lyt='dotted',
-            breaks = c(0,0.1,1,2,5,9.5,10),
-            title='Predicted % of Damaged ',
-            labels=c(' No Damage',' < 1%',' 1 to 2%',' 2 to 5%',' 5 to 10%',' > 10%'),
-            palette = c('#ffffff','#fdd0a2','#fdae6b','#fd8d3c','#e6550d','#a63603')) +
+    tm_fill(
+      col = map_type, showNA=FALSE, border.col = "black",lwd = 3,lyt='dotted',
+      breaks = c(0,0.1,1,2,5,9.5,10),
+      title=legend_title,
+      labels=legend_labels,
+      palette = palette
+    ) +
     tm_shape(my_track) + tm_symbols(col='Data_Provider',size=0.1,border.alpha = .25) +
     tm_layout(legend.only = TRUE, legend.position=c("left", "top"))#, main.title=subtitle, main.title.size=.8,asp=.8)
   

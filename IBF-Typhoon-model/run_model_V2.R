@@ -340,19 +340,32 @@ event_impact <- php_admin3 %>%
 track <- track_interpolation(TRACK_DATA) %>%
   dplyr::mutate(Data_Provider = "ECMWF_HRS")
 
-maps <- Make_maps_avg(php_admin1,
-  event_impact,
-  track,
-  TYF = "ECMWF",
-  Typhoon_stormname
-)
 
 ####################################################################################################
-# ------------------------ save impact data to file   -
+# ------------------------ Make and save distance and impact maps
 
-tmap_save(maps,
-  filename = paste0(Output_folder, "Average_Impact", "_", forecast_time, "_", Typhoon_stormname, ".png"),
-  width = 20, height = 24, dpi = 600, units = "cm"
+impact_map <- Make_maps_avg(php_admin1,
+                      event_impact,
+                      track,
+                      TYF = "ECMWF",
+                      Typhoon_stormname,
+                      map_type = "impact"
+)
+tmap_save(impact_map,
+          filename = paste0(Output_folder, "Average_Impact", "_", forecast_time, "_", Typhoon_stormname, ".png"),
+          width = 20, height = 24, dpi = 600, units = "cm"
+)
+
+distance_map <- Make_maps_avg(php_admin1,
+                            event_impact,
+                            track,
+                            TYF = "ECMWF",
+                            Typhoon_stormname,
+                            map_type = "probability_dist50"
+)
+tmap_save(distance_map,
+          filename = paste0(Output_folder, "probability_50km_distance", "_", forecast_time, "_", Typhoon_stormname, ".png"),
+          width = 20, height = 24, dpi = 600, units = "cm"
 )
 
 ####################################################################################################
