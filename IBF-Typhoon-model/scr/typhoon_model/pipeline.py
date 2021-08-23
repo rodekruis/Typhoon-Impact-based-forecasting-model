@@ -6,6 +6,8 @@ Created on Sat Oct 31 16:01:00 2020
 
 @author: ATeklesadik
 """
+import time
+import ftplib
 import sys
 import os
 from datetime import datetime, timedelta
@@ -45,15 +47,10 @@ formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(message)s')
 console.setFormatter(formatter)
 logging.getLogger("").addHandler(console)
 
-#check ecmwf download and try again
-def ecmwf_check():
-    try:
-         bufr_files = TCForecast.fetch_bufr_ftp(remote_dir=remote_dir)
-         fcast = TCForecast()
-         fcast.fetch_ecmwf(files=bufr_files)
-         return fcast
-    except:
-        return -1
+
+ECMWF_MAX_RETRIES = 3
+ECMWF_SLEEP = 30  # s
+
 
 
 @click.command()
@@ -143,14 +140,23 @@ def main(path,remote_directory,typhoonname):
         # fcast=ecmwf_check()
         # attempt=attempt+1
         # error=fcast      
-    
-    try:    
-        bufr_files = TCForecast.fetch_bufr_ftp(remote_dir=remote_dir)
-        fcast = TCForecast()
-        fcast.fetch_ecmwf(files=bufr_files)
-    except:
-        logging.error(f' Data downloding from ECMWF failed')
-        exit(0)
+
+    # Sometimes the ECMWF ftp server copmlains about too many requests
+    # This code allows several retries with some sleep time in between
+    n_retries = 0
+    while True:
+        try:
+            bufr_files = TCForecast.fetch_bufr_ftp(remote_dir=remote_dir)
+            fcast = TCForecast()
+            fcast.fetch_ecmwf(files=bufr_files)
+        except ftplib.all_errors as e:
+            n_retries += 1
+            if n_retries >= ECMWF_MAX_RETRIES:
+                logging.error(f'Exceeded {ECMWF_MAX_RETRIES} retries, exiting')
+                SystemExit(e)
+            logging.error(f' Data downloading from ECMWF failed: {e}, retrying after {ECMWF_SLEEP} s')
+            time.sleep(ECMWF_SLEEP)
+
     #%% filter data downloaded in the above step for active typhoons  in PAR
     # filter tracks with name of current typhoons and drop tracks with only one timestep
     fcast.data = [track_data_clean.track_data_clean(tr) for tr in fcast.data if (tr.time.size>1 and tr.name in Activetyphoon)]  
