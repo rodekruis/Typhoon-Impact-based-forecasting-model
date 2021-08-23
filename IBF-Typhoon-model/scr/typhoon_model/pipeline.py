@@ -48,7 +48,7 @@ console.setFormatter(formatter)
 logging.getLogger("").addHandler(console)
 
 
-ECMWF_MAX_RETRIES = 3
+ECMWF_MAX_TRIES = 3
 ECMWF_SLEEP = 30  # s
 
 
@@ -151,8 +151,8 @@ def main(path,remote_directory,typhoonname):
             fcast.fetch_ecmwf(files=bufr_files)
         except ftplib.all_errors as e:
             n_retries += 1
-            if n_retries >= ECMWF_MAX_RETRIES:
-                logging.error(f'Exceeded {ECMWF_MAX_RETRIES} retries, exiting')
+            if n_retries > ECMWF_MAX_TRIES:
+                logging.error(f'Exceeded {ECMWF_MAX_TRIES} tries, exiting')
                 SystemExit(e)
             logging.error(f' Data downloading from ECMWF failed: {e}, retrying after {ECMWF_SLEEP} s')
             time.sleep(ECMWF_SLEEP)
