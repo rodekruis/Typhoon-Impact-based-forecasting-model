@@ -26,7 +26,7 @@ sys.path.insert(0, '/home/fbf/lib')
 import settings
 from climada.hazard import Centroids, TropCyclone,TCTracks
 from climada.hazard.tc_tracks_forecast import TCForecast
-from utility_fun import track_data_clean,Check_for_active_typhoon,Sendemail,ucl_data
+from utility_fun import track_data_clean,Check_for_active_typhoon,Sendemail,ucl_data, plot_intensity
 
 if platform == "linux" or platform == "linux2": #check if running on linux or windows os
     from utility_fun import Rainfall_data
@@ -62,11 +62,12 @@ def ecmwf_check():
 @click.option('--typhoonname', default='SURIGAE',help='name for active typhoon')
        
 def main(path,remote_directory,typhoonname):
+    start_time = datetime.now()
     print('---------------------AUTOMATION SCRIPT STARTED---------------------------------')
-    print(str(datetime.now()))
+    print(str(start_time))
     #%% check for active typhoons
     print('---------------------check for active typhoons---------------------------------')
-    print(str(datetime.now()))
+    print(str(start_time))
     Activetyphoon=Check_for_active_typhoon.check_active_typhoon()
     TEST_REMOTE_DIR = '20210421120000'
     remote_dir = remote_directory
@@ -88,10 +89,12 @@ def main(path,remote_directory,typhoonname):
     print("currently active typhoon list= %s"%Activetyphoon)
 
     #%% Download Rainfaall
-    Alternative_data_point=(datetime.strptime(datetime.now().strftime("%Y%m%d%H"), "%Y%m%d%H")-timedelta(hours=24)).strftime("%Y%m%d")
-         
-    Input_folder=os.path.join(path,'forecast/Input/%s/Input/'%(datetime.now().strftime("%Y%m%d%H")))
-    Output_folder=os.path.join(path,'forecast/Output/%s/Output/'%(datetime.now().strftime("%Y%m%d%H")))
+
+    Alternative_data_point = (start_time - timedelta(hours=24)).strftime("%Y%m%d")
+
+    date_dir = start_time.strftime("%Y%m%d%H")
+    Input_folder = os.path.join(path, f'forecast/Input/{date_dir}/Input/')
+    Output_folder = os.path.join(path, f'forecast/Output/{date_dir}/Output/')
 
     if not os.path.exists(Input_folder):
         os.makedirs(Input_folder)
@@ -163,11 +166,11 @@ def main(path,remote_directory,typhoonname):
         fname=open(os.path.join(path,'forecast/Input/',"typhoon_info_for_model.csv"),'w')
         fname.write('source,filename,event,time'+'\n')   
         if not rainfall_error:
-            line_='Rainfall,'+'%srainfall' % Input_folder +',' +typhoons+','+ datetime.now().strftime("%Y%m%d%H")  #StormName #
-            fname.write(line_+'\n')        
+            line_='Rainfall,'+'%srainfall' % Input_folder +',' +typhoons+','+ date_dir  #StormName #
+            fname.write(line_+'\n')
 
-        line_='Output_folder,'+'%s' % Output_folder +',' +typhoons+',' + datetime.now().strftime("%Y%m%d%H")  #StormName #
-        #line_='Rainfall,'+'%sRainfall/' % Input_folder +','+ typhoons + ',' + datetime.now().strftime("%Y%m%d%H") #StormName #
+        line_='Output_folder,'+'%s' % Output_folder +',' +typhoons+',' + date_dir  #StormName #
+        #line_='Rainfall,'+'%sRainfall/' % Input_folder +','+ typhoons + ',' + date_dir #StormName #
         fname.write(line_+'\n')
     
         #typhoons='SURIGAE'  # to run it manually for any typhoon 
@@ -184,8 +187,8 @@ def main(path,remote_directory,typhoonname):
             dfff['YYYYMMDDHH']=dfff['YYYYMMDDHH'].apply(lambda x: x.strftime("%Y%m%d%H%M") )
             dfff['STORMNAME']=typhoons
             dfff[['YYYYMMDDHH','VMAX','LAT','LON','STORMNAME']].to_csv(os.path.join(Input_folder,'ecmwf_hrs_track.csv'), index=False)
-            line_='ecmwf,'+'%secmwf_hrs_track.csv' % Input_folder+ ',' +typhoons+','+ datetime.now().strftime("%Y%m%d%H")   #StormName #
-            #line_='Rainfall,'+'%sRainfall/' % Input_folder +','+ typhoons + ',' + datetime.now().strftime("%Y%m%d%H") #StormName #
+            line_='ecmwf,'+'%secmwf_hrs_track.csv' % Input_folder+ ',' +typhoons+','+ date_dir   #StormName #
+            #line_='Rainfall,'+'%sRainfall/' % Input_folder +','+ typhoons + ',' + date_dir #StormName #
             fname.write(line_+'\n')        
             # Adjust track time step
             data_forced=[tr.where(tr.time <= max(tr_HRS[0].time.values),drop=True) for tr in fcast.data]             
@@ -208,8 +211,8 @@ def main(path,remote_directory,typhoonname):
             dfff['STORMNAME']=typhoons
             dfff['YYYYMMDDHH']=dfff['YYYYMMDDHH'].apply(lambda x: x.strftime("%Y%m%d%H%M") )
             dfff[['YYYYMMDDHH','VMAX','LAT','LON','STORMNAME']].to_csv(os.path.join(Input_folder,'ecmwf_hrs_track.csv'), index=False)
-            line_='ecmwf,'+'%secmwf_hrs_track.csv' % Input_folder+ ',' +typhoons+','+ datetime.now().strftime("%Y%m%d%H")   #StormName #
-            #line_='Rainfall,'+'%sRainfall/' % Input_folder +','+ typhoons + ',' + datetime.now().strftime("%Y%m%d%H") #StormName #
+            line_='ecmwf,'+'%secmwf_hrs_track.csv' % Input_folder+ ',' +typhoons+','+ date_dir   #StormName #
+            #line_='Rainfall,'+'%sRainfall/' % Input_folder +','+ typhoons + ',' + date_dir #StormName #
             fname.write(line_+'\n') 
             data_forced=fcast.data
         
@@ -225,13 +228,18 @@ def main(path,remote_directory,typhoonname):
         list_intensity=[]
         distan_track=[]
         for tr in data_forced:
-            print(tr.name)
-            track = TCTracks() 
+            logging.info(f"Running on ensemble # {tr.ensemble_number} for typhoon {tr.name}")
+            track = TCTracks()
             typhoon = TropCyclone()
             track.data=[tr]
             #track.equal_timestep(3)
             tr=track.data[0]
             typhoon.set_from_tracks(track, cent, store_windfields=True)
+            # Make intensity plot using the high resolution member
+            if tr.is_ensemble == 'False':
+                logging.info("High res member: creating intensity plot")
+                plot_intensity.plot_inensity(typhoon=typhoon, event=tr.sid, output_dir=Output_folder,
+                                             date_dir=date_dir, typhoon_name=tr.name)
             windfield=typhoon.windfields
             nsteps = windfield[0].shape[0]
             centroid_id = np.tile(centroid_idx, nsteps)
@@ -275,8 +283,8 @@ def main(path,remote_directory,typhoonname):
     
         typhhon_df.to_csv(os.path.join(Input_folder,'windfield.csv'), index=False)
     
-        line_='windfield,'+'%swindfield.csv' % Input_folder+ ',' +typhoons+','+ datetime.now().strftime("%Y%m%d%H")   #StormName #
-        #line_='Rainfall,'+'%sRainfall/' % Input_folder +','+ typhoons + ',' + datetime.now().strftime("%Y%m%d%H") #StormName #
+        line_='windfield,'+'%swindfield.csv' % Input_folder+ ',' +typhoons+','+ date_dir   #StormName #
+        #line_='Rainfall,'+'%sRainfall/' % Input_folder +','+ typhoons + ',' + date_dir #StormName #
         fname.write(line_+'\n')
         fname.close()
         
