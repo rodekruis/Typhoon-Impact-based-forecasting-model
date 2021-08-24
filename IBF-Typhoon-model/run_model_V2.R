@@ -20,14 +20,11 @@ suppressMessages(library(huxtable))
 suppressMessages(library(xgboost))
 rainfall_error <- args[1]
 sf_use_s2(FALSE)
-# path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/IBF-Typhoon-model/'
-path <- "/home/fbf/"
-# path='./'
+path<-'./'
 main_directory <- path
 
 ###########################################################################
 # ------------------------ import DATA  -----------------------------------
-setwd(path)
 source("lib_r/settings.R")
 source("lib_r/data_cleaning_forecast.R")
 source("lib_r/prepare_typhoon_input.R")

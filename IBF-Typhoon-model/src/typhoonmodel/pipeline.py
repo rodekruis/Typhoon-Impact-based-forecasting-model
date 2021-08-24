@@ -22,16 +22,15 @@ import click
 decoder = Decoder()
 
 #%%
-sys.path.insert(0, '/home/fbf/lib')
-import settings
+from typhoonmodel import settings
 from climada.hazard import Centroids, TropCyclone,TCTracks
 from climada.hazard.tc_tracks_forecast import TCForecast
-from utility_fun import track_data_clean,Check_for_active_typhoon,Sendemail,ucl_data, plot_intensity
+from typhoonmodel.utility_fun import track_data_clean,Check_for_active_typhoon,Sendemail,ucl_data, plot_intensity
 
 if platform == "linux" or platform == "linux2": #check if running on linux or windows os
-    from utility_fun import Rainfall_data
+    from typhoonmodel.utility_fun import Rainfall_data
 elif platform == "win32":
-    from utility_fun import Rainfall_data_window as Rainfall_data
+    from typhoonmodel.utility_fun import Rainfall_data_window as Rainfall_data
 
 
 # Set up logger
