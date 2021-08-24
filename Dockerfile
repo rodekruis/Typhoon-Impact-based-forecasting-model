@@ -2,7 +2,8 @@ FROM rocker/geospatial:4.1.0
 
 # Set up main directory
 RUN mkdir --parents /home/fbf/forecast
-WORKDIR /home/fbf/
+ENV HOME /home/fbf
+WORKDIR $HOME
 
 # Install additional R-packages
 RUN Rscript -e \
