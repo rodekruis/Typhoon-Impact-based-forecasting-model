@@ -48,10 +48,10 @@ data_matrix_new_variables <- read.csv("data/data_matrix_new_variables.csv")
 geo_variable <- read.csv("data/geo_variable.csv")
 wshade <- php_admin3
 
-xgmodel <- readRDS("/models/operational/xgboost_regression_v2.RDS", refhook = NULL)
+xgmodel <- readRDS("models/operational/xgboost_regression_v2.RDS", refhook = NULL)
 
 # load forecast data
-typhoon_info_for_model <- read.csv("/forecast/Input/typhoon_info_for_model.csv")
+typhoon_info_for_model <- read.csv("forecast/Input/typhoon_info_for_model.csv")
 
 rain_directory <- as.character(
   typhoon_info_for_model[typhoon_info_for_model[["source"]] == "Rainfall", ][["filename"]]

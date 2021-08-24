@@ -22,10 +22,6 @@ library(dplyr)
 library(lubridate)
 library(readr)
 
-setwd(path)
-#setwd(dirname(rstudioapi::getSourceEditorContext()$path))
-#setwd('/home/fbf')
-
 landmask <- readr::read_csv("data-raw/landseamask_ph1.csv",col_names = c("longitude", "latitude", "land")) %>%
   dplyr::mutate(land = factor(land, levels = c(1, 0), labels = c("land", "water")))
 
