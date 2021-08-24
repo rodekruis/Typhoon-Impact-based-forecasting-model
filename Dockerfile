@@ -25,7 +25,8 @@ RUN apt-get update && apt-get install -y \
 
 # Install additional R-packages
  RUN Rscript -e \
-    "install.packages(c('tmap', 'dplyr', 'tidyr', 'sf', 'geojsonsf', 'raster', 'rlang', 'lubridate', 'ncdf4', 'xgboost', 'huxtable'))"
+    "install.packages(c('tmap', 'dplyr', 'tidyr', 'sf', 'geojsonsf', 'raster', \
+    'rlang', 'lubridate', 'ncdf4', 'xgboost', 'huxtable', 'readr'))"
 
 # Install Python dependencies
 COPY requirements.txt /home/fbf/
