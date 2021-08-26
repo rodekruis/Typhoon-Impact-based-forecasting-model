@@ -67,8 +67,8 @@ Make_maps_avg<-function(php_admin1,php_admin3_,my_track,TYF,Typhoon_stormname,ma
                        "Only Areas within 100km of forecasted track are included",'\n',
                        'Expected Landfall at : ',dt,' PST in (',time_for_landfall,' hrs)')
       legend_title = 'Probability that typhoon will strike within 50 km'
-      breaks = c(0,0.1,1,2,5,9.5,10)
-      legend_labels = c('0%',' < 1%',' 1 to 2%',' 2 to 5%',' 5 to 10%',' > 10%')
+      breaks = c(0,5,10,20,40,50)
+      legend_labels = c('   < 5%','5 - 10%','10 - 20%','20 - 40%','   > 50%')
       palette = c("#f6eff7","#bdc9e1","#67a9cf","#1c9099","#016c59")
   }
   
