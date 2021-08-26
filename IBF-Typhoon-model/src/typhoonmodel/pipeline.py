@@ -6,6 +6,8 @@ Created on Sat Oct 31 16:01:00 2020
 
 @author: ATeklesadik
 """
+import time
+import ftplib
 import sys
 import os
 from datetime import datetime, timedelta
@@ -44,15 +46,10 @@ formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(message)s')
 console.setFormatter(formatter)
 logging.getLogger("").addHandler(console)
 
-#check ecmwf download and try again
-def ecmwf_check():
-    try:
-         bufr_files = TCForecast.fetch_bufr_ftp(remote_dir=remote_dir)
-         fcast = TCForecast()
-         fcast.fetch_ecmwf(files=bufr_files)
-         return fcast
-    except:
-        return -1
+
+ECMWF_MAX_TRIES = 3
+ECMWF_SLEEP = 30  # s
+
 
 
 @click.command()
@@ -134,25 +131,27 @@ def main(path,remote_directory,typhoonname):
     df = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.lon, df.lat))
     #df.to_crs({'init': 'epsg:4326'})
     df.crs = {'init': 'epsg:4326'}
-    df_admin = sjoin(df, admin, how="left")
-    df_admin=df_admin.dropna()
+    df_admin = sjoin(df, admin, how="left").dropna()
     
-    #%% Download ECMWF forecast for typhoon tracks
-    # error=-1
-    # attempt=1
-    # while error==-1:
-        # print('{} attempt to download ecmwf data'.format(attempt))
-        # fcast=ecmwf_check()
-        # attempt=attempt+1
-        # error=fcast      
-    
-    try:    
-        bufr_files = TCForecast.fetch_bufr_ftp(remote_dir=remote_dir)
-        fcast = TCForecast()
-        fcast.fetch_ecmwf(files=bufr_files)
-    except:
-        logging.error(f' Data downloding from ECMWF failed')
-        exit(0)
+    # Sometimes the ECMWF ftp server complains about too many requests
+    # This code allows several retries with some sleep time in between
+    n_tries = 0
+    while True:
+        try:
+            logging.info("Downloading ECMWF typhoon tracks")
+            bufr_files = TCForecast.fetch_bufr_ftp(remote_dir=remote_dir)
+            fcast = TCForecast()
+            fcast.fetch_ecmwf(files=bufr_files)
+        except ftplib.all_errors as e:
+            n_tries += 1
+            if n_tries > ECMWF_MAX_TRIES:
+                logging.error(f'Exceeded {ECMWF_MAX_TRIES} tries, exiting')
+                SystemExit(e)
+            logging.error(f' Data downloading from ECMWF failed: {e}, retrying after {ECMWF_SLEEP} s')
+            time.sleep(ECMWF_SLEEP)
+            continue
+        break
+
     #%% filter data downloaded in the above step for active typhoons  in PAR
     # filter tracks with name of current typhoons and drop tracks with only one timestep
     fcast.data = [track_data_clean.track_data_clean(tr) for tr in fcast.data if (tr.time.size>1 and tr.name in Activetyphoon)]  

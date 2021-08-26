@@ -1,5 +1,5 @@
 crs1 <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0" 
-e <- extent(114,145,4,28) # clip data to polygon around PAR
+e <- raster::extent(114,145,4,28) # clip data to polygon around PAR
 
 material_variable2 <- read.csv("data/material_variable2.csv")
 data_matrix_new_variables <- read.csv("data/data_matrix_new_variables.csv")
