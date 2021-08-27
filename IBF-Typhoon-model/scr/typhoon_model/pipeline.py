@@ -313,8 +313,8 @@ def main(path,remote_directory,typhoonname):
         # send email in case of landfall-typhoon
         #############################################################
 
-        image_filenames = Path(Output_folder).glob('*.png')
-        data_filenames = Path(Output_folder).glob('*.csv')
+        image_filenames = list(Path(Output_folder).glob('*.png'))
+        data_filenames = list(Path(Output_folder).glob('*.csv'))
 
         if image_filenames or data_filenames:
             message_html = """\
@@ -339,7 +339,7 @@ def main(path,remote_directory,typhoonname):
                 filename_list=image_filenames + data_filenames
             )
         else:
-            raise FileNotFoundError('No .png or .csv files generated')
+            raise FileNotFoundError(f'No .png or .csv found in {Output_folder}')
 
     print('---------------------AUTOMATION SCRIPT FINISHED---------------------------------')
     print(str(datetime.now()))

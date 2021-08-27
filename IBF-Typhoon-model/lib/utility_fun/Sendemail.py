@@ -4,6 +4,7 @@ import ssl
 from typing import List
 from email.message import EmailMessage
 import mimetypes
+from pathlib import PosixPath
 
 
 def sendemail(smtp_server: str,
@@ -15,7 +16,7 @@ def sendemail(smtp_server: str,
               to_address_list: list,
               cc_address_list: list,
               message_html: str,
-              filename_list: List[str]):
+              filename_list: List[PosixPath]):
 
     # Create message
     message = EmailMessage()
@@ -33,7 +34,7 @@ def sendemail(smtp_server: str,
             message.add_attachment(file.read(),
                                    maintype=maintype,
                                    subtype=subtype,
-                                   filename=os.path.basename(filename))
+                                   filename=filename.name)
 
     # Open SSL connection and send the email
     context = ssl.create_default_context()
