@@ -14,14 +14,9 @@ suppressMessages(library(xgboost))
 suppressMessages(library(readr))
 rainfall_error <- args[1]
 sf_use_s2(FALSE)
-# path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/IBF-Typhoon-model/'
-path <- "/home/fbf/"
-# path='./'
-main_directory <- path
 
 ###########################################################################
 # ------------------------ import DATA  -----------------------------------
-setwd(path)
 source("lib_r/settings.R")
 source("lib_r/data_cleaning_forecast.R")
 source("lib_r/prepare_typhoon_input.R")
@@ -39,44 +34,18 @@ source("lib_r/damage_probability.R")
 
 # ------------------------ import DATA  -----------------------------------
 
-# php_admin3 <- st_read(dsn=paste0(main_directory,'data-raw'),layer='phl_admin3_simpl2')
-php_admin3 <- geojsonsf::geojson_sf(
-  paste0(main_directory, "data-raw/phl_admin3_simpl2.geojson")
-)
-
-# php_admin1 <- st_read(dsn=paste0(main_directory,'data-raw'),layer='phl_admin1_gadm_pcode')
-php_admin1 <- geojsonsf::geojson_sf(
-  paste0(main_directory, "data-raw/phl_admin1_gadm_pcode.geojson")
-)
-
+php_admin3 <- geojsonsf::geojson_sf("data-raw/phl_admin3_simpl2.geojson")
+php_admin1 <- geojsonsf::geojson_sf("data-raw/phl_admin1_gadm_pcode.geojson")
 wshade <- php_admin3
-material_variable2 <- read.csv(
-  paste0(main_directory, "data/material_variable2.csv")
-)
-data_matrix_new_variables <- read.csv(
-  paste0(main_directory, "data/data_matrix_new_variables.csv")
-)
-geo_variable <- read.csv(
-  paste0(main_directory, "data/geo_variable.csv")
-)
-
+material_variable2 <- read.csv("data/material_variable2.csv")
+data_matrix_new_variables <- read.csv("data/data_matrix_new_variables.csv")
+geo_variable <- read.csv("data/geo_variable.csv")
 wshade <- php_admin3
-# load the rr model
-# mode_classification <- readRDS(paste0(main_directory,"./models/final_model.rds"))
-# mode_continious <- readRDS(paste0(main_directory,"./models/final_model_regression.rds"))
-# mode_classification1 <- readRDS(paste0(main_directory,"./models/xgboost_classify.rds"))
 
-xgmodel <- readRDS(
-  paste0(main_directory, "/models/operational/xgboost_regression_v2.RDS"),
-  refhook = NULL
-)
+xgmodel <- readRDS("models/operational/xgboost_regression_v2.RDS", refhook = NULL)
 
 # load forecast data
-typhoon_info_for_model <- read.csv(
-  paste0(main_directory, "/forecast/Input/typhoon_info_for_model.csv")
-)
-# typhoon_events <- read.csv(paste0(main_directory,'/forecast/Input/typhoon_info_for_model.csv'))
-
+typhoon_info_for_model <- read.csv("forecast/Input/typhoon_info_for_model.csv")
 
 rain_directory <- as.character(
   typhoon_info_for_model[typhoon_info_for_model[["source"]] == "Rainfall", ][["filename"]]

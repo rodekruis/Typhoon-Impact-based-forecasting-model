@@ -2,7 +2,8 @@ FROM rocker/r-ubuntu:20.04
 
 # Set up main directory
 RUN mkdir --parents /home/fbf/forecast
-WORKDIR /home/fbf/
+ENV HOME /home/fbf
+WORKDIR $HOME
 
 # Install required system packages
 # python3-eccodes is required for python cfgrib
