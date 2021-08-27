@@ -52,3 +52,8 @@ To build and run the image, ensure you are in the top-level directory and execut
 ```
 docker-compose up
 ```
+When you are finished, run
+```
+docker-compose down
+```
+to remove any docker container(s).
