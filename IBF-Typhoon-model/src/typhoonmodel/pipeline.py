@@ -15,6 +15,8 @@ from sys import platform
 import subprocess
 import logging
 import traceback
+from pathlib import Path
+
 import pandas as pd
 from pybufrkit.decoder import Decoder
 import numpy as np
@@ -306,31 +308,14 @@ def main(path,remote_directory,typhoonname):
                 logging.error(f'failed to excute R sript')
                 raise ValueError(str(e))
             
-        
         #############################################################
-        ### send email in case of landfall-typhoon
+        # send email in case of landfall-typhoon
         #############################################################
 
-        landfall_typhones=[] #model_output_file_names
+        image_filenames = list(Path(Output_folder).glob('*.png'))
+        data_filenames = list(Path(Output_folder).glob('*.csv'))
 
-        try:
-            #fname2=open("forecast/%s_file_names.csv" % typhoons,'r')
-            fname2=open(os.path.join(Output_folder,"model_output_file_names.csv"),'r')
-            for lines in fname2.readlines():
-                print(lines)
-                landfall_typhones.append(lines.split(';')[1].strip().strip('"'))
-                #landfall_typhones.append(lines.split(';')[1])
-#                if (lines.split(' ')[1].split('_')[0]) !='"Nolandfall':
-#                    if lines.split(' ')[1] not in landfall_typhones:
-#                        landfall_typhones.append(lines.split(' ')[1])
-            fname2.close()
-        except:
-            pass
-        
-        if landfall_typhones:
-            image_filenames = [i for i in landfall_typhones if i.endswith('.png')]
-            data_filenames = [i for i in landfall_typhones if i.endswith('.csv')]
-
+        if image_filenames or data_filenames:
             message_html = """\
             <html>
             <body>
@@ -352,6 +337,8 @@ def main(path,remote_directory,typhoonname):
                 message_html=message_html,
                 filename_list=image_filenames + data_filenames
             )
+        else:
+            raise FileNotFoundError(f'No .png or .csv found in {Output_folder}')
 
     print('---------------------AUTOMATION SCRIPT FINISHED---------------------------------')
     print(str(datetime.now()))
