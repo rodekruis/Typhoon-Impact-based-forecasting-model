@@ -15,6 +15,8 @@ import subprocess
 import logging
 import traceback
 from pathlib import Path
+from azure.storage.file import FileService
+from azure.storage.file import ContentSettings
 
 import pandas as pd
 from pybufrkit.decoder import Decoder
@@ -54,7 +56,14 @@ ECMWF_SLEEP = 30  # s
 @click.option('--path', default='./', help='main directory')
 @click.option('--remote_directory', default=None, help='remote directory for ECMWF forecast data') #'20210421120000'
 @click.option('--typhoonname', default='SURIGAE',help='name for active typhoon')
-def main(path,remote_directory,typhoonname):
+@click.option('--LatMax', default=19,help='maximum extent latitude')
+@click.option('--LatMin', default=6,help='minimum extent latitude')
+@click.option('--LonMax', default=127,help='maximum extent longtiude')
+@click.option('--LonMin', default=118,help='minimum extent longtiude')
+
+
+#def main(path,remote_directory,typhoonname):
+def main(path,remote_directory,typhoonname,LonMin,LatMin,LonMax,LatMax):
     start_time = datetime.now()
     print('---------------------AUTOMATION SCRIPT STARTED---------------------------------')
     print(str(start_time))
@@ -113,7 +122,9 @@ def main(path,remote_directory,typhoonname):
     #%%
     ##Create grid points to calculate Winfield
     cent = Centroids()
-    cent.set_raster_from_pnt_bounds((118,6,127,19), res=0.05)
+    #cent.set_raster_from_pnt_bounds((118,6,127,19), res=0.05)
+    #this option is added to make the script scaleable globally 
+    cent.set_raster_from_pnt_bounds((LonMin,LatMin,LonMax,LatMax), res=0.05) 
     cent.check()
     cent.plot()
     ####
@@ -332,6 +343,22 @@ def main(path,remote_directory,typhoonname):
             )
         else:
             raise FileNotFoundError(f'No .png or .csv found in {Output_folder}')
+                ##################### upload model output to 510 datalack ##############
+        
+        file_service = FileService(account_name='phptyp',protocol='https', connection_string=os.environ["azure_connection_string"])
+        file_service.create_share('forecast')
+        OutPutFolder=date_dir
+        file_service.create_directory('forecast', OutPutFolder) 
+        
+        for img_file in image_filenames:   
+            file_service.create_file_from_path('forecast', OutPutFolder,os.fspath(img_file.parts[-1]),img_file, content_settings=ContentSettings(content_type='image/png'))
+
+        for data_file in data_filenames:
+            file_service.create_file_from_path('forecast', OutPutFolder,os.fspath(data_file.parts[-1]),data_file, content_settings=ContentSettings(content_type='text/csv'))
+            
+        ##################### upload model input(Rainfall+wind intensity) to 510 datalack ############## 
+        # To DO
+        
 
     print('---------------------AUTOMATION SCRIPT FINISHED---------------------------------')
     print(str(datetime.now()))
