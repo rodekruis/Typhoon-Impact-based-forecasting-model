@@ -116,7 +116,7 @@ Make_maps_avg<-function(php_admin1,php_admin3_,my_track,TYF,Typhoon_stormname,ma
   ph_map2 = tm_shape(php_admin1)+ tm_polygons(border.col = "white",lwd = 0.01,lyt='dotted',alpha =0.2) +
     #tm_shape(typhoon_region) +# tm_borders(lwd = 2,col='red') +
     tm_credits( subtitle,position = c("left", "top"),size = 0.7) +
-    tm_logo(paste0(path,'logos/combined_logo.png'),#https://www.510.global/wp-content/uploads/2017/07/510-LOGO-WEBSITE-01.png', 
+    tm_logo('logos/combined_logo.png',#https://www.510.global/wp-content/uploads/2017/07/510-LOGO-WEBSITE-01.png', 
             height=3, position = c("right", "top"))+
     tm_layout(legend.show = FALSE)
   

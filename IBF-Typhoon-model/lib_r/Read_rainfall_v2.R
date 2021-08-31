@@ -25,15 +25,15 @@ Read_rainfall_v2<-function(wshade){
     
     # Get the data
           for (i in 2:length(head(model.parameters$pred,n=72))){
-            grib.info <- GribGrab(urls.out[2], model.parameters$pred[i], levels, variables,local.dir = paste0(path, "/forecast/rainfall"))
+            grib.info <- GribGrab(urls.out[2], model.parameters$pred[i], levels, variables,local.dir = "forecast/rainfall")
           }
                     
-          file_list <- list.files(path=paste0(path, "/forecast/rainfall"))
+          file_list <- list.files("forecast/rainfall")
           xx <- raster::stack()   # Read each grib file to a raster and stack it to xx  
           
           
           for (files in file_list)  {
-            fn <- file.path(paste0(path, "/forecast/rainfall"), files)
+            fn <- file.path("forecast/rainfall", files)
             r2 <- raster(fn)
             x1 <- crop(r2, e)
             xx <- raster::stack(xx, x1)
