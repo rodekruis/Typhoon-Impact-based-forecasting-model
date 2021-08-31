@@ -321,12 +321,12 @@ def main(path,remote_directory,typhoonname):
             Sendemail.sendemail(
                 smtp_server=os.environ["SMTP_SERVER"],
                 smtp_port=int(os.environ["SMTP_PORT"]),
-                email_username=os.environ["eMAIL_LOGIN"],
-                email_password=os.environ["eMAIL_PASSWORD"],
+                email_username=os.environ["EMAIL_LOGIN"],
+                email_password=os.environ["EMAIL_PASSWORD"],
                 email_subject='Updated impact map for a new Typhoon in PAR',
                 from_address=os.environ["EMAIL_FROM"],
-                to_address_list=os.environ["EMAIL_LIST"].split(','),
-                cc_address_list=os.environ["CC_LIST"].split(','),
+                to_address_list=os.environ["EMAIL_TO_LIST"].split(','),
+                cc_address_list=os.environ["EMAIL_CC_LIST"].split(','),
                 message_html=message_html,
                 filename_list=image_filenames + data_filenames
             )
@@ -335,7 +335,6 @@ def main(path,remote_directory,typhoonname):
 
     print('---------------------AUTOMATION SCRIPT FINISHED---------------------------------')
     print(str(datetime.now()))
-    
 
 
 #%%#Download rainfall (old pipeline)
