@@ -25,7 +25,7 @@ Read_rainfall_v2<-function(wshade){
     
     # Get the data
           for (i in 2:length(head(model.parameters$pred,n=72))){
-            grib.info <- GribGrab(urls.out[2], model.parameters$pred[i], levels, variables,local.dir ="forecast/rainfall")
+            grib.info <- GribGrab(urls.out[2], model.parameters$pred[i], levels, variables,local.dir = "forecast/rainfall")
           }
                     
           file_list <- list.files("forecast/rainfall")
