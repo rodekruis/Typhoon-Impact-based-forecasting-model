@@ -61,12 +61,13 @@ Make_maps_avg<-function(php_admin1,php_admin3_,my_track,TYF,Typhoon_stormname,ma
     legend_labels = c(' No Damage',' < 1%',' 1 to 2%',' 2 to 5%',' 5 to 10%',' > 10%')
     palette = c('#ffffe5','#fdd0a2','#fdae6b','#fd8d3c','#e6550d','#a63603')
   } else if (map_type == "probability_dist50") {
-      subtitle =paste0("Probability that typhoon ", Typhoon_stormname, " will come within 50 km", '\n',
+      subtitle =paste0("Probability that typhoon ", Typhoon_stormname, "\n",
+                       "will come within 50 km", '\n',
                        "Distance map generated at:",model_run_time,'\n',
                        "Source of wind speed forecast ",TYF,'\n',
                        "Only Areas within 100km of forecasted track are included",'\n',
                        'Expected Landfall at : ',dt,' PST in (',time_for_landfall,' hrs)')
-      legend_title = 'Probability that typhoon will strike within 50 km'
+      legend_title = 'Probability that typhoon\nwill strike within 50 km'
       breaks = c(0,5,10,20,40,50)
       legend_labels = c('   < 5%','5 - 10%','10 - 20%','20 - 40%','   > 50%')
       palette = c("#f6eff7","#bdc9e1","#67a9cf","#1c9099","#016c59")
@@ -77,7 +78,7 @@ Make_maps_avg<-function(php_admin1,php_admin3_,my_track,TYF,Typhoon_stormname,ma
   impact_map=tm_shape(php_admin4) + 
     tm_fill(
       col = map_type, showNA=FALSE, border.col = "black",lwd = 3,lyt='dotted',
-      breaks = c(0,0.1,1,2,5,9.5,10),
+      breaks = breaks,
       palette = palette,
       legend.show=FALSE
     )
@@ -100,7 +101,7 @@ Make_maps_avg<-function(php_admin1,php_admin3_,my_track,TYF,Typhoon_stormname,ma
     
     tm_fill(
       col = map_type, showNA=FALSE, border.col = "black",lwd = 3,lyt='dotted',
-      breaks = c(0,0.1,1,2,5,9.5,10),
+      breaks = breaks,
       title=legend_title,
       labels=legend_labels,
       palette = palette
@@ -116,8 +117,7 @@ Make_maps_avg<-function(php_admin1,php_admin3_,my_track,TYF,Typhoon_stormname,ma
   ph_map2 = tm_shape(php_admin1)+ tm_polygons(border.col = "white",lwd = 0.01,lyt='dotted',alpha =0.2) +
     #tm_shape(typhoon_region) +# tm_borders(lwd = 2,col='red') +
     tm_credits( subtitle,position = c("left", "top"),size = 0.7) +
-    tm_logo('logos/combined_logo.png',#https://www.510.global/wp-content/uploads/2017/07/510-LOGO-WEBSITE-01.png', 
-            height=3, position = c("right", "top"))+
+    tm_logo('logos/combined_logo.png', height=3, position = c("right", "top"))+
     tm_layout(legend.show = FALSE)
   
   map1<- tmap_arrange(ph_map,ph_map2,impact_map2,impact_map,nrow=2,ncol = 2,widths = c(.3, .7),heights = c(.3, .7))
