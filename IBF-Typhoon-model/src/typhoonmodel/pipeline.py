@@ -8,7 +8,6 @@ Created on Sat Oct 31 16:01:00 2020
 """
 import time
 import ftplib
-import sys
 import os
 from datetime import datetime, timedelta
 from sys import platform
@@ -23,10 +22,7 @@ import numpy as np
 from geopandas.tools import sjoin
 import geopandas as gpd
 import click
-decoder = Decoder()
 
-#%%
-from typhoonmodel import settings
 from climada.hazard import Centroids, TropCyclone,TCTracks
 from climada.hazard.tc_tracks_forecast import TCForecast
 from typhoonmodel.utility_fun import track_data_clean,Check_for_active_typhoon,Sendemail,ucl_data, plot_intensity
@@ -36,6 +32,7 @@ if platform == "linux" or platform == "linux2": #check if running on linux or wi
 elif platform == "win32":
     from typhoonmodel.utility_fun import Rainfall_data_window as Rainfall_data
 
+decoder = Decoder()
 
 # Set up logger
 logging.root.handlers = []
@@ -53,12 +50,10 @@ ECMWF_MAX_TRIES = 3
 ECMWF_SLEEP = 30  # s
 
 
-
 @click.command()
 @click.option('--path', default='./', help='main directory')
 @click.option('--remote_directory', default=None, help='remote directory for ECMWF forecast data') #'20210421120000'
 @click.option('--typhoonname', default='SURIGAE',help='name for active typhoon')
-       
 def main(path,remote_directory,typhoonname):
     start_time = datetime.now()
     print('---------------------AUTOMATION SCRIPT STARTED---------------------------------')
@@ -111,12 +106,10 @@ def main(path,remote_directory,typhoonname):
     ###### download UCL data
       
     try:
-        ucl_data.create_ucl_metadata(path,settings.uCL_USERNAME,settings.uCL_PASSWORD)
-        ucl_data.process_ucl_data(path,Input_folder,settings.uCL_USERNAME,settings.uCL_PASSWORD)
-        logging.info(f'UCL download failed')
-
+        ucl_data.create_ucl_metadata(path, os.environ['UCL_USERNAME'], os.environ['UCL_PASSWORD'])
+        ucl_data.process_ucl_data(path, Input_folder, os.environ['UCL_USERNAME'], os.environ['UCL_PASSWORD'])
     except:
-        pass
+        logging.info(f'UCL download failed')
     #%%
     ##Create grid points to calculate Winfield
     cent = Centroids()
@@ -326,14 +319,14 @@ def main(path,remote_directory,typhoonname):
             </html>
             """
             Sendemail.sendemail(
-                smtp_server=settings.sMTP_SERVER,
-                smtp_port=settings.sMTP_PORT,
-                email_username=settings.eMAIL_LOGIN,
-                email_password=settings.eMAIL_PASSWORD,
+                smtp_server=os.environ["SMTP_SERVER"],
+                smtp_port=int(os.environ["SMTP_PORT"]),
+                email_username=os.environ["EMAIL_LOGIN"],
+                email_password=os.environ["EMAIL_PASSWORD"],
                 email_subject='Updated impact map for a new Typhoon in PAR',
-                from_address=settings.eMAIL_FROM,
-                to_address_list=settings.eMAIL_LIST,
-                cc_address_list=settings.cC_LIST,
+                from_address=os.environ["EMAIL_FROM"],
+                to_address_list=os.environ["EMAIL_TO_LIST"].split(','),
+                cc_address_list=os.environ["EMAIL_CC_LIST"].split(','),
                 message_html=message_html,
                 filename_list=image_filenames + data_filenames
             )
@@ -342,7 +335,6 @@ def main(path,remote_directory,typhoonname):
 
     print('---------------------AUTOMATION SCRIPT FINISHED---------------------------------')
     print(str(datetime.now()))
-    
 
 
 #%%#Download rainfall (old pipeline)
