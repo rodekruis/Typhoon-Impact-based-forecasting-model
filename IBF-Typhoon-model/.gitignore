@@ -1,15 +1,10 @@
 # Cutsom by Aki
 forecast/
-typhoon_infographic/
-old_scripts/
 models/other_models/*
-lib/secrets.py
 lib/settings.py
-lib/variables.py
-lib/climada_python-main
 home/
-otherfiles/
-temp/
 mainpipeline_win.py
+mainpipeline.py
 model_trigger.py
+manual_pipeline.py
 credentials

@@ -56,14 +56,18 @@ ECMWF_SLEEP = 30  # s
 @click.option('--path', default='./', help='main directory')
 @click.option('--remote_directory', default=None, help='remote directory for ECMWF forecast data') #'20210421120000'
 @click.option('--typhoonname', default='SURIGAE',help='name for active typhoon')
-@click.option('--LatMax', default=19,help='maximum extent latitude')
-@click.option('--LatMin', default=6,help='minimum extent latitude')
-@click.option('--LonMax', default=127,help='maximum extent longtiude')
-@click.option('--LonMin', default=118,help='minimum extent longtiude')
+@click.option('--debug_flag', default=False,help='setting for DEBUG option')
+
+
+#@click.option('--LatMax', default=19,help='maximum extent latitude')
+#@click.option('--LatMin', default=6,help='minimum extent latitude')
+#@click.option('--LonMax', default=127,help='maximum extent longtiude')
+#@click.option('--LonMin', default=118,help='minimum extent longtiude')
 
 
 #def main(path,remote_directory,typhoonname):
-def main(path,remote_directory,typhoonname,LonMin,LatMin,LonMax,LatMax):
+#def main(path,remote_directory,typhoonname,LonMin,LatMin,LonMax,LatMax):
+def main(path,debug_flag,remote_directory,typhoonname):
     start_time = datetime.now()
     print('---------------------AUTOMATION SCRIPT STARTED---------------------------------')
     print(str(start_time))
@@ -73,22 +77,40 @@ def main(path,remote_directory,typhoonname,LonMin,LatMin,LonMax,LatMax):
     Activetyphoon=Check_for_active_typhoon.check_active_typhoon()
     TEST_REMOTE_DIR = '20210421120000'
     remote_dir = remote_directory
-    if not Activetyphoon:
-      logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")
-      if remote_dir is None:
-         remote_dir = TEST_REMOTE_DIR
-         #remote_dir='20210421120000' #for downloading test data otherwise set it to None
-      Activetyphoon=[typhoonname]  #name of typhoon for test
-      #logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")
-    elif remote_directory is not None:
-      logging.info(f"There is an active typhoon, but the user has requested to run for typhoon{typhoonname}")
-      #remote_dir='20210421120000' #for downloading test data otherwise set it to None
-      Activetyphoon=[typhoonname]  #name of typhoon for test
-      logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")    
+    if not Activetyphoon and debug_flag:
+        logging.info(f"No active typhoon in PAR, DEBUGGING piepline  for typhoon{typhoonname}")
+        Activetyphoon=[typhoonname]
+        if remote_dir is None:
+            remote_dir = TEST_REMOTE_DIR
+    elif not Activetyphoon and not debug_flag:
+        logging.info("No active typhoon in PAR stop pipeline")
+        print("currently no active typhoon in PAR DEBUG flag was set to False")
+        print("For Debugging you can set debug_flag=True via options")
+        exit()
     else:
-      logging.info(f"Running on active Typhoon(s) {Activetyphoon}")
-      #remote_dir=None # for downloading test data      Activetyphoon=['SURIGAE']
-    print("currently active typhoon list= %s"%Activetyphoon)
+        logging.info(f"Running on active Typhoon(s) {Activetyphoon}")
+        remote_dir=None # for downloading test data      Activetyphoon=['SURIGAE']
+        print("currently active typhoon list= %s"%Activetyphoon)
+        
+                
+ 
+
+    # if not Activetyphoon:
+    #   logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")      
+    #   if remote_dir is None:
+    #      remote_dir = TEST_REMOTE_DIR
+    #      #remote_dir='20210421120000' #for downloading test data otherwise set it to None
+    #   Activetyphoon=[typhoonname]  #name of typhoon for test
+    #   #logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")
+    # elif remote_directory is not None:
+    #   logging.info(f"There is an active typhoon, but the user has requested to run for typhoon{typhoonname}")
+    #   #remote_dir='20210421120000' #for downloading test data otherwise set it to None
+    #   Activetyphoon=[typhoonname]  #name of typhoon for test
+    #   logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")    
+    # else:
+    #   logging.info(f"Running on active Typhoon(s) {Activetyphoon}")
+    #   #remote_dir=None # for downloading test data      Activetyphoon=['SURIGAE']
+    # print("currently active typhoon list= %s"%Activetyphoon)
 
     #%% Download Rainfaall
 
@@ -122,9 +144,9 @@ def main(path,remote_directory,typhoonname,LonMin,LatMin,LonMax,LatMax):
     #%%
     ##Create grid points to calculate Winfield
     cent = Centroids()
-    #cent.set_raster_from_pnt_bounds((118,6,127,19), res=0.05)
-    #this option is added to make the script scaleable globally 
-    cent.set_raster_from_pnt_bounds((LonMin,LatMin,LonMax,LatMax), res=0.05) 
+    cent.set_raster_from_pnt_bounds((118,6,127,19), res=0.05)
+    #this option is added to make the script scaleable globally To Do
+    #cent.set_raster_from_pnt_bounds((LonMin,LatMin,LonMax,LatMax), res=0.05) 
     cent.check()
     cent.plot()
     ####
@@ -345,7 +367,7 @@ def main(path,remote_directory,typhoonname,LonMin,LatMin,LonMax,LatMax):
             raise FileNotFoundError(f'No .png or .csv found in {Output_folder}')
                 ##################### upload model output to 510 datalack ##############
         
-        file_service = FileService(account_name='phptyp',protocol='https', connection_string=os.environ["azure_connection_string"])
+        file_service = FileService(account_name='phptyp',protocol='https', connection_string=os.environ["AZURE_CONNECTING_STRING"])
         file_service.create_share('forecast')
         OutPutFolder=date_dir
         file_service.create_directory('forecast', OutPutFolder) 

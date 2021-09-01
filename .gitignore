@@ -150,4 +150,5 @@ cython_debug/
 # Custom
 secrets
 **/forecast
+temp
 

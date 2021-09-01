@@ -50,7 +50,9 @@ the path to where you would like the model run output data to go.
 
 To build and run the image, ensure you are in the top-level directory and execute:
 ```
-docker-compose up
+docker-compose up --build
+
+
 ```
 When you are finished, run
 ```
