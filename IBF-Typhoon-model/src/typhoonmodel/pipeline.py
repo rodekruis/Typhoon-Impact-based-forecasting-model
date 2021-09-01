@@ -27,7 +27,8 @@ import click
 
 from climada.hazard import Centroids, TropCyclone,TCTracks
 from climada.hazard.tc_tracks_forecast import TCForecast
-from typhoonmodel.utility_fun import track_data_clean,Check_for_active_typhoon,Sendemail,ucl_data, plot_intensity
+from typhoonmodel.utility_fun import track_data_clean, Check_for_active_typhoon, Sendemail, \
+    ucl_data, plot_intensity, initialize
 
 if platform == "linux" or platform == "linux2": #check if running on linux or windows os
     from typhoonmodel.utility_fun import Rainfall_data
@@ -36,17 +37,8 @@ elif platform == "win32":
 
 decoder = Decoder()
 
-# Set up logger
-logging.root.handlers = []
-logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.DEBUG, filename='ex.log')
-# set up logging to console
-console = logging.StreamHandler()
-console.setLevel(logging.INFO)
-# set a format which is simpler for console use
-formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(message)s')
-console.setFormatter(formatter)
-logging.getLogger("").addHandler(console)
-
+initialize.setup_logger()
+logger = logging.getLogger(__name__)
 
 ECMWF_MAX_TRIES = 3
 ECMWF_SLEEP = 30  # s
@@ -64,6 +56,8 @@ ECMWF_SLEEP = 30  # s
 
 #def main(path,remote_directory,typhoonname):
 def main(path,remote_directory,typhoonname,LonMin,LatMin,LonMax,LatMax):
+    initialize.setup_cartopy()
+
     start_time = datetime.now()
     print('---------------------AUTOMATION SCRIPT STARTED---------------------------------')
     print(str(start_time))
@@ -74,19 +68,19 @@ def main(path,remote_directory,typhoonname,LonMin,LatMin,LonMax,LatMax):
     TEST_REMOTE_DIR = '20210421120000'
     remote_dir = remote_directory
     if not Activetyphoon:
-      logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")
+      logger.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")
       if remote_dir is None:
          remote_dir = TEST_REMOTE_DIR
          #remote_dir='20210421120000' #for downloading test data otherwise set it to None
       Activetyphoon=[typhoonname]  #name of typhoon for test
-      #logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")
+      #logger.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")
     elif remote_directory is not None:
-      logging.info(f"There is an active typhoon, but the user has requested to run for typhoon{typhoonname}")
+      logger.info(f"There is an active typhoon, but the user has requested to run for typhoon{typhoonname}")
       #remote_dir='20210421120000' #for downloading test data otherwise set it to None
       Activetyphoon=[typhoonname]  #name of typhoon for test
-      logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")    
+      logger.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")
     else:
-      logging.info(f"Running on active Typhoon(s) {Activetyphoon}")
+      logger.info(f"Running on active Typhoon(s) {Activetyphoon}")
       #remote_dir=None # for downloading test data      Activetyphoon=['SURIGAE']
     print("currently active typhoon list= %s"%Activetyphoon)
 
@@ -110,7 +104,7 @@ def main(path,remote_directory,typhoonname,LonMin,LatMin,LonMax,LatMax):
     except:
         traceback.print_exc()
         #logger.warning(f'Rainfall download failed, performing download in R script')
-        logging.info(f'Rainfall download failed, performing download in R script')
+        logger.info(f'Rainfall download failed, performing download in R script')
         rainfall_error=True
     ###### download UCL data
       
@@ -118,7 +112,7 @@ def main(path,remote_directory,typhoonname,LonMin,LatMin,LonMax,LatMax):
         ucl_data.create_ucl_metadata(path, os.environ['UCL_USERNAME'], os.environ['UCL_PASSWORD'])
         ucl_data.process_ucl_data(path, Input_folder, os.environ['UCL_USERNAME'], os.environ['UCL_PASSWORD'])
     except:
-        logging.info(f'UCL download failed')
+        logger.info(f'UCL download failed')
     #%%
     ##Create grid points to calculate Winfield
     cent = Centroids()
@@ -144,16 +138,16 @@ def main(path,remote_directory,typhoonname,LonMin,LatMin,LonMax,LatMax):
     n_tries = 0
     while True:
         try:
-            logging.info("Downloading ECMWF typhoon tracks")
+            logger.info("Downloading ECMWF typhoon tracks")
             bufr_files = TCForecast.fetch_bufr_ftp(remote_dir=remote_dir)
             fcast = TCForecast()
             fcast.fetch_ecmwf(files=bufr_files)
         except ftplib.all_errors as e:
             n_tries += 1
             if n_tries > ECMWF_MAX_TRIES:
-                logging.error(f'Exceeded {ECMWF_MAX_TRIES} tries, exiting')
+                logger.error(f'Exceeded {ECMWF_MAX_TRIES} tries, exiting')
                 SystemExit(e)
-            logging.error(f' Data downloading from ECMWF failed: {e}, retrying after {ECMWF_SLEEP} s')
+            logger.error(f' Data downloading from ECMWF failed: {e}, retrying after {ECMWF_SLEEP} s')
             time.sleep(ECMWF_SLEEP)
             continue
         break
@@ -166,7 +160,7 @@ def main(path,remote_directory,typhoonname,LonMin,LatMin,LonMax,LatMax):
     # fcast.data = [tr for tr in fcast.data if tr.time.size>1]    
     for typhoons in Activetyphoon:
         #typhoons=Activetyphoon[0]
-        logging.info(f'Processing data {typhoons}')
+        logger.info(f'Processing data {typhoons}')
         fname=open(os.path.join(path,'forecast/Input/',"typhoon_info_for_model.csv"),'w')
         fname.write('source,filename,event,time'+'\n')   
         if not rainfall_error:
@@ -232,7 +226,7 @@ def main(path,remote_directory,typhoonname,LonMin,LatMin,LonMax,LatMax):
         list_intensity=[]
         distan_track=[]
         for tr in data_forced:
-            logging.info(f"Running on ensemble # {tr.ensemble_number} for typhoon {tr.name}")
+            logger.info(f"Running on ensemble # {tr.ensemble_number} for typhoon {tr.name}")
             track = TCTracks()
             typhoon = TropCyclone()
             track.data=[tr]
@@ -241,7 +235,7 @@ def main(path,remote_directory,typhoonname,LonMin,LatMin,LonMax,LatMax):
             typhoon.set_from_tracks(track, cent, store_windfields=True)
             # Make intensity plot using the high resolution member
             if tr.is_ensemble == 'False':
-                logging.info("High res member: creating intensity plot")
+                logger.info("High res member: creating intensity plot")
                 plot_intensity.plot_inensity(typhoon=typhoon, event=tr.sid, output_dir=Output_folder,
                                              date_dir=date_dir, typhoon_name=tr.name)
             windfield=typhoon.windfields
@@ -303,13 +297,13 @@ def main(path,remote_directory,typhoonname,LonMin,LatMin,LonMax,LatMax):
             try:
                 p = subprocess.check_call(["Rscript", "run_model_V2.R", str(rainfall_error)])
             except subprocess.CalledProcessError as e:
-                logging.error(f'failed to excute R sript')
+                logger.error(f'failed to excute R sript')
                 raise ValueError(str(e))
         elif platform == "win32": #if OS is windows edit the path for Rscript
             try:
                 p = subprocess.check_call(["C:/Program Files/R/R-4.1.0/bin/Rscript", "run_model_V2.R", str(rainfall_error)])
             except subprocess.CalledProcessError as e:
-                logging.error(f'failed to excute R sript')
+                logger.error(f'failed to excute R sript')
                 raise ValueError(str(e))
             
         #############################################################
