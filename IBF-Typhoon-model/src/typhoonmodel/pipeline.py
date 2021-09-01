@@ -9,6 +9,7 @@ Created on Sat Oct 31 16:01:00 2020
 import time
 import ftplib
 import os
+import sys
 from datetime import datetime, timedelta
 from sys import platform
 import subprocess
@@ -56,18 +57,13 @@ ECMWF_SLEEP = 30  # s
 @click.option('--path', default='./', help='main directory')
 @click.option('--remote_directory', default=None, help='remote directory for ECMWF forecast data') #'20210421120000'
 @click.option('--typhoonname', default='SURIGAE',help='name for active typhoon')
-@click.option('--debug_flag', default=False,help='setting for DEBUG option')
+@click.option('--debug', help='setting for DEBUG option')
 
 
-#@click.option('--LatMax', default=19,help='maximum extent latitude')
-#@click.option('--LatMin', default=6,help='minimum extent latitude')
-#@click.option('--LonMax', default=127,help='maximum extent longtiude')
-#@click.option('--LonMin', default=118,help='minimum extent longtiude')
+ 
 
-
-#def main(path,remote_directory,typhoonname):
-#def main(path,remote_directory,typhoonname,LonMin,LatMin,LonMax,LatMax):
-def main(path,debug_flag,remote_directory,typhoonname):
+ 
+def main(path,debug,remote_directory,typhoonname):
     start_time = datetime.now()
     print('---------------------AUTOMATION SCRIPT STARTED---------------------------------')
     print(str(start_time))
@@ -77,41 +73,21 @@ def main(path,debug_flag,remote_directory,typhoonname):
     Activetyphoon=Check_for_active_typhoon.check_active_typhoon()
     TEST_REMOTE_DIR = '20210421120000'
     remote_dir = remote_directory
-    if not Activetyphoon and debug_flag:
-        logging.info(f"No active typhoon in PAR, DEBUGGING piepline  for typhoon{typhoonname}")
+    if debug:
+        logging.info(f"DEBUGGING piepline  for typhoon{typhoonname}")
         Activetyphoon=[typhoonname]
         if remote_dir is None:
             remote_dir = TEST_REMOTE_DIR
-    elif not Activetyphoon and not debug_flag:
+    elif not Activetyphoon and not debug:
         logging.info("No active typhoon in PAR stop pipeline")
-        print("currently no active typhoon in PAR DEBUG flag was set to False")
-        print("For Debugging you can set debug_flag=True via options")
-        exit()
+        #print("currently no active typhoon in PAR DEBUG flag was set to False")
+        #print("For Debugging you can set debug=True via options")
+        sys.exit()
     else:
         logging.info(f"Running on active Typhoon(s) {Activetyphoon}")
         remote_dir=None # for downloading test data      Activetyphoon=['SURIGAE']
-        print("currently active typhoon list= %s"%Activetyphoon)
-        
-                
+        #print("currently active typhoon list= %s"%Activetyphoon)
  
-
-    # if not Activetyphoon:
-    #   logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")      
-    #   if remote_dir is None:
-    #      remote_dir = TEST_REMOTE_DIR
-    #      #remote_dir='20210421120000' #for downloading test data otherwise set it to None
-    #   Activetyphoon=[typhoonname]  #name of typhoon for test
-    #   #logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")
-    # elif remote_directory is not None:
-    #   logging.info(f"There is an active typhoon, but the user has requested to run for typhoon{typhoonname}")
-    #   #remote_dir='20210421120000' #for downloading test data otherwise set it to None
-    #   Activetyphoon=[typhoonname]  #name of typhoon for test
-    #   logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")    
-    # else:
-    #   logging.info(f"Running on active Typhoon(s) {Activetyphoon}")
-    #   #remote_dir=None # for downloading test data      Activetyphoon=['SURIGAE']
-    # print("currently active typhoon list= %s"%Activetyphoon)
-
     #%% Download Rainfaall
 
     Alternative_data_point = (start_time - timedelta(hours=24)).strftime("%Y%m%d")

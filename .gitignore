@@ -150,5 +150,6 @@ cython_debug/
 # Custom
 secrets
 **/forecast
-temp
-
+IBF-Typhoon-model/models/other_models/*
+IBF-Typhoon-model/model_trigger.py
+IBF-Typhoon-model/credentials
