@@ -367,7 +367,7 @@ def main(path,debug_flag,remote_directory,typhoonname):
             raise FileNotFoundError(f'No .png or .csv found in {Output_folder}')
                 ##################### upload model output to 510 datalack ##############
         
-        file_service = FileService(account_name='phptyp',protocol='https', connection_string=os.environ["AZURE_CONNECTING_STRING"])
+        file_service = FileService(account_name=os.environ["AZURE_STORAGE_ACCOUNT"],protocol='https', connection_string=os.environ["AZURE_CONNECTING_STRING"])
         file_service.create_share('forecast')
         OutPutFolder=date_dir
         file_service.create_directory('forecast', OutPutFolder) 
