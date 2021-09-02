@@ -51,6 +51,7 @@ ECMWF_SLEEP = 30  # s
 @click.option('--typhoonname', default='SURIGAE',help='name for active typhoon')
 @click.option('--debug', help='setting for DEBUG option')
 def main(path,debug,remote_directory,typhoonname):
+    initialize.setup_cartopy()
     start_time = datetime.now()
     print('---------------------AUTOMATION SCRIPT STARTED---------------------------------')
     print(str(start_time))

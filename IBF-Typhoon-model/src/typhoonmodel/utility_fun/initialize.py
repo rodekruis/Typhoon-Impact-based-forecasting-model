@@ -22,6 +22,7 @@ def setup_logger():
 
 def setup_cartopy():
     # Configures cartopy to download NaturalEarth shapefiles from S3 instead of naciscdn
+    # Taken from https://github.com/SciTools/cartopy/issues/1325#issuecomment-904343657
     target_path_template = NEShpDownloader.default_downloader().target_path_template
     downloader = NEShpDownloader(url_template=CARTOPY_SOURCE_TEMPLATE,
                                  target_path_template=target_path_template)
