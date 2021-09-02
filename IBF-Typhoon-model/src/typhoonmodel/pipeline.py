@@ -49,7 +49,7 @@ ECMWF_SLEEP = 30  # s
 @click.option('--path', default='./', help='main directory')
 @click.option('--remote_directory', default=None, help='remote directory for ECMWF forecast data') #'20210421120000'
 @click.option('--typhoonname', default='SURIGAE',help='name for active typhoon')
-@click.option('--debug', help='setting for DEBUG option')
+@click.option('--debug', is_flag=True, help='setting for DEBUG option')
 def main(path,debug,remote_directory,typhoonname):
     initialize.setup_cartopy()
     start_time = datetime.now()
