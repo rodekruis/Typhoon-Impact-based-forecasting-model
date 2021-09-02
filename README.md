@@ -11,43 +11,51 @@ The tool is available under the
 To run the pipeline, you need access to an FTP server. 
 If you or your organization is interested in using the pipeline, 
 please contact [510 Global](https://www.510.global/contact-us/)
-to obtain the credentials.  You will receive a file called `settings.py`, which you need to place in 
-the `IBF-Typhoon-model/lib` directory.
+to obtain the credentials.  You will receive a file called `secrets`, which you need to place in 
+the top-level directory.
 
 ### Without Docker
 
-The main script for the pipeline is `IBF-Typhoon-model/scr/pipeline.py`.
-It can in principle be run locally by setting up your local Python environment using
-the `requirements.txt` file, and installing all the R packages listed in the `Dockerfile`.
-However, we suggest using the docker image instead.
+The main code for the pipeline is `IBF-Typhoon-model/src/`, which can in principle be run locally,
+however we do recommend using Docker if you can.
+To run locally:
+
+1. Enter the `IBF-Typhoon-model` directory and install the required Python packages, as
+    well as the `typhoonmodel` package:
+    ```
+    pip install -r requirements.pip
+    pip install .
+    ```
+2. Install all packages listed at the top of the R script `run_model_v2.R`.
+3. Ensure that all the parameters from the `secrets` file have been exported as environment variables
+4. Execute:
+    ```
+    run-typhoon-model [OPTIONS]
+
+    Options:
+      --path TEXT             main directory defult 
+      --remote_directory TEXT                  remote directory 
+      --typhoonname TEXT               name for active typhoon
+    ```
+    When there is an active typhoon in the PAR polygon the model will run for the active typhoons,
+    unless you specify a remote directory and typhoon name. 
 
 ### With Docker
 
-You will need to have docker installed, and you should modify `Docker-settings`
-to set the container memory to at least 2GB
+You will need to have `docker` and `docker-compose` installed.
+You need to create an environment variable called `TYPHOONMODEL_OUTPUT` that contains
+the path to where you would like the model run output data to go.
 
-####  Build the image
+#### Running 
 
-To build the docker image, run:
+To build and run the image, ensure you are in the top-level directory and execute:
 ```
-docker build -t rodekruis510/typhoonibf .
-```
-## Running
-To spin up and enter the docker container, create a directory where you would like
-the output data to go. Then run:
-```
-docker run --rm -it --name=fbf-phv3 -v $path-to-output-directory:/home/fbf/forecast -p 587:587 rodekruis510/typhoonibf bash
-```
+docker-compose up --build
 
-To run the pipeline, enter the container and execute:
-```
-run-typhoon-model [OPTIONS]
 
-Options:
-  --path TEXT             main directory defult 
-  --remote_directory TEXT                  remote directory 
-  --typhoonname TEXT               name for active typhoon
 ```
-
-When there is an active typhoon in the PAR polygon the model will run for the active typhoons,
-unless you specify a remote directory and typhoon name. 
+When you are finished, run
+```
+docker-compose down
+```
+to remove any docker container(s).

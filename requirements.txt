@@ -51,3 +51,4 @@ pybufrkit==0.2.19
 Rtree==0.9.4
 shapely==1.7.1
 xarray==0.19.0
+azure-storage-file==2.1.0

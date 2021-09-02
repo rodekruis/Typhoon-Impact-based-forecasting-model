@@ -1,0 +1,12 @@
+version: "3.8"
+services:
+  fbf-phv3:
+    build: .
+    image: rodekruis510/typhoonibf:latest
+    ports:
+      - "587:587"
+    env_file:
+      - secrets
+    volumes:
+      - $TYPHOONMODEL_OUTPUT:/home/fbf/forecast
+    command: run-typhoon-model

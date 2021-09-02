@@ -8,14 +8,16 @@ Created on Sat Oct 31 16:01:00 2020
 """
 import time
 import ftplib
-import sys
 import os
+import sys
 from datetime import datetime, timedelta
 from sys import platform
 import subprocess
 import logging
 import traceback
 from pathlib import Path
+from azure.storage.file import FileService
+from azure.storage.file import ContentSettings
 
 import pandas as pd
 from pybufrkit.decoder import Decoder
@@ -23,10 +25,7 @@ import numpy as np
 from geopandas.tools import sjoin
 import geopandas as gpd
 import click
-decoder = Decoder()
 
-#%%
-from typhoonmodel import settings
 from climada.hazard import Centroids, TropCyclone,TCTracks
 from climada.hazard.tc_tracks_forecast import TCForecast
 from typhoonmodel.utility_fun import track_data_clean,Check_for_active_typhoon,Sendemail,ucl_data, plot_intensity
@@ -36,6 +35,7 @@ if platform == "linux" or platform == "linux2": #check if running on linux or wi
 elif platform == "win32":
     from typhoonmodel.utility_fun import Rainfall_data_window as Rainfall_data
 
+decoder = Decoder()
 
 # Set up logger
 logging.root.handlers = []
@@ -53,13 +53,17 @@ ECMWF_MAX_TRIES = 3
 ECMWF_SLEEP = 30  # s
 
 
-
 @click.command()
 @click.option('--path', default='./', help='main directory')
 @click.option('--remote_directory', default=None, help='remote directory for ECMWF forecast data') #'20210421120000'
 @click.option('--typhoonname', default='SURIGAE',help='name for active typhoon')
-       
-def main(path,remote_directory,typhoonname):
+@click.option('--debug', help='setting for DEBUG option')
+
+
+ 
+
+ 
+def main(path,debug,remote_directory,typhoonname):
     start_time = datetime.now()
     print('---------------------AUTOMATION SCRIPT STARTED---------------------------------')
     print(str(start_time))
@@ -69,23 +73,21 @@ def main(path,remote_directory,typhoonname):
     Activetyphoon=Check_for_active_typhoon.check_active_typhoon()
     TEST_REMOTE_DIR = '20210421120000'
     remote_dir = remote_directory
-    if not Activetyphoon:
-      logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")
-      if remote_dir is None:
-         remote_dir = TEST_REMOTE_DIR
-         #remote_dir='20210421120000' #for downloading test data otherwise set it to None
-      Activetyphoon=[typhoonname]  #name of typhoon for test
-      #logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")
-    elif remote_directory is not None:
-      logging.info(f"There is an active typhoon, but the user has requested to run for typhoon{typhoonname}")
-      #remote_dir='20210421120000' #for downloading test data otherwise set it to None
-      Activetyphoon=[typhoonname]  #name of typhoon for test
-      logging.info(f"No active typhoon in PAR runing for typhoon{typhoonname}")    
+    if debug:
+        logging.info(f"DEBUGGING piepline  for typhoon{typhoonname}")
+        Activetyphoon=[typhoonname]
+        if remote_dir is None:
+            remote_dir = TEST_REMOTE_DIR
+    elif not Activetyphoon and not debug:
+        logging.info("No active typhoon in PAR stop pipeline")
+        #print("currently no active typhoon in PAR DEBUG flag was set to False")
+        #print("For Debugging you can set debug=True via options")
+        sys.exit()
     else:
-      logging.info(f"Running on active Typhoon(s) {Activetyphoon}")
-      #remote_dir=None # for downloading test data      Activetyphoon=['SURIGAE']
-    print("currently active typhoon list= %s"%Activetyphoon)
-
+        logging.info(f"Running on active Typhoon(s) {Activetyphoon}")
+        remote_dir=None # for downloading test data      Activetyphoon=['SURIGAE']
+        #print("currently active typhoon list= %s"%Activetyphoon)
+ 
     #%% Download Rainfaall
 
     Alternative_data_point = (start_time - timedelta(hours=24)).strftime("%Y%m%d")
@@ -111,16 +113,16 @@ def main(path,remote_directory,typhoonname):
     ###### download UCL data
       
     try:
-        ucl_data.create_ucl_metadata(path,settings.uCL_USERNAME,settings.uCL_PASSWORD)
-        ucl_data.process_ucl_data(path,Input_folder,settings.uCL_USERNAME,settings.uCL_PASSWORD)
-        logging.info(f'UCL download failed')
-
+        ucl_data.create_ucl_metadata(path, os.environ['UCL_USERNAME'], os.environ['UCL_PASSWORD'])
+        ucl_data.process_ucl_data(path, Input_folder, os.environ['UCL_USERNAME'], os.environ['UCL_PASSWORD'])
     except:
-        pass
+        logging.info(f'UCL download failed')
     #%%
     ##Create grid points to calculate Winfield
     cent = Centroids()
     cent.set_raster_from_pnt_bounds((118,6,127,19), res=0.05)
+    #this option is added to make the script scaleable globally To Do
+    #cent.set_raster_from_pnt_bounds((LonMin,LatMin,LonMax,LatMax), res=0.05) 
     cent.check()
     cent.plot()
     ####
@@ -326,23 +328,38 @@ def main(path,remote_directory,typhoonname):
             </html>
             """
             Sendemail.sendemail(
-                smtp_server=settings.sMTP_SERVER,
-                smtp_port=settings.sMTP_PORT,
-                email_username=settings.eMAIL_LOGIN,
-                email_password=settings.eMAIL_PASSWORD,
+                smtp_server=os.environ["SMTP_SERVER"],
+                smtp_port=int(os.environ["SMTP_PORT"]),
+                email_username=os.environ["EMAIL_LOGIN"],
+                email_password=os.environ["EMAIL_PASSWORD"],
                 email_subject='Updated impact map for a new Typhoon in PAR',
-                from_address=settings.eMAIL_FROM,
-                to_address_list=settings.eMAIL_LIST,
-                cc_address_list=settings.cC_LIST,
+                from_address=os.environ["EMAIL_FROM"],
+                to_address_list=os.environ["EMAIL_TO_LIST"].split(','),
+                cc_address_list=os.environ["EMAIL_CC_LIST"].split(','),
                 message_html=message_html,
                 filename_list=image_filenames + data_filenames
             )
         else:
             raise FileNotFoundError(f'No .png or .csv found in {Output_folder}')
+                ##################### upload model output to 510 datalack ##############
+        
+        file_service = FileService(account_name=os.environ["AZURE_STORAGE_ACCOUNT"],protocol='https', connection_string=os.environ["AZURE_CONNECTING_STRING"])
+        file_service.create_share('forecast')
+        OutPutFolder=date_dir
+        file_service.create_directory('forecast', OutPutFolder) 
+        
+        for img_file in image_filenames:   
+            file_service.create_file_from_path('forecast', OutPutFolder,os.fspath(img_file.parts[-1]),img_file, content_settings=ContentSettings(content_type='image/png'))
+
+        for data_file in data_filenames:
+            file_service.create_file_from_path('forecast', OutPutFolder,os.fspath(data_file.parts[-1]),data_file, content_settings=ContentSettings(content_type='text/csv'))
+            
+        ##################### upload model input(Rainfall+wind intensity) to 510 datalack ############## 
+        # To DO
+        
 
     print('---------------------AUTOMATION SCRIPT FINISHED---------------------------------')
     print(str(datetime.now()))
-    
 
 
 #%%#Download rainfall (old pipeline)
