@@ -1,12 +1,81 @@
-# Temporary workflow on master to trigger actions tab
 name: run-typhoon-model
+
 on:
-  workflow_dispatch:
+  workflow_dispatch
 
 jobs:
   run-typhoon-model:
     runs-on: ubuntu-latest
+    env:
+      running-directory: ./IBF-Typhoon-model
     steps:
-      - uses: actions/checkout@v2
-      - name: Run a one-line script
-        run: echo Hello, world!
+    - uses: actions/checkout@v2
+
+    - name: Set up Python 3.x
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Set up R
+      uses: r-lib/actions/setup-r@master
+      with:
+        r-version: 4.1
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          python3-eccodes \
+          libproj-dev \
+          libgeos-dev \
+          libspatialindex-dev \
+          libudunits2-dev \
+          libssl-dev \
+          libgdal-dev
+
+    - name: Install R dependencies
+      run: |
+        Rscript -e \
+          "install.packages(c('tmap', 'dplyr', 'tidyr', 'sf', 'geojsonsf', 'raster', \
+          'rlang', 'lubridate', 'ncdf4', 'xgboost', 'huxtable', 'readr'))"
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -r requirements.txt
+
+    - name: Install script
+      run: |
+        python -m pip install .
+      working-directory: ${{ env.running-directory }}
+
+    - name: Run script
+      env:
+        EMAIL_TO_LIST: ${{ secrets.EMAIL_TO_LIST }}
+        EMAIL_CC_LIST: ${{ secrets.EMAIL_CC_LIST }}
+        UCL_USERNAME: ${{ secrets.UCL_USERNAME }}
+        UCL_PASSWORD: ${{ secrets.UCL_PASSWORD }}
+        EMAIL_LOGIN: ${{ secrets.EMAIL_LOGIN }}
+        EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+        EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+        SMTP_PORT: ${{ secrets.SMTP_PORT }}
+        AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+        AZURE_CONNECTING_STRING: ${{ secrets.AZURE_CONNECTING_STRING }}
+      run: |
+        run-typhoon-model
+      working-directory: ${{ env.running-directory }}
+
+    - name: Send mail
+      if: failure()
+      uses: dawidd6/action-send-mail@v2
+      with:
+        server_address: ${{secrets.SMTP_SERVER}}
+        server_port: ${{secrets.SMTP_PORT}}
+        username: ${{secrets.EMAIL_LOGIN}}
+        password: ${{secrets.EMAIL_PASSWORD}}
+        subject: "FAILED: ${{github.repository}} run job"
+        body: GitHub Actions run job for ${{github.repository}} failed!
+        to: ${{secrets.EMAIL_TO_LIST}}
+        from: ${{secrets.EMAIL_FROM}}
+        content_type: text/html
