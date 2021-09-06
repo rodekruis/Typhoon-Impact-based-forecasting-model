@@ -245,6 +245,11 @@ def main(path,debug,remote_directory,typhoonname):
             inten_tr['storm_id'] = tr.sid
             inten_tr['ens_id'] =tr.sid+'_'+str(tr.ensemble_number)
             inten_tr['name'] = tr.name
+            inten_tr = (pd.merge(inten_tr, df_admin, how='outer', on='centroid_id')
+                        .dropna()
+                        .groupby(['adm3_pcode', 'ens_id'], as_index=False)
+                        .agg({"value": ['count', 'max']}))
+            inten_tr.columns = [x for x in ['adm3_pcode', 'storm_id', 'value_count', 'v_max']]
             list_intensity.append(inten_tr)
             distan_track1=[]
             for index, row in df.iterrows():
@@ -254,20 +259,16 @@ def main(path,debug,remote_directory,typhoonname):
             dist_tr['storm_id'] = tr.sid
             dist_tr['name'] = tr.name
             dist_tr['ens_id'] =tr.sid+'_'+str(tr.ensemble_number)
-            distan_track.append(dist_tr)                
-        df_intensity = pd.concat(list_intensity)
-        df_intensity=pd.merge(df_intensity, df_admin, how='outer', on='centroid_id')
-        df_intensity=df_intensity.dropna()
-        
-        df_intensity_=df_intensity.groupby(['adm3_pcode','ens_id'],as_index=False).agg({"value":['count', 'max']}) 
-        # rename columns
-        df_intensity_.columns = [x for x in ['adm3_pcode','storm_id','value_count','v_max']] 
-        distan_track1= pd.concat(distan_track)
-        distan_track1=pd.merge(distan_track1, df_admin, how='outer', on='centroid_id')
-        distan_track1=distan_track1.dropna()
-        
-        distan_track1=distan_track1.groupby(['adm3_pcode','name','ens_id'],as_index=False).agg({'value':'min'}) 
-        distan_track1.columns = [x for x in ['adm3_pcode','name','storm_id','dis_track_min']]#join_left_df_.columns.ravel()] 
+            dist_tr = (pd.merge(dist_tr, df_admin, how='outer', on='centroid_id')
+                       .dropna()
+                       .groupby(['adm3_pcode', 'name', 'ens_id'], as_index=False)
+                       .agg({'value': 'min'}))
+            dist_tr.columns = [x for x in ['adm3_pcode', 'name', 'storm_id',
+                                                 'dis_track_min']]  # join_left_df_.columns.ravel()]
+            distan_track.append(dist_tr)
+        df_intensity_ = pd.concat(list_intensity)
+        distan_track1 = pd.concat(distan_track)
+
         typhhon_df = pd.merge(df_intensity_, distan_track1,  how='left', on=['adm3_pcode','storm_id']) 
     
         typhhon_df.to_csv(os.path.join(Input_folder,'windfield.csv'), index=False)
