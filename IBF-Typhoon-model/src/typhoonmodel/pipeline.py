@@ -65,7 +65,8 @@ def main(path,debug,remote_directory,typhoonname):
         logger.info(f"DEBUGGING piepline for typhoon{typhoonname}")
         Activetyphoon = [typhoonname]
     else:
-        if typhoonname is None:
+        # If passed typhoon name is None or empty string
+        if not typhoonname:
             Activetyphoon = Check_for_active_typhoon.check_active_typhoon()
             if not Activetyphoon:
                 logger.info("No active typhoon in PAR stop pipeline")
