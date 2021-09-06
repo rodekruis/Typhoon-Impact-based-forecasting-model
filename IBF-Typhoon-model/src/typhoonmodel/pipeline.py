@@ -135,9 +135,10 @@ def main(path,debug,remote_directory,typhoonname):
             fcast.fetch_ecmwf(files=bufr_files)
         except ftplib.all_errors as e:
             n_tries += 1
-            if n_tries > ECMWF_MAX_TRIES:
-                logger.error(f'Exceeded {ECMWF_MAX_TRIES} tries, exiting')
-                SystemExit(e)
+            if n_tries >= ECMWF_MAX_TRIES:
+                logger.error(f' Data downloading from ECMWF failed: {e}, '
+                             f'reached limit of {ECMWF_MAX_TRIES} tries, exiting')
+                sys.exit()
             logger.error(f' Data downloading from ECMWF failed: {e}, retrying after {ECMWF_SLEEP} s')
             time.sleep(ECMWF_SLEEP)
             continue
