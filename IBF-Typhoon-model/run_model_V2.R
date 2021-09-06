@@ -168,7 +168,7 @@ df_impact_forecast <- as.data.frame(y_predicted) %>%
     region = substr(GEN_mun_code, 1, 4),
     Damaged_houses = as.integer(GEO_n_households * e_impact * 0.01),
   ) %>%
-  filter(WEA_dist_track < 500) %>%
+  filter(WEA_dist_track < 100) %>%
   dplyr::select(
     index,
     region,
