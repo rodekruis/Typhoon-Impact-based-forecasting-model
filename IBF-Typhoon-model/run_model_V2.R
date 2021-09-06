@@ -36,6 +36,8 @@ source("lib_r/damage_probability.R")
 
 php_admin3 <- geojsonsf::geojson_sf("data-raw/phl_admin3_simpl2.geojson")
 php_admin1 <- geojsonsf::geojson_sf("data-raw/phl_admin1_gadm_pcode.geojson")
+php_admin3<-st_make_valid(php_admin3)
+php_admin1<-st_make_valid(php_admin1)
 wshade <- php_admin3
 material_variable2 <- read.csv("data/material_variable2.csv")
 data_matrix_new_variables <- read.csv("data/data_matrix_new_variables.csv")
@@ -168,7 +170,7 @@ df_impact_forecast <- as.data.frame(y_predicted) %>%
     region = substr(GEN_mun_code, 1, 4),
     Damaged_houses = as.integer(GEO_n_households * e_impact * 0.01),
   ) %>%
-  filter(WEA_dist_track < 500) %>%
+  filter(WEA_dist_track < 100) %>%
   dplyr::select(
     index,
     region,
