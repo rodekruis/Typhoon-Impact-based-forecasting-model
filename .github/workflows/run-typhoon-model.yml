@@ -1,7 +1,12 @@
 name: run-typhoon-model
 
 on:
-  workflow_dispatch
+  workflow_dispatch:
+    inputs:
+      typhoon_name:
+        description: Custom typhoon name
+        required: False
+        default: ''
 
 jobs:
   run-typhoon-model:
@@ -63,7 +68,7 @@ jobs:
         AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
         AZURE_CONNECTING_STRING: ${{ secrets.AZURE_CONNECTING_STRING }}
       run: |
-        run-typhoon-model
+        run-typhoon-model --typhoonname ${{ github.event.inputs.typhoon_name }}
       working-directory: ${{ env.running-directory }}
 
     - name: Send mail
