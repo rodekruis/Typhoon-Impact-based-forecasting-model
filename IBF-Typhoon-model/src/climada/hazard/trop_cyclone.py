@@ -88,8 +88,7 @@ class TropCyclone(Hazard):
         'SP' Southern Pacific
         'SA' South Atlantic
     """
-    # TODO: make a PR in Climada to make this an option
-    intensity_thres = 10   # Default 17.5
+    intensity_thres = 17.5
     """intensity threshold for storage in m/s"""
 
     vars_opt = Hazard.vars_opt.union({'category'})
