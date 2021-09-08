@@ -81,7 +81,7 @@ Make_maps_avg<-function(php_admin1,php_admin3_,my_track,TYF,Typhoon_stormname,ma
       breaks = breaks,
       palette = palette,
       legend.show=FALSE
-    )
+    ) +
     
     tm_borders(col = NA, lwd = .25, lty = "solid", alpha = .25, group = NA) +
     
