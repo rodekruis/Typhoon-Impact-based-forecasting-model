@@ -1,0 +1,14 @@
+install.packages(c(
+    'tmap',
+    'dplyr',
+    'tidyr',
+    'sf',
+    'geojsonsf',
+    'raster',
+    'rlang',
+    'lubridate',
+    'ncdf4',
+    'xgboost',
+    'huxtable',
+    'readr'
+))
