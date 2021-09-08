@@ -144,7 +144,7 @@ class TCForecast(TCTracks):
         try:
             if remote_dir is None:
                 remote = pd.Series(con.nlst())
-                remote = remote[remote.str.contains('120000|000000$')]
+                remote = remote[remote.str.endswith(('000000', '060000', '120000', '180000'))]
                 remote = remote.sort_values(ascending=False)
                 remote_dir = remote.iloc[0]
 
