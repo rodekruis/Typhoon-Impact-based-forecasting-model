@@ -16,6 +16,11 @@ rainfall_error <- args[1]
 sf_use_s2(FALSE)
 
 ###########################################################################
+# Constants
+SUS_TO_GUST = 1.49 # sus to gust conversion, 1 min average
+# See Table 1.1 here: https://library.wmo.int/doc_num.php?explnum_id=290
+MS_TO_MPH = 2.23694 # meters / second to miles per hour
+
 # ------------------------ import DATA  -----------------------------------
 source("lib_r/settings.R")
 source("lib_r/data_cleaning_forecast.R")
@@ -102,12 +107,11 @@ typhoon_hazard <- wind_grid %>%
     dist_track = dis_track_min,
     gust_dur = 0,
     sust_dur = 0,
-    vmax_gust = v_max * 1.49, # sus to gust convrsion 1.49 -- 10 min average
-    vmax_gust_mph = v_max * 1.49 * 2, 23694, # mph 1.9 is factor to drive gust and sustained wind
-    vmax_sust_mph = v_max * 2, 23694,
+    vmax_gust = v_max * SUS_TO_GUST,
+    vmax_gust_mph = v_max * SUS_TO_GUST * MS_TO_MPH,
+    vmax_sust_mph = v_max * MS_TO_MPH,
     vmax_sust = v_max
   ) %>%
-  # 1.21 is conversion factor for 10 min average to 1min average
   dplyr::select(
     Mun_Code, vmax_gust,
     vmax_gust_mph, vmax_sust_mph,
@@ -127,9 +131,7 @@ data_new_typhoon1 <- geo_variable %>%
       -Municipality_City
     ), by = "Mun_Code") %>%
   left_join(data_matrix_new_variables, by = "Mun_Code") %>%
-  left_join(typhoon_hazard, by = "Mun_Code") %>%
-  na.omit()
-
+  left_join(typhoon_hazard, by = "Mun_Code")
 
 typhoon_data_cleaned <- clean_typhoon_forecast_data_ensamble(data_new_typhoon1) # %>%na.omit() # Randomforests don't handle NAs, you can impute in the future
 
