@@ -70,7 +70,7 @@ Make_maps_avg<-function(php_admin1,php_admin3_,my_track,TYF,Typhoon_stormname,ma
       legend_title = 'Probability that typhoon\nwill strike within 50 km'
       breaks = c(0,5,10,20,40,50)
       legend_labels = c('   < 5%','5 - 10%','10 - 20%','20 - 40%','   > 50%')
-      palette = c("#f6eff7","#bdc9e1","#67a9cf","#1c9099","#016c59")
+	  palette = c('#f1eef6','#d7b5d8','#df65b0','#dd1c77','#980043')
   }
   
   tmap_mode(mode = "plot")
