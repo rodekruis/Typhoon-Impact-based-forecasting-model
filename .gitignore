@@ -140,8 +140,7 @@ cython_debug/
 # PyCharm
 .idea/
 
-# Python notebooks
-*.ipynb
+
 
 # R files
 **/.Rproj.user
