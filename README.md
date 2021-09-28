@@ -59,3 +59,10 @@ When you are finished, run
 docker-compose down
 ```
 to remove any docker container(s).
+
+### To run model Documentation 
+Excute:
+
+```
+docker run -p 8888:8888 fbf-phv3
+```

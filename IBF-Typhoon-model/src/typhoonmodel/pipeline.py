@@ -146,9 +146,9 @@ def main(path,debug,remote_directory,typhoonname):
 
     #%% filter data downloaded in the above step for active typhoons  in PAR
     # filter tracks with name of current typhoons and drop tracks with only one timestep
-    fcast.data = [track_data_clean.track_data_clean(tr) for tr in fcast.data if (tr.time.size>1 and tr.name in Activetyphoon)]  
+    fcast_data = [track_data_clean.track_data_clean(tr) for tr in fcast.data if (tr.time.size>1 and tr.name in Activetyphoon)]  
      
-    # fcast.data = [tr for tr in fcast.data if tr.name in Activetyphoon]
+    fcast.data =fcast_data # [tr for tr in fcast.data if tr.name in Activetyphoon]
     # fcast.data = [tr for tr in fcast.data if tr.time.size>1]    
     for typhoons in Activetyphoon:
         #typhoons=Activetyphoon[0]
@@ -330,7 +330,7 @@ def main(path,debug,remote_directory,typhoonname):
             )
         else:
             raise FileNotFoundError(f'No .png or .csv found in {Output_folder}')
-                ##################### upload model output to 510 datalack ##############
+        ##################### upload model output to 510 datalack ##############
         
         file_service = FileService(account_name=os.environ["AZURE_STORAGE_ACCOUNT"],protocol='https', connection_string=os.environ["AZURE_CONNECTING_STRING"])
         file_service.create_share('forecast')

@@ -39,8 +39,8 @@ source("lib_r/damage_probability.R")
 
 # ------------------------ import DATA  -----------------------------------
 
-php_admin3 <- geojsonsf::geojson_sf("data-raw/phl_admin3_simpl2.geojson")
-php_admin1 <- geojsonsf::geojson_sf("data-raw/phl_admin1_gadm_pcode.geojson")
+php_admin3 <- geojsonsf::geojson_sf("data/gis_data/phl_admin3_simpl2.geojson")
+php_admin1 <- geojsonsf::geojson_sf("data/gis_data/phl_admin1_gadm_pcode.geojson")
 php_admin3<-st_make_valid(php_admin3)
 php_admin1<-st_make_valid(php_admin1)
 wshade <- php_admin3
