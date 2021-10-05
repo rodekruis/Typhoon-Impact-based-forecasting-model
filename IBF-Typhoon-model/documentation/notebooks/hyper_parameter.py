@@ -105,9 +105,9 @@ def splitting_train_test(df):
     typhoons_with_impact_data=list(np.unique(df.typhoon))
 
     for typhoon in typhoons_with_impact_data:
-
-        df_train_list.append(df[df["typhoon"] != typhoon])
-        df_test_list.append(df[df["typhoon"] == typhoon])
+        if len(df[df["typhoon"] == typhoon]) >150:
+            df_train_list.append(df[df["typhoon"] != typhoon])
+            df_test_list.append(df[df["typhoon"] == typhoon])
 
     return df_train_list, df_test_list
 
@@ -152,16 +152,22 @@ from models.regression.xgb_regression import (xgb_regression_features,xgb_regres
 # In[15]:
     
 
-combined_input_data=pd.read_csv("data\\combined_input_data.csv")
-
+combined_input_data=pd.read_csv("data\\model_input\\combined_input_data.csv")
 
 typhoons_with_impact_data=['bopha2012', 'conson2010', 'durian2006', 'fengshen2008',
-       'fung-wong2014', 'goni2015', 'goni2020', 'hagupit2014','haima2016', 'haiyan2013', 'kalmaegi2014', 'kammuri2019',
-       'ketsana2009', 'koppu2015', 'krosa2013', 'lingling2014','mangkhut2018', 'mekkhala2015', 'melor2015', 'mujigae2015',
-       'nari2013', 'nesat2011', 'nock-ten2016', 'noul2015','rammasun2014', 'sarika2016', 'trami2013', 'usagi2013', 'utor2013',
-       'vamco2020']
+       'fung-wong2014', 'goni2015', 'goni2020', 'hagupit2014',
+       'haima2016', 'haiyan2013', 'jangmi2014', 'kalmaegi2014',
+       'kammuri2019', 'ketsana2009', 'koppu2015', 'krosa2013',
+       'linfa2015', 'lingling2014', 'mangkhut2018', 'mekkhala2015',
+       'melor2015', 'meranti2016', 'molave2020', 'mujigae2015',
+       'nakri2019', 'nari2013', 'nesat2011', 'nock-ten2016', 'noul2015',
+       'phanfone2019', 'rammasun2014', 'sarika2016', 'saudel2020',
+       'tokage2016', 'trami2013', 'usagi2013', 'utor2013', 'vamco2020',
+       'vongfong2020', 'yutu2018']
 
-combined_input_data=combined_input_data[combined_input_data.typhoon.isin(typhoons_with_impact_data)]
+
+        
+#combined_input_data=combined_input_data[combined_input_data.typhoon.isin(typhoons_with_impact_data)]
 
 
 
@@ -172,43 +178,6 @@ combined_input_data=combined_input_data[combined_input_data.typhoon.isin(typhoon
 
 #combined_input_data['year']=combined_input_data['typhoon'].apply(lambda x: int(x[-4:]))
 
-combined_input_data.rename(columns ={"rainfall_Total":"HAZ_rainfall_Total",
-                                     'rainfall_max_6h':'HAZ_rainfall_max_6h',
-                                     'rainfall_max_24h':'HAZ_rainfall_max_24h',
-                                     'v_max':'HAZ_v_max',
-                                     'dis_track_min':'HAZ_dis_track_min',
-                                     'binary_dmg':'DAM_binary_dmg',
-                                     'perc_dmg':'DAM_perc_dmg',
-                                    'landslide_per':'GEN_landslide_per',
-                                    'stormsurge_per':'GEN_stormsurge_per',
-                                    'Bu_p_inSSA':'GEN_Bu_p_inSSA',
-                                    'Bu_p_LS':'GEN_Bu_p_LS',
-                                     'Red_per_LSbldg':'GEN_Red_per_LSbldg',
-                                    'Or_per_LSblg':'GEN_Or_per_LSblg',
-                                     'Yel_per_LSSAb':'GEN_Yel_per_LSSAb',
-                                    'RED_per_SSAbldg':'GEN_RED_per_SSAbldg',
-                                     'OR_per_SSAbldg':'GEN_OR_per_SSAbldg',
-                                    'Yellow_per_LSbl':'GEN_Yellow_per_LSbl',
-                                     'mean_slope':'TOP_mean_slope',
-                                    'mean_elevation_m':'TOP_mean_elevation_m',
-                                     'ruggedness_stdev':'TOP_ruggedness_stdev',
-                                    'mean_ruggedness':'TOP_mean_ruggedness',
-                                     'slope_stdev':'TOP_slope_stdev',
-                                     'poverty_perc':'VUL_poverty_perc',
-                                    'with_coast':'GEN_with_coast',
-                                     'coast_length':'GEN_coast_length',
-                                     'Housing Units':'VUL_Housing_Units',
-                                    'Strong Roof/Strong Wall':"VUL_StrongRoof_StrongWall",
-                                    'Strong Roof/Light Wall':'VUL_StrongRoof_LightWall',
-                                    'Strong Roof/Salvage Wall':'VUL_StrongRoof_SalvageWall',
-                                    'Light Roof/Strong Wall':'VUL_LightRoof_StrongWall',
-                                    'Light Roof/Light Wall':'VUL_LightRoof_LightWall',
-                                    'Light Roof/Salvage Wall':'VUL_LightRoof_SalvageWall',
-                                    'Salvaged Roof/Strong Wall':'VUL_SalvagedRoof_StrongWall',
-                                    'Salvaged Roof/Light Wall':'VUL_SalvagedRoof_LightWall',
-                                    'Salvaged Roof/Salvage Wall':'VUL_SalvagedRoof_SalvageWall',
-                                    'vulnerable_groups':'VUL_vulnerable_groups',
-                                    'pantawid_pamilya_beneficiary':'VUL_pantawid_pamilya_beneficiary'},inplace=True)
 
 
 # In[19]:
@@ -305,6 +274,10 @@ df=combined_input_data.dropna()
 X = df[features]
 y = df["DAM_perc_dmg"]
 
+
+ 
+    
+ 
 # Setting the train and the test sets for obtaining performance estimate
 df_train_list, df_test_list = splitting_train_test(df)
 
@@ -635,11 +608,11 @@ df_predicted_xgb_regr, selected_params_xgb_regr = xgb_regression_performance(
 #Test score: 0.0061379163528594355
 
 
-file_name = "models\\output\\02\\selected_params_xgb_regr.p"
+file_name = "models\\output\\v1\\selected_params_xgb_regr.p"
 path = os.path.join(cdir, file_name)
 pickle.dump(selected_params_xgb_regr, open(path, "wb"))
 
-file_name = "models\\output\\02\\df_predicted_xgb_regr.csv"
+file_name = "models\\output\\v1\\df_predicted_xgb_regr.csv"
 path = os.path.join(cdir, file_name)
 df_predicted_xgb_regr.to_csv(path)
 
@@ -717,7 +690,7 @@ for i in range(len(df_train_list)):
 ### Results 
 
 models = {
-    "Random Forest": df_predicted_rf_regr,
+    #"Random Forest": df_predicted_rf_regr,
     "XGBoost": df_predicted_xgb_regr,
     "Average": df_predicted_mean,
     "Simple Linear Regression": df_predicted_lr,

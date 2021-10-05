@@ -107,7 +107,7 @@ def xgb_regression_performance(
         cv_folds = KFold(n_splits=cv_splits, shuffle=True)
 
         steps = [
-            ("xgb", XGBRegressor(objective=objective)),
+            ("xgb", XGBRegressor(objective=objective,n_jobs=-3)),
         ]
 
         pipe = Pipeline(steps, verbose=0)
