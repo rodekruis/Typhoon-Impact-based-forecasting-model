@@ -30,24 +30,24 @@ Data sets used for training a damage prediction model were collected from differ
 
 Raifall is one of the hazards associated with Typhoons. For the model we used observed rainfall data like the one below  ![example rainfall](https://eoimages.gsfc.nasa.gov/images/imagerecords/52000/52366/philippines_mpa_2011275.png)
 
-* [This](https://github.com/rodekruis/typhoon_house_damage_model/blob/master/IBF-Typhoon-model/documentation/notebooks/rainfalldownload.ipynb) jupyter notebook contains scripts to download and process historical rainfall data 
+* [This](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/tree/model_dev/IBF-Typhoon-model/documentation/notebooks/rainfalldownload.ipynb) jupyter notebook contains scripts to download and process historical rainfall data 
 
 ### Download and process typhoon data
 
-* [This](https://github.com/rodekruis/typhoon_house_damage_model/blob/master/IBF-Typhoon-model/documentation/notebooks/windfield.ipynb) jupyter notebook contains scripts to download and process typhoon wind data
+* [This](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/tree/model_dev/IBF-Typhoon-model/documentation/notebooks/windfield.ipynb) jupyter notebook contains scripts to download and process typhoon wind data
 
 ### Process data for pre disaser indicators, damage loss data and prepare model input
 
-* [This](https://github.com/rodekruis/typhoon_house_damage_model/blob/master/IBF-Typhoon-model/documentation/notebooks/pre_disaster_indicators.ipynb) jupyter notebook contains scripts to process pre disaster indicators, damage and topography datasets. The scripts will is also used to prepare final model input.
+* [This](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/tree/model_dev/IBF-Typhoon-model/documentation/notebooks/pre_disaster_indicators.ipynb) jupyter notebook contains scripts to process pre disaster indicators, damage and topography datasets. The scripts will is also used to prepare final model input.
 
 ## Machin learning model
 
 ### Binary Classification
 
-* [This](https://github.com/rodekruis/typhoon_house_damage_model/blob/master/IBF-Typhoon-model/documentation/notebooks/classification_model.ipynb) jupyter notebook contains scripts for classification Model training and Hyper paramerer optimization
-* [This](https://github.com/rodekruis/typhoon_house_damage_model/blob/master/IBF-Typhoon-model/documentation/notebooks/classification_model_result.ipynb) jupyter notebook contains scripts to view Classification Model result
+* [This](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/tree/model_dev/IBF-Typhoon-model/documentation/notebooks/classification_model.ipynb) jupyter notebook contains scripts for classification Model training and Hyper paramerer optimization
+* [This](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/tree/model_dev/IBF-Typhoon-model/documentation/notebooks/classification_model_result.ipynb) jupyter notebook contains scripts to view Classification Model result
 
 ### Regression
 
-* [This](https://github.com/rodekruis/typhoon_house_damage_model/blob/master/IBF-Typhoon-model/documentation/notebooks/regression_model.ipynb) jupyter notebook contains scripts for Regression Model training and Hyper paramerer optimization
-* [This](https://github.com/rodekruis/typhoon_house_damage_model/blob/master/IBF-Typhoon-model/documentation/notebooks/Regression_model_result.ipynb) jupyter notebook contains scripts to view Regression model result
+* [This](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/tree/model_dev/IBF-Typhoon-model/documentation/notebooks/regression_model.ipynb) jupyter notebook contains scripts for Regression Model training and Hyper paramerer optimization
+* [This](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/tree/model_dev/IBF-Typhoon-model/documentation/notebooks/Regression_model_result.ipynb) jupyter notebook contains scripts to view Regression model result
