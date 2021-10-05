@@ -10,7 +10,7 @@
 
 1. Clone the repo
 2. Change `/IBF-Typhoon-model/src/settings.py.template` to `settings.py` and fill in the necessary passwords.
-3. Find `data.zip` in <https://rodekruis.sharepoint.com/sites/510-CRAVK-510/_layouts/15/guestaccess.aspx?guestaccesstoken=HadTB1h%2FWiVluDiortTyd3%2F9rSc0MdjS2yub9GEntCs%3D&docid=2_0013b102f095246fdab4ff4ce03b12933&rev=1&e=eDGoN5> and unzip in /IBF-Typhoon-model/data.
+3. Download [data.zip](https://rodekruis.sharepoint.com/sites/510-CRAVK-510/_layouts/15/guestaccess.aspx?guestaccesstoken=HadTB1h%2FWiVluDiortTyd3%2F9rSc0MdjS2yub9GEntCs%3D&docid=2_0013b102f095246fdab4ff4ce03b12933&rev=1&e=eDGoN5) from sharepoint and unzip in /IBF-Typhoon-model/data
 4. Install Docker-compose [follow this link](https://docs.docker.com/desktop/windows/install/)
 
 <!-- Model data preparation -->
