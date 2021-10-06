@@ -8,25 +8,35 @@ The tool is available under the
 [GPL license](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/blob/master/LICENSE)
 
 Table of contents
-=================
 
-<!--ts-->
-	*[Installation](#Installation)  
-	*[Running pipeline Without Docker](#Running pipeline Without Docker)
-	*[Running pipeline With Docker](#Running pipeline With Docker)
-		*[Build and Run Container](#Build and Run Container)
-		*[Run Jupyter notebooks Tutorial](#Run Jupyter notebooks Tutorial)
-	*[Jupyter Notebook Tutorial page](#Jupyter Notebook Tutorial page)
-	*[Acknowledgments](#Acknowledgments)
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#Installation">Installation</a>
+    </li>
+	<li>
+      <a href="#RunningWithoutDocker">Running pipeline Without Docker</a>
+    </li>
+    <li>
+      <a href="#RunningWithDocker">Running pipeline With Docker</a>
+      <ul>
+        <li><a href="#BuildContainer">Build and Run Container</a></li>
+        <li><a href="#RunTutorial">Run Jupyter notebooks Tutorial</a></li>
+      </ul>
+    </li>
+    <li><a href="#Tutorialpage">Jupyter Notebook Tutorial page</a></li>
+    <li><a href="#Acknowledgments">Acknowledgments</a></li>
+  </ol>
+</details>
 
-<!--te--> 	
- 
- 
+
 
 
 <!-- Installation -->
 ## Installation
-===============
+
 
 To run the pipeline, you need access to an FTP server. 
 If you or your organization is interested in using the pipeline, 
@@ -35,7 +45,7 @@ to obtain the credentials.  You will receive a file called `secrets`, which you 
 
 <!-- Running pipeline Without Docker -->
 ## Running Pipeline Without Docker
-==================================
+
 
 The main code for the pipeline is `IBF-Typhoon-model/src/`, which can in principle be run locally,
 however we do recommend using Docker if you can.
@@ -63,7 +73,6 @@ To run locally:
 
 <!-- Running Pipeline With Docker -->
 ## Running Pipeline With Docker
-===============================
 
 You will need to have `docker` and `docker-compose` installed.
 You need to create an environment variable called `TYPHOONMODEL_OUTPUT` that contains
@@ -71,7 +80,6 @@ the path to where you would like the model run output data to go.
 
 <!-- Build and Run Container -->
 ### Build and Run Container
----------------------------
 
 To build and run the image, ensure you are in the top-level directory and execute:
 ```
@@ -87,7 +95,6 @@ to remove any docker container(s).
 
 <!-- Run Jupyter notebooks Tutorial-->
 ### Run Jupyter notebook Tutorial
----------------------------------
 
 This will be running inside the docker container
 
@@ -98,13 +105,11 @@ docker run -p 8888:8888 fbf-phv3
 ```
 <!-- Run Jupyter notebooks for Tutorial -->
 ## Jupyter Notebook Tutorial page
-=================================
 
 [Here](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/tree/model_dev/IBF-Typhoon-model/documentation) is a Jupyter Notebook Tutorial,folow the step in the tutorial page to build the model 
 
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
-==================
 
 - [Germen Red Cross](https://www.drk.de/en/)
 - [Philippines Red Cross](https://redcross.org.ph/)
