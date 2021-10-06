@@ -6,24 +6,24 @@
   <summary>Table of Contents</summary>
   <ol>
     <li>
-      <a href="#TyphoonImpactforecastingmodel">Typhoon Impact forecasting model</a>
+      <a href="#Typhoon Impact forecasting model">Typhoon Impact forecasting model</a>
     </li>
 	    <li>
       <a href="#Installation">Installation</a>
     </li>
 	<li>
-      <a href="#RunningWithoutDocker">Running pipeline Without Docker</a>
+      <a href="#Running Without Docker">Running pipeline Without Docker</a>
     </li>
     <li>
-      <a href="#RunningWithDocker">Running pipeline With Docker</a>
+      <a href="#Running With Docker">Running pipeline With Docker</a>
       <ul>
-        <li><a href="#BuildContainer">Build and Run Container</a></li>
+        <li><a href="#Build Container">Build and Run Container</a></li>
      </ul>
     </li>
     <li>
 	<a href="#Tutorial">Tutorial on Buidling Model</a>
 	 <ul>
-        <li><a href="#runTutorial">Run Jupyter notebook Tutorial from Docker cotainer</a></li>
+        <li><a href="#Run Tutorial">Run Jupyter notebook Tutorial from Docker cotainer</a></li>
      </ul>
 	</li>
     <li><a href="#Acknowledgments">Acknowledgments</a></li>
@@ -32,7 +32,7 @@
 
 
 <!-- Typhoon Impact forecasting model -->
-## TyphoonImpactforecastingmodel
+## Typhoon Impact forecasting model
 
 This tool was developed as a trigger mechanism for the typhoon Early action protocol of the Philippines Red Cross FbF project. The model will predict the potential damage of a typhoon before landfall, and the prediction will be percentage of completely damaged houses per municipality. The tool is available under the [GPL license](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/blob/master/LICENSE)
 
@@ -52,7 +52,7 @@ please contact [510 Global](https://www.510.global/contact-us/) to obtain the cr
 
 
 <!-- Running pipeline Without Docker -->
-## RunningWithoutDocker
+## Running Without Docker
 
 
 The main code for the pipeline is `IBF-Typhoon-model/src/`, which can in principle be run locally,
@@ -80,14 +80,14 @@ To run locally:
     unless you specify a remote directory and typhoon name. 
 
 <!-- Running Pipeline With Docker -->
-## RunningWithDocker
+## Running With Docker
 
 You will need to have `docker` and `docker-compose` installed.
 You need to create an environment variable called `TYPHOONMODEL_OUTPUT` that contains
 the path to where you would like the model run output data to go.
 
 <!-- Build and Run Container -->
-### BuildContainer
+### Build Container
 
 To build and run the image, ensure you are in the top-level directory and execute:
 ```
@@ -109,7 +109,7 @@ to remove any docker container(s).
 [Here](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/tree/model_dev/IBF-Typhoon-model/documentation) you can find a guideline, a Jupyter Notebook Tutorial. Folow the step in this page to understand the workflow used to build the model 
 
 <!-- Run Jupyter notebook Tutorial from Docker cotainer-->
-### RunTutorial
+### Run Tutorial
 
 This will be running inside the docker container
 
