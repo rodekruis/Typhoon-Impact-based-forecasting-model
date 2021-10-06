@@ -34,21 +34,22 @@
 <!-- Typhoon Impact forecasting model -->
 ## TyphoonImpactforecastingmodel
 
-This tool was developed as a trigger mechanism for the typhoon Early action protocol of the Philippines Red Cross 
-FbF project. The model will predict the potential damage of a typhoon before landfall, and the prediction will be 
-percentage of completely damaged houses per municipality.
-The tool is available under the 
-[GPL license](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/blob/master/LICENSE)
+This tool was developed as a trigger mechanism for the typhoon Early action protocol of the Philippines Red Cross FbF project. The model will predict the potential damage of a typhoon before landfall, and the prediction will be percentage of completely damaged houses per municipality. The tool is available under the [GPL license](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/blob/master/LICENSE)
+
+To run the pipeline, you need access to an Data.zip, and credentiials for 510 Datalake and FTP server. If you or your organization is interested in using the pipeline, 
+please contact [510 Global](https://www.510.global/contact-us/) to obtain the credentials. You will receive a file called `secrets`, which you need to place in the top-level directory.
 
 
 <!-- Installation -->
 ## Installation
 
+1. Clone the repo
+2. Change `/IBF-Typhoon-model/src/settings.py.template` to `settings.py` and fill in the necessary passwords.
+3. Download [data.zip](https://rodekruis.sharepoint.com/sites/510-CRAVK-510/_layouts/15/guestaccess.aspx?guestaccesstoken=HadTB1h%2FWiVluDiortTyd3%2F9rSc0MdjS2yub9GEntCs%3D&docid=2_0013b102f095246fdab4ff4ce03b12933&rev=1&e=eDGoN5) from sharepoint and unzip in /IBF-Typhoon-model/data
+4. Install Docker-compose [follow this link](https://docs.docker.com/desktop/windows/install/)
+5. Enamble [volume sharing](https://forums.docker.com/t/filesharing-not-enabled-volume-sharing-is-not-enabled-on-the-settings-screen-in-docker-desktop-error-125/95332) for docker compose  
 
-To run the pipeline, you need access to an FTP server. 
-If you or your organization is interested in using the pipeline, 
-please contact [510 Global](https://www.510.global/contact-us/)
-to obtain the credentials.  You will receive a file called `secrets`, which you need to place in the top-level directory.
+
 
 <!-- Running pipeline Without Docker -->
 ## RunningWithoutDocker
