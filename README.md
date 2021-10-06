@@ -21,7 +21,7 @@
      </ul>
     </li>
     <li>
-	<a href="#Tutorialpage">Tutorial</a>
+	<a href="#Tutorial">Tutorial on Buidling Model</a>
 	 <ul>
         <li><a href="#runTutorial">Run Jupyter notebook Tutorial from Docker cotainer</a></li>
      </ul>
@@ -32,7 +32,7 @@
 
 
 <!-- Typhoon Impact forecasting model -->
-## Typhoon Impact forecasting model
+## TyphoonImpactforecastingmodel
 
 This tool was developed as a trigger mechanism for the typhoon Early action protocol of the Philippines Red Cross 
 FbF project. The model will predict the potential damage of a typhoon before landfall, and the prediction will be 
@@ -51,7 +51,7 @@ please contact [510 Global](https://www.510.global/contact-us/)
 to obtain the credentials.  You will receive a file called `secrets`, which you need to place in the top-level directory.
 
 <!-- Running pipeline Without Docker -->
-## Running Pipeline Without Docker
+## RunningWithoutDocker
 
 
 The main code for the pipeline is `IBF-Typhoon-model/src/`, which can in principle be run locally,
@@ -79,14 +79,14 @@ To run locally:
     unless you specify a remote directory and typhoon name. 
 
 <!-- Running Pipeline With Docker -->
-## Running Pipeline With Docker
+## RunningWithDocker
 
 You will need to have `docker` and `docker-compose` installed.
 You need to create an environment variable called `TYPHOONMODEL_OUTPUT` that contains
 the path to where you would like the model run output data to go.
 
 <!-- Build and Run Container -->
-### Build and Run Container
+### BuildContainer
 
 To build and run the image, ensure you are in the top-level directory and execute:
 ```
@@ -102,13 +102,13 @@ to remove any docker container(s).
 
 
 <!-- Tutorials -->
-## Tutorials
+## Tutorial
 
 
 [Here](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/tree/model_dev/IBF-Typhoon-model/documentation) you can find a guideline, a Jupyter Notebook Tutorial. Folow the step in this page to understand the workflow used to build the model 
 
 <!-- Run Jupyter notebook Tutorial from Docker cotainer-->
-### Run Jupyter notebook Tutorial from Docker cotainer 
+### RunTutorial
 
 This will be running inside the docker container
 
