@@ -18,10 +18,14 @@
       <a href="#RunningWithDocker">Running pipeline With Docker</a>
       <ul>
         <li><a href="#BuildContainer">Build and Run Container</a></li>
-        <li><a href="#RunTutorial">Run Jupyter notebooks Tutorial</a></li>
-      </ul>
+     </ul>
     </li>
-    <li><a href="#Tutorialpage">Jupyter Notebook Tutorial page</a></li>
+    <li>
+	<a href="#Tutorialpage">Tutorial</a>
+	 <ul>
+        <li><a href="#runTutorial">Run Jupyter notebook Tutorial from Docker cotainer</a></li>
+     </ul>
+	</li>
     <li><a href="#Acknowledgments">Acknowledgments</a></li>
   </ol>
 </details>
@@ -96,8 +100,15 @@ docker-compose down
 ```
 to remove any docker container(s).
 
-<!-- Run Jupyter notebooks Tutorial-->
-### Run Jupyter notebook Tutorial
+
+<!-- Tutorials -->
+## Tutorials
+
+
+[Here](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/tree/model_dev/IBF-Typhoon-model/documentation) you can find a guideline, a Jupyter Notebook Tutorial. Folow the step in this page to understand the workflow used to build the model 
+
+<!-- Run Jupyter notebook Tutorial from Docker cotainer-->
+### Run Jupyter notebook Tutorial from Docker cotainer 
 
 This will be running inside the docker container
 
@@ -106,11 +117,6 @@ Excute:
 ```
 docker run -p 8888:8888 fbf-phv3
 ```
-<!-- Run Jupyter notebooks for Tutorial -->
-## Jupyter Notebook Tutorial page
-
-[Here](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/tree/model_dev/IBF-Typhoon-model/documentation) is a Jupyter Notebook Tutorial,folow the step in the tutorial page to build the model 
-
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
 
