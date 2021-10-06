@@ -1,19 +1,14 @@
-<!-- Typhoon Impact forecasting model -->
-## Typhoon Impact forecasting model
 
-This tool was developed as a trigger mechanism for the typhoon Early action protocol of the Philippines Red Cross 
-FbF project. The model will predict the potential damage of a typhoon before landfall, and the prediction will be 
-percentage of completely damaged houses per municipality.
-The tool is available under the 
-[GPL license](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/blob/master/LICENSE)
-
-Table of contents
+# Table of contents
 
 <!-- TABLE OF CONTENTS -->
 <details>
   <summary>Table of Contents</summary>
   <ol>
     <li>
+      <a href="#TyphoonImpactforecastingmodel">Typhoon Impact forecasting model</a>
+    </li>
+	    <li>
       <a href="#Installation">Installation</a>
     </li>
 	<li>
@@ -32,6 +27,14 @@ Table of contents
 </details>
 
 
+<!-- Typhoon Impact forecasting model -->
+## Typhoon Impact forecasting model
+
+This tool was developed as a trigger mechanism for the typhoon Early action protocol of the Philippines Red Cross 
+FbF project. The model will predict the potential damage of a typhoon before landfall, and the prediction will be 
+percentage of completely damaged houses per municipality.
+The tool is available under the 
+[GPL license](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/blob/master/LICENSE)
 
 
 <!-- Installation -->
