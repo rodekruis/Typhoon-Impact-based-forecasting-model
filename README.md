@@ -116,7 +116,7 @@ This will be running inside the docker container
 Excute:
 
 ```
-docker run -p 8888:8888 fbf-phv3
+docker run -p 8888:8888 rodekruis510/typhoonibf
 ```
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
