@@ -40,9 +40,9 @@ def download_rainfall_nomads(Input_folder, path, Alternative_data_point,no_data_
     if not os.path.exists(rainfall_path):
         os.makedirs(rainfall_path)
     list_df=[]  #to store final rainfall dataframes 
-    path_admin =os.path.join(path, 'data-raw/phl_admin3_simpl2.geojson')
-    admin = gpd.read_file(path_admin)
-    rainfall_time_step=['06', '24']
+    ADMIN_PATH = 'data/gis_data/phl_admin3_simpl2.geojson'
+    admin = gpd.read_file(ADMIN_PATH)
+    RAINFALL_TIME_STEP=['06', '24']
 
     url_base = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/naefs/prod/gefs.'
     url1 = f"{url_base}{Input_folder.split('/')[-3][:-2]}/"  # Use the timestamp of the input folder for the query
@@ -57,7 +57,7 @@ def download_rainfall_nomads(Input_folder, path, Alternative_data_point,no_data_
         logger.warning(f"No rainfall files available today, using yesterday's date instead")
         get_grib_files(url2, path, rainfall_path)
 
-    for hour in rainfall_time_step:
+    for hour in RAINFALL_TIME_STEP:
         pattern = f'.pgrb2a.0p50.bc_{hour}h'
         output_filename = f'rainfall_{hour}.nc'
         filename_list = Path(rainfall_path).glob(f'*{pattern}*')
@@ -71,33 +71,12 @@ def download_rainfall_nomads(Input_folder, path, Alternative_data_point,no_data_
             ds = ds.median(dim='number') #store only the median of the ensemble members
             ds.to_netcdf(filepath)
         #zonal stats to calculate rainfall per manucipality 
-        rain_6h=rasterio.open(filepath) 
-        band_indexes = rain_6h.indexes
-        transform = rain_6h.transform
-        all_band_summaries = []
-        for b in band_indexes:
-            array = rain_6h.read(b)
-            band_summary = zonal_stats(
-                admin,
-                array,
-                prefix=f"band{b}_",
-                stats="mean",
-                nodata=no_data_value,
-                all_touched=True,
-                affine=transform,
-            )
-            all_band_summaries.append(band_summary)
-        # Flip dimensions
-        shape_summaries = list(zip(*all_band_summaries))
-        # each list entry now reflects a municipalities, and consists of a dictionary with the rainfall in mm / 6h for each time frame
-        final = [{k: v for d in s for k, v in d.items()} for s in shape_summaries]
-        # Obtain list with maximum 6h rainfall
-        maximum_6h = [max(x.values()) for x in final]
-        list_df.append(pd.DataFrame(maximum_6h))
+        list_df.append(zonal_stat_rain(filepath,admin))    
     df_rain = pd.concat(list_df,axis=1, ignore_index=True) 
-    df_rain.columns = ["max_"+time_itr+"h_rain" for time_itr in rainfall_time_step]
+    df_rain.columns = ["max_"+time_itr+"h_rain" for time_itr in RAINFALL_TIME_STEP]
     df_rain['Mun_Code']=list(admin['adm3_pcode'].values)
     df_rain.to_csv(os.path.join(Input_folder, "rainfall/rain_data.csv"), index=False)
+    logger.info("saved processed rainfall file to csv")
 
 
 def get_grib_files(url, path, rainfall_path, use_cache=True):
@@ -131,3 +110,30 @@ def listFD(url):
             for node in soup.find_all('a')
             if node.get('href').split('/')[-2]
             in ['00', '06', '12', '18']]
+def zonal_stat_rain(filepath,admin):
+    #zonal stats to calculate rainfall per manucipality 
+    rain_6h=rasterio.open(filepath) 
+    logger.info("Open rainfll necdf files to perfomrm zonal statistics")
+    band_indexes = rain_6h.indexes
+    transform = rain_6h.transform
+    all_band_summaries = []
+    for b in band_indexes:
+        array = rain_6h.read(b)
+        band_summary = zonal_stats(
+            admin,
+            array,
+            prefix=f"band{b}_",
+            stats="mean",
+            nodata=no_data_value,
+            all_touched=True,
+            affine=transform,
+        )
+        all_band_summaries.append(band_summary)
+    # Flip dimensions
+    shape_summaries = list(zip(*all_band_summaries))
+    # each list entry now reflects a municipalities, and consists of a dictionary with the rainfall in mm / 6h for each time frame
+    final = [{k: v for d in s for k, v in d.items()} for s in shape_summaries]
+    # Obtain list with maximum 6h rainfall
+    maximum_6h = [max(x.values()) for x in final]
+    return pd.DataFrame(maximum_6h)
+    
