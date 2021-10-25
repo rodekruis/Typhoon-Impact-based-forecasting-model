@@ -71,12 +71,41 @@ def download_rainfall_nomads(Input_folder, path, Alternative_data_point,no_data_
             ds = ds.median(dim='number') #store only the median of the ensemble members
             ds.to_netcdf(filepath)
         #zonal stats to calculate rainfall per manucipality 
-        list_df.append(zonal_stat_rain(filepath,admin))    
+        #list_df.append(zonal_stat_rain(filepath,admin))  
+        rain_6h=rasterio.open(filepath) 
+        band_indexes = rain_6h.indexes
+        transform = rain_6h.transform
+        all_band_summaries = []
+        for b in band_indexes:
+            array = rain_6h.read(b)
+            band_summary = zonal_stats(
+                admin,
+                array,
+                prefix=f"band{b}_",
+                stats="mean",
+                nodata=no_data_value,
+                all_touched=True,
+                affine=transform,
+            )
+            all_band_summaries.append(band_summary)
+        # Flip dimensions
+        shape_summaries = list(zip(*all_band_summaries))
+        # each list entry now reflects a municipalities, and consists of a dictionary with the rainfall in mm / 6h for each time frame
+        final = [{k: v for d in s for k, v in d.items()} for s in shape_summaries]
+        # Obtain list with maximum 6h rainfall
+        maximum_6h = [max(x.values()) for x in final]
+        list_df.append(pd.DataFrame(maximum_6h))
     df_rain = pd.concat(list_df,axis=1, ignore_index=True) 
     df_rain.columns = ["max_"+time_itr+"h_rain" for time_itr in RAINFALL_TIME_STEP]
     df_rain['Mun_Code']=list(admin['adm3_pcode'].values)
-    df_rain.to_csv(os.path.join(Input_folder, "rainfall/rain_data.csv"), index=False)
     logger.info("saved processed rainfall file to csv")
+    df_rain.to_csv(os.path.join(Input_folder, "rainfall/rain_data.csv"), index=False)
+    
+    #df_rain = pd.concat(list_df,axis=1, ignore_index=True) 
+    #df_rain.columns = ["max_"+time_itr+"h_rain" for time_itr in RAINFALL_TIME_STEP]
+    #df_rain['Mun_Code']=list(admin['adm3_pcode'].values)
+    #df_rain.to_csv(os.path.join(Input_folder, "rainfall/rain_data.csv"), index=False)
+    #logger.info("saved processed rainfall file to csv")
 
 
 def get_grib_files(url, path, rainfall_path, use_cache=True):
