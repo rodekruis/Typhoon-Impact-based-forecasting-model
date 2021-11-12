@@ -49,6 +49,7 @@ ECMWF_SLEEP = 30  # s
 @click.option('--path', default='./', help='main directory')
 @click.option('--remote_directory', default=None, help='remote directory for ECMWF forecast data') #'20210421120000'
 @click.option('--typhoonname', default=None, help='name for active typhoon')
+@click.option('--typhoonname', default=None, help='name for active typhoon')
 @click.option('--debug', is_flag=True, help='setting for DEBUG option')
 def main(path,debug,remote_directory,typhoonname):
     initialize.setup_cartopy()
@@ -60,9 +61,9 @@ def main(path,debug,remote_directory,typhoonname):
     print(str(start_time))
     remote_dir = remote_directory
     if debug:
-        typhoonname = 'SURIGAE'
-        remote_dir = '20210421120000'
-        logger.info(f"DEBUGGING piepline for typhoon{typhoonname}")
+        typhoonname = 'CHANTHU'
+        remote_dir = '20210910120000'
+        logger.info(f"DEBUGGING piepline for typhoon{typhoonname}")  
         Activetyphoon = [typhoonname]
     else:
         # If passed typhoon name is None or empty string
@@ -120,8 +121,12 @@ def main(path,debug,remote_directory,typhoonname):
     ncents = cent.size
     df=df.rename(columns={0: "lat", 1: "lon"})
     df = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.lon, df.lat))
+    admin.set_crs(epsg=4326, inplace=True)
+    df.set_crs(epsg=4326, inplace=True)
+    #df=df.to_crs(admin.crs)
     #df.to_crs({'init': 'epsg:4326'})
-    df.crs = {'init': 'epsg:4326'}
+    #df.crs = "EPSG:4326"#{'init': 'epsg:4326'} 
+    #df.crs = {'init': 'epsg:4326', 'no_defs': True}
     df_admin = sjoin(df, admin, how="left").dropna()
     
     # Sometimes the ECMWF ftp server complains about too many requests

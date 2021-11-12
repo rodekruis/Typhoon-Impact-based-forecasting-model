@@ -44,9 +44,9 @@ php_admin1 <- geojsonsf::geojson_sf("data/gis_data/phl_admin1_gadm_pcode.geojson
 php_admin3<-st_make_valid(php_admin3)
 php_admin1<-st_make_valid(php_admin1)
 wshade <- php_admin3
-material_variable2 <- read.csv("data/material_variable2.csv")
-data_matrix_new_variables <- read.csv("data/data_matrix_new_variables.csv")
-geo_variable <- read.csv("data/geo_variable.csv")
+material_variable2 <- read.csv("data/pre_disaster_indicators/material_variable2.csv")
+data_matrix_new_variables <- read.csv("data/landuse_stormsurge/data_matrix_new_variables.csv")
+geo_variable <- read.csv("data/topography/geo_variable.csv")
 wshade <- php_admin3
 
 xgmodel <- readRDS("models/operational/xgboost_regression_v4.RDS", refhook = NULL)

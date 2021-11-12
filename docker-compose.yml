@@ -9,4 +9,4 @@ services:
       - secrets
     volumes:
       - $TYPHOONMODEL_OUTPUT:/home/fbf/forecast
-    command: run-typhoon-model
+    command: run-typhoon-model --debug

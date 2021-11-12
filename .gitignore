@@ -21,6 +21,7 @@ sdist/
 var/
 wheels/
 share/python-wheels/
+analysis/Coding_files_thesis_Nele
 *.egg-info/
 .installed.cfg
 *.egg
