@@ -35,6 +35,7 @@ source("lib_r/run_prediction_model.R")
 source("lib_r/Make_maps.R")
 
 source("lib_r/Check_landfall_time.R")
+source("lib_r/estimate_landfall.R")
 source("lib_r/damage_probability.R")
 
 # ------------------------ import DATA  -----------------------------------
@@ -335,9 +336,17 @@ tmap_save(distance_map,
           width = 20, height = 24, dpi = 600, units = "cm"
 )
 
+landfall <- estimate_landfall(php_admin1,
+                              track
+)
+
 ####################################################################################################
 # ------------------------ save impact data to file   -----------------------------------
 
 write.csv(data.frame(event_impact) %>% dplyr::select(-c(geometry)),
   file = paste0(Output_folder, "Average_Impact", "_", forecast_time, "_", Typhoon_stormname, ".csv")
+)
+
+write.csv(data.frame(landfall),
+  file = paste0(Output_folder, "landfall.csv")
 )

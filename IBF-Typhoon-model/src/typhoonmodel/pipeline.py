@@ -29,7 +29,7 @@ import click
 from climada.hazard import Centroids, TropCyclone,TCTracks
 from climada.hazard.tc_tracks_forecast import TCForecast
 from typhoonmodel.utility_fun import track_data_clean, Check_for_active_typhoon, Sendemail, \
-    ucl_data, plot_intensity, initialize
+    ucl_data, plot_intensity, initialize, post_output
 
 if platform == "linux" or platform == "linux2": #check if running on linux or windows os
     from typhoonmodel.utility_fun import Rainfall_data
@@ -50,7 +50,8 @@ ECMWF_SLEEP = 30  # s
 @click.option('--remote_directory', default=None, help='remote directory for ECMWF forecast data') #'20210421120000'
 @click.option('--typhoonname', default=None, help='name for active typhoon')
 @click.option('--debug', is_flag=True, help='setting for DEBUG option')
-def main(path,debug,remote_directory,typhoonname):
+@click.option('--debug_post', is_flag=True, help='setting for DEBUG-post_outputs() option')
+def main(path,debug,debug_post,remote_directory,typhoonname):
     initialize.setup_cartopy()
     start_time = datetime.now()
     print('---------------------AUTOMATION SCRIPT STARTED---------------------------------')
@@ -59,6 +60,16 @@ def main(path,debug,remote_directory,typhoonname):
     print('---------------------check for active typhoons---------------------------------')
     print(str(start_time))
     remote_dir = remote_directory
+
+    if debug_post:
+        typhoonname = 'CONSON'
+        logger.info(f"DEBUGGING post_output() for typhoon{typhoonname}")
+        Activetyphoon = [typhoonname]
+        date_dir = start_time.strftime("%Y%m%d%H")
+        Output_folder = os.path.join(path, f'forecast/Output/{date_dir}/Output/')
+        post_output.post_output(Output_folder, Activetyphoon, debug_post)
+        sys.exit()
+
     if debug:
         typhoonname = 'SURIGAE'
         remote_dir = '20210421120000'
@@ -177,6 +188,7 @@ def main(path,debug,remote_directory,typhoonname):
             dfff['YYYYMMDDHH']=dfff['YYYYMMDDHH'].apply(lambda x: x.strftime("%Y%m%d%H%M") )
             dfff['STORMNAME']=typhoons
             dfff[['YYYYMMDDHH','VMAX','LAT','LON','STORMNAME']].to_csv(os.path.join(Input_folder,'ecmwf_hrs_track.csv'), index=False)
+            dfff[['YYYYMMDDHH','VMAX','LAT','LON','STORMNAME']].to_csv(os.path.join(Output_folder,'ecmwf_hrs_track.csv'), index=False)
             line_='ecmwf,'+'%secmwf_hrs_track.csv' % Input_folder+ ',' +typhoons+','+ date_dir   #StormName #
             #line_='Rainfall,'+'%sRainfall/' % Input_folder +','+ typhoons + ',' + date_dir #StormName #
             fname.write(line_+'\n')        
