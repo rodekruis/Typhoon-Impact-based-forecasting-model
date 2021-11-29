@@ -212,6 +212,7 @@ def post_output(Output_folder, Activetyphoon, debug_post=False):
         # prepare layer
     exposure_data = {"countryCodeISO3": "PHL"}
     exposure_data["leadTime"] = leadtime_str
+    exposure_data["eventName"] = Activetyphoon
     exposure_data["trackpointDetails"] = wind_track
     
     # upload layer
