@@ -260,78 +260,81 @@ class TCForecast(TCTracks):
         df_['model_sgn'] =df_['model_sgn'].fillna(method='bfill')
 
         for names, group in df_.groupby("subset"):
-            pcen = list(group.query('code in ["010051"]')['Data'].values)
-            latc =  list(group.query('code in ["005002"] and model_sgn in [1]')['Data'].values)
-            lonc =  list(group.query('code in ["006002"] and model_sgn in [1]')['Data'].values)
-            latm =  list(group.query('code in ["005002"] and model_sgn in [3]')['Data'].values)
-            lonm =  list(group.query('code in ["006002"] and model_sgn in [3]')['Data'].values)
-            wind =  list(group.query('code in ["011012"]')['Data'].values)
-            vhr =  list(group.query('code in ["004024"]')['Data'].values)
-            wind=[np.nan if value=='None' else float(value) for value in wind]
-            pre=[np.nan if value=='None' else float(value)/100 for value in pcen]
-            lonm=[np.nan if value=='None' else float(value) for value in lonm]
-            lonc=[np.nan if value=='None' else float(value) for value in lonc]
-            latm=[np.nan if value=='None' else float(value) for value in latm]
-            latc=[np.nan if value=='None' else float(value) for value in latc]
-            vhr=[np.nan if value=='None' else int(value) for value in vhr]
-            
-            timestep_int = np.array(vhr).squeeze() #np.array(msg['timestamp'].get_values(index)).squeeze()
-            timestamp = timestamp_origin + timestep_int.astype('timedelta64[h]')
-            year =  list(group.query('code in ["004001"]')['Data'].values)
-            month =  list(group.query('code in ["004002"]')['Data'].values)
-            day =  list(group.query('code in ["004003"]')['Data'].values)
-            hour =  list(group.query('code in ["004004"]')['Data'].values)
-            #forecs_agency_id =  list(group.query('code in ["001033"]')['Data'].values)
-            storm_name =  list(group.query('code in ["001027"]')['Data'].values)
-            storm_id =  list(group.query('code in ["001025"]')['Data'].values)
-            frcst_type =  list(group.query('code in ["001092"]')['Data'].values)
-            max_radius=np.sqrt(np.square(np.array(latc)-np.array(latm))+np.square(np.array(lonc)-np.array(lonm)))*111
-            date_object ='%04d%02d%02d%02d'%(int(year[0]),int(month[0]),int(day[0]),int(hour[0]))
-            date_object=dt.datetime.strptime(date_object, "%Y%m%d%H")
-            #timestamp=[(date_object + dt.timedelta(hours=int(value))).strftime("%Y%m%d%H") for value in vhr]
-            #timestamp=[dt.datetime.strptime(value, "%Y%m%d%H") for value in timestamp]
-            track = xr.Dataset(
-                    data_vars={
-                            'max_sustained_wind': ('time', wind[1:]),
-                            'central_pressure': ('time', pre[1:]),
-                            'ts_int': ('time', timestep_int),
-                            'max_radius': ('time', max_radius[1:]),
-                            'lat': ('time', latc[1:]),
-                            'lon': ('time', lonc[1:]),
-                            'environmental_pressure':('time', np.full_like(timestamp, DEF_ENV_PRESSURE, dtype=float)),
-                            'radius_max_wind':('time', np.full_like(timestamp, np.nan, dtype=float)),
-                            },
-                            coords={'time': timestamp,
-                                    },
-                                    attrs={
-                                            'max_sustained_wind_unit': 'm/s',
-                                            'central_pressure_unit': 'mb',
-                                            'name': storm_name[0].strip("'"),
-                                            'sid': storm_id[0].split("'")[1],
-                                            'orig_event_flag': False,
-                                            'data_provider': provider,
-                                            'id_no': 'NA',
-                                            'ensemble_number': int(names),
-                                            'is_ensemble': ['TRUE' if frcst_type[0]!='0' else 'False'][0],
-                                            'forecast_time': date_object,
-                                            })
-            track = track.set_coords(['lat', 'lon'])
-            track['time_step'] = track.ts_int - track.ts_int.shift({'time': 1}, fill_value=0)
-            #track = track.drop('ts_int')
-            track.attrs['basin'] = BASINS[storm_id[0].split("'")[1][2].upper()]
-            cat_name = CAT_NAMES[set_category(
-            max_sus_wind=track.max_sustained_wind.values,
-            wind_unit=track.max_sustained_wind_unit,
-            saffir_scale=SAFFIR_MS_CAT)]          
-            track.attrs['category'] = cat_name
-            if track.sizes['time'] == 0:
-                track= None
-            
-            if track is not None:
-                self.append(track)
-            else:
-                LOGGER.debug('Dropping empty track, subset %s', names)
-            
+            try:
+                pcen = list(group.query('code in ["010051"]')['Data'].values)
+                latc =  list(group.query('code in ["005002"] and model_sgn in [1]')['Data'].values)
+                lonc =  list(group.query('code in ["006002"] and model_sgn in [1]')['Data'].values)
+                latm =  list(group.query('code in ["005002"] and model_sgn in [3]')['Data'].values)
+                lonm =  list(group.query('code in ["006002"] and model_sgn in [3]')['Data'].values)
+                wind =  list(group.query('code in ["011012"]')['Data'].values)
+                vhr =  list(group.query('code in ["004024"]')['Data'].values)
+                wind=[np.nan if value=='None' else float(value) for value in wind]
+                pre=[np.nan if value=='None' else float(value)/100 for value in pcen]
+                lonm=[np.nan if value=='None' else float(value) for value in lonm]
+                lonc=[np.nan if value=='None' else float(value) for value in lonc]
+                latm=[np.nan if value=='None' else float(value) for value in latm]
+                latc=[np.nan if value=='None' else float(value) for value in latc]
+                vhr=[np.nan if value=='None' else int(value) for value in vhr]
+
+                timestep_int = np.array(vhr).squeeze() #np.array(msg['timestamp'].get_values(index)).squeeze()
+                timestamp = timestamp_origin + timestep_int.astype('timedelta64[h]')
+                year =  list(group.query('code in ["004001"]')['Data'].values)
+                month =  list(group.query('code in ["004002"]')['Data'].values)
+                day =  list(group.query('code in ["004003"]')['Data'].values)
+                hour =  list(group.query('code in ["004004"]')['Data'].values)
+                #forecs_agency_id =  list(group.query('code in ["001033"]')['Data'].values)
+                storm_name =  list(group.query('code in ["001027"]')['Data'].values)
+                storm_id =  list(group.query('code in ["001025"]')['Data'].values)
+                frcst_type =  list(group.query('code in ["001092"]')['Data'].values)
+                max_radius=np.sqrt(np.square(np.array(latc)-np.array(latm))+np.square(np.array(lonc)-np.array(lonm)))*111
+                date_object ='%04d%02d%02d%02d'%(int(year[0]),int(month[0]),int(day[0]),int(hour[0]))
+                date_object=dt.datetime.strptime(date_object, "%Y%m%d%H")
+                #timestamp=[(date_object + dt.timedelta(hours=int(value))).strftime("%Y%m%d%H") for value in vhr]
+                #timestamp=[dt.datetime.strptime(value, "%Y%m%d%H") for value in timestamp]
+                track = xr.Dataset(
+                        data_vars={
+                                'max_sustained_wind': ('time', wind[1:]),
+                                'central_pressure': ('time', pre[1:]),
+                                'ts_int': ('time', timestep_int),
+                                'max_radius': ('time', max_radius[1:]),
+                                'lat': ('time', latc[1:]),
+                                'lon': ('time', lonc[1:]),
+                                'environmental_pressure':('time', np.full_like(timestamp, DEF_ENV_PRESSURE, dtype=float)),
+                                'radius_max_wind':('time', np.full_like(timestamp, np.nan, dtype=float)),
+                                },
+                                coords={'time': timestamp,
+                                        },
+                                        attrs={
+                                                'max_sustained_wind_unit': 'm/s',
+                                                'central_pressure_unit': 'mb',
+                                                'name': storm_name[0].strip("'"),
+                                                'sid': storm_id[0].split("'")[1],
+                                                'orig_event_flag': False,
+                                                'data_provider': provider,
+                                                'id_no': 'NA',
+                                                'ensemble_number': int(names),
+                                                'is_ensemble': ['TRUE' if frcst_type[0]!='0' else 'False'][0],
+                                                'forecast_time': date_object,
+                                                })
+                track = track.set_coords(['lat', 'lon'])
+                track['time_step'] = track.ts_int - track.ts_int.shift({'time': 1}, fill_value=0)
+                #track = track.drop('ts_int')
+                track.attrs['basin'] = BASINS[storm_id[0].split("'")[1][2].upper()]
+                cat_name = CAT_NAMES[set_category(
+                max_sus_wind=track.max_sustained_wind.values,
+                wind_unit=track.max_sustained_wind_unit,
+                saffir_scale=SAFFIR_MS_CAT)]
+                track.attrs['category'] = cat_name
+                if track.sizes['time'] == 0:
+                    track= None
+
+                if track is not None:
+                    self.append(track)
+                else:
+                    LOGGER.debug('Dropping empty track, subset %s', names)
+            except:
+                storm_name = list(group.query('code in ["001027"]')['Data'].values)
+                LOGGER.warning(f"Problem with track for {storm_name}, skipping")
 
 
 

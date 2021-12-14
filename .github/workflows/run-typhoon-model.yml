@@ -4,15 +4,31 @@ on:
   workflow_dispatch:
     inputs:
       typhoon_name:
-        description: Custom typhoon name
-        required: False
-        default: ''
+        description: Optional custom typhoon name
+        required: false
+        default: 'Not set'
+      remote_directory:
+        description: Optional ECMWF timestamp directory, format YYYYMMDDhhmmss
+        required: false
+        default: 'Not set'
 
 jobs:
   run-typhoon-model:
     runs-on: ubuntu-latest
     env:
       running-directory: ./IBF-Typhoon-model
+      EMAIL_TO_LIST: ${{ secrets.EMAIL_TO_LIST }}
+      EMAIL_CC_LIST: ${{ secrets.EMAIL_CC_LIST }}
+      UCL_USERNAME: ${{ secrets.UCL_USERNAME }}
+      UCL_PASSWORD: ${{ secrets.UCL_PASSWORD }}
+      EMAIL_LOGIN: ${{ secrets.EMAIL_LOGIN }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+      SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+      AZURE_CONNECTING_STRING: ${{ secrets.AZURE_CONNECTING_STRING }}
+
     steps:
     - uses: actions/checkout@v2
 
@@ -60,21 +76,32 @@ jobs:
         python -m pip install .
       working-directory: ${{ env.running-directory }}
 
-    - name: Run script
-      env:
-        EMAIL_TO_LIST: ${{ secrets.EMAIL_TO_LIST }}
-        EMAIL_CC_LIST: ${{ secrets.EMAIL_CC_LIST }}
-        UCL_USERNAME: ${{ secrets.UCL_USERNAME }}
-        UCL_PASSWORD: ${{ secrets.UCL_PASSWORD }}
-        EMAIL_LOGIN: ${{ secrets.EMAIL_LOGIN }}
-        EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
-        EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-        SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-        SMTP_PORT: ${{ secrets.SMTP_PORT }}
-        AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
-        AZURE_CONNECTING_STRING: ${{ secrets.AZURE_CONNECTING_STRING }}
+    - name: Run script, typhoon name and remote directory input
+      if: ${{ github.event.inputs.typhoon_name != 'Not set' && github.event.inputs.remote_directory != 'Not set' }}
       run: |
-        run-typhoon-model --typhoonname ${{ github.event.inputs.typhoon_name }}
+        run-typhoon-model \
+        --typhoonname ${{ github.event.inputs.typhoon_name }} \
+        --remote_directory ${{ github.event.inputs.remote_directory }}
+      working-directory: ${{ env.running-directory }}
+
+    - name: Run script, typhoon name input
+      if: ${{ github.event.inputs.typhoon_name != 'Not set' && github.event.inputs.remote_directory == 'Not set' }}
+      run: |
+        run-typhoon-model \
+        --typhoonname ${{ github.event.inputs.typhoon_name }}
+      working-directory: ${{ env.running-directory }}
+
+    - name: Run script, remote directory input
+      if: ${{ github.event.inputs.typhoon_name == 'Not set' && github.event.inputs.remote_directory != 'Not set' }}
+      run: |
+        run-typhoon-model \
+        --remote_directory ${{ github.event.inputs.remote_directory }}
+      working-directory: ${{ env.running-directory }}
+
+    - name: Run script, no input
+      if: ${{ github.event.inputs.typhoon_name == 'Not set' && github.event.inputs.remote_directory == 'Not set' }}
+      run: |
+        run-typhoon-model
       working-directory: ${{ env.running-directory }}
 
     - name: Send mail
