@@ -60,8 +60,8 @@ def main(path,debug,remote_directory,typhoonname):
     print(str(start_time))
     remote_dir = remote_directory
     if debug:
-        typhoonname = 'SURIGAE'
-        remote_dir = '20210421120000'
+        typhoonname = 'RAI'
+        remote_dir = '20211214000000'
         logger.info(f"DEBUGGING piepline for typhoon{typhoonname}")
         Activetyphoon = [typhoonname]
     else:

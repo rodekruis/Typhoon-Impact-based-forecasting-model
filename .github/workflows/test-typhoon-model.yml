@@ -1,0 +1,88 @@
+name: test-typhoon-model
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  test-typhoon-model:
+    runs-on: ubuntu-latest
+    env:
+      running-directory: ./IBF-Typhoon-model
+      EMAIL_TO_LIST: ${{ secrets.EMAIL_FROM }}
+      EMAIL_CC_LIST: ${{ secrets.EMAIL_CC_LIST }}
+      UCL_USERNAME: ${{ secrets.UCL_USERNAME }}
+      UCL_PASSWORD: ${{ secrets.UCL_PASSWORD }}
+      EMAIL_LOGIN: ${{ secrets.EMAIL_LOGIN }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+      SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+      AZURE_CONNECTING_STRING: ${{ secrets.AZURE_CONNECTING_STRING }}
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python 3.x
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Set up R
+      uses: r-lib/actions/setup-r@master
+      with:
+        r-version: 4.1
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          python3-eccodes \
+          libproj-dev \
+          libgeos-dev \
+          libspatialindex-dev \
+          libudunits2-dev \
+          libssl-dev \
+          libgdal-dev
+
+    - name: Cache R dependencies
+      id: cache-r-deps
+      uses: actions/cache@v2
+      with:
+        path: ${{ env.R_LIBS_USER }}
+        key: R-dependency-cache-${{ hashFiles('.github/depends.R') }}
+
+    - name: Install R dependencies
+      if: steps.cache-r-deps.outputs.cache-hit != 'true'
+      run: |
+        Rscript .github/depends.R
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -r requirements.txt
+
+    - name: Install script
+      run: |
+        python -m pip install .
+      working-directory: ${{ env.running-directory }}
+
+    - name: Run script
+      run: |
+        run-typhoon-model --debug
+      working-directory: ${{ env.running-directory }}
+
+    - name: Send mail
+      if: failure()
+      uses: dawidd6/action-send-mail@v2
+      with:
+        server_address: ${{secrets.SMTP_SERVER}}
+        server_port: ${{secrets.SMTP_PORT}}
+        username: ${{secrets.EMAIL_LOGIN}}
+        password: ${{secrets.EMAIL_PASSWORD}}
+        subject: "FAILED: ${{github.repository}} run job"
+        body: GitHub Actions run job for ${{github.repository}} failed!
+        to: ${{secrets.EMAIL_TO_LIST_DEBUG}}
+        from: ${{secrets.EMAIL_FROM}}
+        content_type: text/html
