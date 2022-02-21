@@ -331,18 +331,19 @@ def main(path,debug,remote_directory,typhoonname):
         else:
             raise FileNotFoundError(f'No .png or .csv found in {Output_folder}')
                 ##################### upload model output to 510 datalack ##############
-        
-        file_service = FileService(account_name=os.environ["AZURE_STORAGE_ACCOUNT"],protocol='https', connection_string=os.environ["AZURE_CONNECTING_STRING"])
-        file_service.create_share('forecast')
-        OutPutFolder=date_dir
-        file_service.create_directory('forecast', OutPutFolder) 
-        
-        for img_file in image_filenames:   
-            file_service.create_file_from_path('forecast', OutPutFolder,os.fspath(img_file.parts[-1]),img_file, content_settings=ContentSettings(content_type='image/png'))
 
-        for data_file in data_filenames:
-            file_service.create_file_from_path('forecast', OutPutFolder,os.fspath(data_file.parts[-1]),data_file, content_settings=ContentSettings(content_type='text/csv'))
-            
+        # 2022-02-20 Credentials no longer appear to be working
+        # file_service = FileService(account_name=os.environ["AZURE_STORAGE_ACCOUNT"],protocol='https', connection_string=os.environ["AZURE_CONNECTING_STRING"])
+        # file_service.create_share('forecast')
+        # OutPutFolder=date_dir
+        # file_service.create_directory('forecast', OutPutFolder)
+        #
+        # for img_file in image_filenames:
+        #     file_service.create_file_from_path('forecast', OutPutFolder,os.fspath(img_file.parts[-1]),img_file, content_settings=ContentSettings(content_type='image/png'))
+
+        # for data_file in data_filenames:
+        #     file_service.create_file_from_path('forecast', OutPutFolder,os.fspath(data_file.parts[-1]),data_file, content_settings=ContentSettings(content_type='text/csv'))
+
         ##################### upload model input(Rainfall+wind intensity) to 510 datalack ############## 
         # To DO
         
