@@ -141,8 +141,6 @@ cython_debug/
 # PyCharm
 .idea/
 
-
-
 # R files
 **/.Rproj.user
 **/*.Rproj
