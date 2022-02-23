@@ -37,9 +37,9 @@ def xgb_binary_features(
 ):
 
     cv_folds = StratifiedKFold(n_splits=cv_splits, shuffle=True)
-    scale_pos_weight=int(y.values[y.values==0].shape[0]/y.values[y.values==1].shape[0])
+    #scale_pos_weight=int(y.values[y.values==0].shape[0]/y.values[y.values==1].shape[0])
 
-    xgb = XGBClassifier(use_label_encoder=False, objective=objective, n_jobs=-3,scale_pos_weight=scale_pos_weight,)
+    xgb = XGBClassifier(use_label_encoder=False, objective=objective, n_jobs=-3,)
     
 
     selector = RFECV(
@@ -108,7 +108,7 @@ def xgb_binary_performance(
 
         x_train = train[features]
         y_train = train[y_var]
-        scale_pos_weight=int(y_train.values[y_train.values==0].shape[0]/y_train.values[y_train.values==1].shape[0])
+        #scale_pos_weight=int(y_train.values[y_train.values==0].shape[0]/y_train.values[y_train.values==1].shape[0])
 
         x_test = test[features]
         y_test = test[y_var]
@@ -125,7 +125,7 @@ def xgb_binary_performance(
         steps = [
             (
                 "xgb",
-                XGBClassifier(use_label_encoder=False, objective=objective, n_jobs=-3,scale_pos_weight=scale_pos_weight),
+                XGBClassifier(use_label_encoder=False, objective=objective, n_jobs=-3),
             )
         ]
 

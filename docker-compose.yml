@@ -8,5 +8,7 @@ services:
     env_file:
       - secrets
     volumes:
+      #- "C:/data/forecast:/home/ibf"
       - $TYPHOONMODEL_OUTPUT:/home/fbf/forecast
-    command: run-typhoon-model --debug
+    #command: run-typhoon-model  --typhoonname="RAI" --remote_directory='20211214000000'
+    command: run-typhoon-model 

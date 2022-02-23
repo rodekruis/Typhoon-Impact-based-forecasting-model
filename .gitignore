@@ -153,7 +153,11 @@ secrets
 IBF-Typhoon-model/models/other_models/*
 IBF-Typhoon-model/model_trigger.py
 IBF-Typhoon-model/credentials
-IBF-Typhoon-model/data
+IBF-Typhoon-model/datagit 
+IBF-Typhoon-model/documentation/notebooks/src
+IBF-Typhoon-model/documentation/notebooks/archive
+IBF-Typhoon-model/models/output/figures/*
+IBF-Typhoon-model/scr/settings.py
 analyis/Coding_files_thesis_Nele
 
 local
