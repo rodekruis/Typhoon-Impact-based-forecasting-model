@@ -1,1 +1,0 @@
-GPM_USERNAME="akliludin@gmail.com"
