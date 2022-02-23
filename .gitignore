@@ -153,7 +153,7 @@ secrets
 IBF-Typhoon-model/models/other_models/*
 IBF-Typhoon-model/model_trigger.py
 IBF-Typhoon-model/credentials
-IBF-Typhoon-model/data 
+IBF-Typhoon-model/data/*
 IBF-Typhoon-model/documentation/notebooks/src
 IBF-Typhoon-model/documentation/notebooks/archive
 IBF-Typhoon-model/models/output/figures/*
