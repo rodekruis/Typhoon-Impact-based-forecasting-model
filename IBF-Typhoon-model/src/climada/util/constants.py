@@ -48,11 +48,13 @@ import numpy
 from fiona.crs import from_epsg
 import matplotlib as mpl
 from .config import CONFIG
-
-SYSTEM_DIR = CONFIG.local_data.system.dir(create=False)
+from pathlib import Path
+#SYSTEM_DIR = CONFIG.local_data.system.dir(create=False)
+SYSTEM_DIR = Path("./src/climada/data/system/") #CONFIG.local_data.system.dir(create=False)
 """Folder containing the data used internally"""
 
-DEMO_DIR = CONFIG.local_data.demo.dir(create=False)
+#DEMO_DIR = CONFIG.local_data.demo.dir(create=False)
+DEMO_DIR =  Path("./src/climada/data/demo/") #CONFIG.local_data.demo.dir(create=False)
 """Folder containing the data used for tutorials"""
 
 ISIMIP_GPWV3_NATID_150AS = SYSTEM_DIR.joinpath('NatID_grid_0150as.nc')

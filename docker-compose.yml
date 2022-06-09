@@ -2,13 +2,13 @@ version: "3.8"
 services:
   fbf-phv3:
     build: .
-    image: rodekruis510/typhoonibf:latest
+    image: rodekruis510/typhoonmodel
     ports:
       - "587:587"
+    #container_name: ibf
     env_file:
       - secrets
     volumes:
-      #- "C:/data/forecast:/home/ibf"
-      - $TYPHOONMODEL_OUTPUT:/home/fbf/forecast
-    #command: run-typhoon-model  --typhoonname="RAI" --remote_directory='20211214000000'
-    command: run-typhoon-model 
+      - './documentation:/home/fbf'      #- $TYPHOONMODEL_OUTPUT:/home/fbf
+    command: run-typhoon-model #command: run-typhoon-model  --typhoonname="RAI" --remote_directory='20211214000000'
+     

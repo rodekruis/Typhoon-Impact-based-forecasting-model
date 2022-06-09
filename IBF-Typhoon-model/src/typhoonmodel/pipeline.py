@@ -47,6 +47,7 @@ logger = logging.getLogger(__name__)
 @click.option('--typhoonname', default=None, help='name for active typhoon')
 @click.option('--typhoonname', default=None, help='name for active typhoon')
 @click.option('--debug', is_flag=True, help='setting for DEBUG option')
+
 def main(path,debug,remote_directory,typhoonname):
     initialize.setup_cartopy()
     start_time = datetime.now()

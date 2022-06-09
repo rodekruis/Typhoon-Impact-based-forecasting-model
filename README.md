@@ -100,7 +100,7 @@ This will be running inside the docker container
 Excute:
 
 ```
-docker run -it -p 8888:8888 rodekruis510/typhoonibf
+docker run -it -p 8888:8888 rodekruis510/typhoonmodel
 ```
 Pressing Ctrl-C twice shuts down the notebook server 
 

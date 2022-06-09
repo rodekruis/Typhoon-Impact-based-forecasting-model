@@ -57,3 +57,4 @@ rasterstats==0.14.0
 seaborn==0.11.2
 azure-keyvault-secrets
 azure-identity
+geocube

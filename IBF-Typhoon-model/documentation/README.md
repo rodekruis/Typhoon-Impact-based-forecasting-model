@@ -54,6 +54,7 @@ Raifall is one of the hazards associated with Typhoons. For the model we used ob
 ## Regression
 
 - [This](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/tree/model_dev/IBF-Typhoon-model/documentation/notebooks/regression_model.ipynb) jupyter notebook contains scripts for Regression Model training and Hyper paramerer optimization
-- [This](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/tree/model_dev/IBF-Typhoon-model/documentation/notebooks/Regression_model_result.ipynb) jupyter notebook contains scripts to view Regression model result
+- [This](https://github.com/rodekruis/Typhoon-Impact-based-forecasting-model/tree/model_dev/IBF-Typhoon-model/documentation/notebooks/Regression_model_result.ipynb) jupyter notebook contains scripts to view Regression model result. 
+
 
  

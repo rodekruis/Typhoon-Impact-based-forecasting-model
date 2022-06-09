@@ -78,10 +78,13 @@ RUN python3 -m pip install --no-cache-dir \
 
 # Install Python dependencies
 COPY requirements.txt /home/fbf/
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python3 -m pip install --no-cache-dir -r requirements.txt
+
+RUN python3 -m pip install ipykernel
+RUN python3 -m  ipykernel install
 
 #Install Jupyter 
-RUN pip3 install jupyter
+RUN pip install jupyter
 
 # Copy code and install
 ADD IBF-Typhoon-model .
@@ -90,10 +93,10 @@ RUN pip install .
 
 # Add Tini. Tini operates as a process subreaper for jupyter. This prevents kernel crashes.
 
-ENV TINI_VERSION v0.6.0
-ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /usr/bin/tini
-RUN chmod +x /usr/bin/tini
-ENTRYPOINT ["/usr/bin/tini", "--"]
+#ENV TINI_VERSION v0.6.0
+#ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /usr/bin/tini
+#RUN chmod +x /usr/bin/tini
+#ENTRYPOINT ["/usr/bin/tini", "--"]
 
 #command that starts up the notebook at the end of the Dockerfile.
 CMD ["jupyter", "notebook", "--port=8888", "--no-browser", "--ip=0.0.0.0", "--allow-root"]
