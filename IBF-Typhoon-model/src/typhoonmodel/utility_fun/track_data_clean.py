@@ -16,14 +16,14 @@ def track_data_clean(forcast_df):
             #'radius_max_wind':('time', estimate_rmw(forcast_df.radius_max_wind.values, forcast_df.central_pressure.values)),  
             #'radius_oci':('time', estimate_roci(forcast_df.radius_max_wind.values, forcast_df.central_pressure.values)), 
             #'time_step':('time', forcast_df.time_step.values),
-            'time_step':('time', np.full(len(forcast_df.time.values),1).tolist())
+            'time_step':('time', np.full(len(forcast_df.time.values),0.5).tolist())
         },
         coords={
             'time': forcast_df.time.values,
         },
         attrs={
-            'max_sustained_wind_unit': 'm/s',
-            'central_pressure_unit': 'mb',
+            'max_sustained_wind_unit':forcast_df.max_sustained_wind_unit,
+            'central_pressure_unit':forcast_df.central_pressure_unit,
             'name': forcast_df.name,
             'sid': forcast_df.sid,#+str(forcast_df.ensemble_number),
             'orig_event_flag': forcast_df.orig_event_flag,
@@ -38,7 +38,7 @@ def track_data_clean(forcast_df):
     )
 
     
-    track = track.resample(time="1H").interpolate("linear") #in
+    track = track.resample(time="0.5H").interpolate("linear") #in
     track = track.set_coords(['lat', 'lon'])
     return track
     

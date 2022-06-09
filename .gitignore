@@ -21,6 +21,7 @@ sdist/
 var/
 wheels/
 share/python-wheels/
+analysis/Coding_files_thesis_Nele
 *.egg-info/
 .installed.cfg
 *.egg
@@ -140,8 +141,7 @@ cython_debug/
 # PyCharm
 .idea/
 
-# Python notebooks
-*.ipynb
+
 
 # R files
 **/.Rproj.user
@@ -153,4 +153,8 @@ secrets
 IBF-Typhoon-model/models/other_models/*
 IBF-Typhoon-model/model_trigger.py
 IBF-Typhoon-model/credentials
+IBF-Typhoon-model/data
+analyis/Coding_files_thesis_Nele
+
+local
 .Rproj.user

@@ -49,6 +49,7 @@ ECMWF_SLEEP = 30  # s
 @click.option('--path', default='./', help='main directory')
 @click.option('--remote_directory', default=None, help='remote directory for ECMWF forecast data') #'20210421120000'
 @click.option('--typhoonname', default=None, help='name for active typhoon')
+@click.option('--typhoonname', default=None, help='name for active typhoon')
 @click.option('--debug', is_flag=True, help='setting for DEBUG option')
 def main(path,debug,remote_directory,typhoonname):
     initialize.setup_cartopy()
@@ -60,9 +61,9 @@ def main(path,debug,remote_directory,typhoonname):
     print(str(start_time))
     remote_dir = remote_directory
     if debug:
-        typhoonname = 'SURIGAE'
-        remote_dir = '20210421120000'
-        logger.info(f"DEBUGGING piepline for typhoon{typhoonname}")
+        typhoonname = 'CHANTHU'
+        remote_dir = '20210910120000'
+        logger.info(f"DEBUGGING piepline for typhoon{typhoonname}")  
         Activetyphoon = [typhoonname]
     else:
         # If passed typhoon name is None or empty string
@@ -120,8 +121,12 @@ def main(path,debug,remote_directory,typhoonname):
     ncents = cent.size
     df=df.rename(columns={0: "lat", 1: "lon"})
     df = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.lon, df.lat))
+    admin.set_crs(epsg=4326, inplace=True)
+    df.set_crs(epsg=4326, inplace=True)
+    #df=df.to_crs(admin.crs)
     #df.to_crs({'init': 'epsg:4326'})
-    df.crs = {'init': 'epsg:4326'}
+    #df.crs = "EPSG:4326"#{'init': 'epsg:4326'} 
+    #df.crs = {'init': 'epsg:4326', 'no_defs': True}
     df_admin = sjoin(df, admin, how="left").dropna()
     
     # Sometimes the ECMWF ftp server complains about too many requests
@@ -146,9 +151,9 @@ def main(path,debug,remote_directory,typhoonname):
 
     #%% filter data downloaded in the above step for active typhoons  in PAR
     # filter tracks with name of current typhoons and drop tracks with only one timestep
-    fcast.data = [track_data_clean.track_data_clean(tr) for tr in fcast.data if (tr.time.size>1 and tr.name in Activetyphoon)]  
+    fcast_data = [track_data_clean.track_data_clean(tr) for tr in fcast.data if (tr.time.size>1 and tr.name in Activetyphoon)]  
      
-    # fcast.data = [tr for tr in fcast.data if tr.name in Activetyphoon]
+    fcast.data =fcast_data # [tr for tr in fcast.data if tr.name in Activetyphoon]
     # fcast.data = [tr for tr in fcast.data if tr.time.size>1]    
     for typhoons in Activetyphoon:
         #typhoons=Activetyphoon[0]
@@ -330,7 +335,7 @@ def main(path,debug,remote_directory,typhoonname):
             )
         else:
             raise FileNotFoundError(f'No .png or .csv found in {Output_folder}')
-                ##################### upload model output to 510 datalack ##############
+        ##################### upload model output to 510 datalack ##############
         
         file_service = FileService(account_name=os.environ["AZURE_STORAGE_ACCOUNT"],protocol='https', connection_string=os.environ["AZURE_CONNECTING_STRING"])
         file_service.create_share('forecast')
