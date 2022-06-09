@@ -13,3 +13,7 @@ skill_analysis
 trigger_level_analysis
 venv
 local
+IBF-Typhoon-model/rice_area
+IBF-Typhoon-model/rainfall_data
+IBF-Typhoon-model/restricted_data
+PostLandfallAnalysis

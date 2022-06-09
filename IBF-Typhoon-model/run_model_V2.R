@@ -22,6 +22,7 @@ SUS_TO_GUST = 1.49 # sus to gust conversion, 1 min average
 MS_TO_MPH = 2.23694 # meters / second to miles per hour
 
 # ------------------------ import DATA  -----------------------------------
+
 source("lib_r/settings.R")
 source("lib_r/data_cleaning_forecast.R")
 source("lib_r/prepare_typhoon_input.R")
@@ -148,8 +149,6 @@ model_input <- typhoon_data_cleaned %>% dplyr::select(
 )
 
 
-
-
 ####################################################################################################
 # ------------------------run prediction   -----------------------------------
 
@@ -233,10 +232,17 @@ df_impact_forecast_CERF <- get_total_impact_forecast(
 dref_damage_thresholds <- c(100000, 80000, 70000, 50000, 30000)
 dref_probabilities <- c(0.95, 0.80, 0.70, 0.60, 0.50)
 
-df_impact_forecast_DREF <- get_total_impact_forecast(
-  df_impact_forecast, dref_damage_thresholds, dref_probabilities, "DREF"
-)
+df_impact_forecast_DREF <- get_total_impact_forecast(df_impact_forecast,
+                                                     dref_damage_thresholds,
+                                                     dref_probabilities, "DREF")%>%
+  dplyr::mutate(trigger = ifelse('100k' >= 50,1,
+                                 ifelse('80k' >= 60,1,
+                                        ifelse('70k' >= 50,1, 
+                                               ifelse('50k' >= 80,1,
+                                                      ifelse('30k' >= 95,1, 0))))))
 
+#write trigger to file
+write.csv(df_impact_forecast_DREF,file = paste0(Output_folder, "trigger", "_",  forecast_time, "_",Typhoon_stormname, ".csv"))
 
 # ------------------------ calculate average impact vs probability   -----------------------------------
 
@@ -289,7 +295,6 @@ df_impact <- df_impact_forecast %>%
 # H_80K = round(100*sum(DM_CLASS>=3)/52),
 # M_50K = round(100*sum(DM_CLASS >=2)/52),
 # L_30K = round(100*sum(DM_CLASS>=1)/52))#%>%as_hux()%>%set_text_color(1, everywhere, "blue")%>%theme_article()%>%set_caption("PROBABILITY FOR THE NUMBER OF COMPLETELY DAMAGED BUILDINGS")
-
 
 
 

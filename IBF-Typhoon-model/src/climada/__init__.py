@@ -30,7 +30,7 @@ __all__ = ['init']
 GSDP_DIR = SYSTEM_DIR.joinpath('GSDP')
 
 REPO_DATA = {
-    'data/system': [
+    'climada/data/system': [
         ISIMIP_GPWV3_NATID_150AS,
         GLB_CENTROIDS_MAT,
         ENT_TEMPLATE_XLS,
@@ -46,13 +46,14 @@ REPO_DATA = {
         SYSTEM_DIR.joinpath('tc_impf_cal_v01_TDR1.0.csv'),
         SYSTEM_DIR.joinpath('tc_impf_cal_v01_EDR.csv'),
         SYSTEM_DIR.joinpath('tc_impf_cal_v01_RMSF.csv'),
+        SYSTEM_DIR.joinpath('NatID_grid_0150as.nc'), 
     ],
-    'data/system/GSDP': [
+    'climada/data/system/GSDP': [
         GSDP_DIR.joinpath(f'{cc}_GSDP.xls')
         for cc in ['AUS', 'BRA', 'CAN', 'CHE', 'CHN', 'DEU', 'FRA', 'IDN', 'IND', 'JPN', 'MEX',
                    'TUR', 'USA', 'ZAF']
     ],
-    'data/demo': [
+    'climada/data/demo': [
         ENT_DEMO_TODAY,
         ENT_DEMO_FUTURE,
         EXP_DEMO_H5,
@@ -64,18 +65,18 @@ REPO_DATA = {
         TC_ANDREW_FL,
         DEMO_GDP2ASSET,
         DEMO_DIR.joinpath('demo_emdat_impact_data_2020.csv'),
-        DEMO_DIR.joinpath('histsoc_landuse-15crops_annual_FR_DE_DEMO_2001_2005.nc'),
-        DEMO_DIR.joinpath('hist_mean_mai-firr_1976-2005_DE_FR.hdf5'),
-        DEMO_DIR.joinpath('crop_production_demo_data_yields_CHE.nc4'),
-        DEMO_DIR.joinpath('crop_production_demo_data_cultivated_area_CHE.nc4'),
-        DEMO_DIR.joinpath('FAOSTAT_data_producer_prices.csv'),
-        DEMO_DIR.joinpath('FAOSTAT_data_production_quantity.csv'),
-        DEMO_DIR.joinpath('lpjml_ipsl-cm5a-lr_ewembi_historical_2005soc_co2_yield-whe-noirr_annual_FR_DE_DEMO_1861_2005.nc'),
-        DEMO_DIR.joinpath('h08_gfdl-esm2m_ewembi_historical_histsoc_co2_dis_global_daily_DEMO_FR_2001_2003.nc'),
-        DEMO_DIR.joinpath('h08_gfdl-esm2m_ewembi_historical_histsoc_co2_dis_global_daily_DEMO_FR_2004_2005.nc'),
-        DEMO_DIR.joinpath('gepic_gfdl-esm2m_ewembi_historical_2005soc_co2_yield-whe-noirr_global_DEMO_TJANJIN_annual_1861_2005.nc'),
-        DEMO_DIR.joinpath('pepic_miroc5_ewembi_historical_2005soc_co2_yield-whe-firr_global_annual_DEMO_TJANJIN_1861_2005.nc'),
-        DEMO_DIR.joinpath('pepic_miroc5_ewembi_historical_2005soc_co2_yield-whe-noirr_global_annual_DEMO_TJANJIN_1861_2005.nc'),
+        #DEMO_DIR.joinpath('histsoc_landuse-15crops_annual_FR_DE_DEMO_2001_2005.nc'),
+        #DEMO_DIR.joinpath('hist_mean_mai-firr_1976-2005_DE_FR.hdf5'),
+        #DEMO_DIR.joinpath('crop_production_demo_data_yields_CHE.nc4'),
+        #DEMO_DIR.joinpath('crop_production_demo_data_cultivated_area_CHE.nc4'),
+        #DEMO_DIR.joinpath('FAOSTAT_data_producer_prices.csv'),
+        #DEMO_DIR.joinpath('FAOSTAT_data_production_quantity.csv'),
+        #DEMO_DIR.joinpath('lpjml_ipsl-cm5a-lr_ewembi_historical_2005soc_co2_yield-whe-noirr_annual_FR_DE_DEMO_1861_2005.nc'),
+        #DEMO_DIR.joinpath('h08_gfdl-esm2m_ewembi_historical_histsoc_co2_dis_global_daily_DEMO_FR_2001_2003.nc'),
+        #DEMO_DIR.joinpath('h08_gfdl-esm2m_ewembi_historical_histsoc_co2_dis_global_daily_DEMO_FR_2004_2005.nc'),
+        #DEMO_DIR.joinpath('gepic_gfdl-esm2m_ewembi_historical_2005soc_co2_yield-whe-noirr_global_DEMO_TJANJIN_annual_1861_2005.nc'),
+        #DEMO_DIR.joinpath('pepic_miroc5_ewembi_historical_2005soc_co2_yield-whe-firr_global_annual_DEMO_TJANJIN_1861_2005.nc'),
+        #DEMO_DIR.joinpath('pepic_miroc5_ewembi_historical_2005soc_co2_yield-whe-noirr_global_annual_DEMO_TJANJIN_1861_2005.nc'),
         DEMO_DIR.joinpath('WS_ERA40_sample.mat'),
         DEMO_DIR.joinpath('WS_Europe.xls'),
         DEMO_DIR.joinpath('Portugal_firms_June_2017.csv'),
@@ -91,8 +92,10 @@ def setup_climada_data(reload=False):
 
     for src_dir, path_list in REPO_DATA.items():
         for path in path_list:
-            if not path.exists() or reload:
-                src = Path(__file__).parent.parent.joinpath(src_dir, path.name)
+            if reload:
+            #if not path.exists() or reload:
+                #src = Path('/home/fbf/src').joinpath(src_dir, path.name)
+                src = Path(__file__).parent.joinpath(src_dir, path.name)
                 copyfile(src, path)
 
 
