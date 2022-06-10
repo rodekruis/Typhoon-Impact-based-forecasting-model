@@ -38,7 +38,7 @@ def xgb_regression_features(
 
     xgb = XGBRegressor(objective=objective)
 
-    selector = RFECV(xgb, step=1, cv=4, verbose=0, min_features_to_select=min_features_to_select,n_jobs=-3)
+    selector = RFECV(xgb, step=1, cv=4, verbose=0, min_features_to_select=min_features_to_select)
 
     if GS_randomized == True:
         regr = RandomizedSearchCV(
