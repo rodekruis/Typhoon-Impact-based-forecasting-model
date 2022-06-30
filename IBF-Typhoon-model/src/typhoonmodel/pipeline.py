@@ -36,8 +36,8 @@ def main(path, remote_directory, typhoonname, no_azure, debug):
     remote_dir = remote_directory
     main_path=path
     if debug:
-        typhoonname = 'RAI'
-        remote_dir = '20211230000000'
+        typhoonname = 'MEGI'
+        remote_dir = '20220412000000'
         logger.info(f"DEBUGGING piepline for typhoon{typhoonname}")
     Forecast(main_path,remote_dir,typhoonname, countryCodeISO3='PHP', admin_level=3, no_azure=no_azure)
     print('---------------------AUTOMATION SCRIPT FINISHED---------------------------------')
