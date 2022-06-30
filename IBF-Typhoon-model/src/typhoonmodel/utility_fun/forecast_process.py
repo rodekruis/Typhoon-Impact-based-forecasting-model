@@ -16,17 +16,12 @@ from pybufrkit.decoder import Decoder
 import numpy as np
 from geopandas.tools import sjoin
 import geopandas as gpd
-import click
-import json
-from shapely import wkb, wkt
-from shapely.geometry import Point, Polygon
+from shapely.geometry import Point
 from climada.hazard import Centroids, TropCyclone,TCTracks
 from climada.hazard.tc_tracks_forecast import TCForecast
 from typhoonmodel.utility_fun.settings import get_settings
 from typhoonmodel.utility_fun import track_data_clean, Check_for_active_typhoon, Sendemail, \
     ucl_data, plot_intensity, initialize
-    
-#from typhoonmodel.utility_fun.dynamicDataDb import DatabaseManager    
 
 if platform == "linux" or platform == "linux2": #check if running on linux or windows os
     from typhoonmodel.utility_fun import Rainfall_data
@@ -38,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 class Forecast:
-    def __init__(self,main_path, remote_dir,typhoonname, countryCodeISO3, admin_level, no_azure=True):
+    def __init__(self,main_path, remote_dir,typhoonname, countryCodeISO3, admin_level, no_azure):
         self.TyphoonName = typhoonname
         self.admin_level = admin_level
         #self.db = DatabaseManager(leadTimeLabel, countryCodeISO3,admin_level)
@@ -319,7 +314,9 @@ class Forecast:
             image_filenames = list(Path(Output_folder).glob('*.png'))
             self.data_filenames_list[typhoons]=data_filenames
             self.image_filenames_list[typhoons]=image_filenames
-            
+
+            if no_azure:
+                return
             ##################### upload model output to 510 datalack ##############             
             file_service = FileService(account_name=self.AZURE_STORAGE_ACCOUNT,protocol='https', connection_string=self.AZURE_CONNECTING_STRING)
             file_service.create_share('forecast')
