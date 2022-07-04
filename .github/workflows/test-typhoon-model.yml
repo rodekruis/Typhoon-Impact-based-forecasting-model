@@ -47,15 +47,15 @@ jobs:
           libssl-dev \
           libgdal-dev
 
-    - name: Cache R dependencies
-      id: cache-r-deps
-      uses: actions/cache@v2
-      with:
-        path: ${{ env.R_LIBS_USER }}
-        key: R-dependency-cache-${{ hashFiles('.github/depends.R') }}
+    #- name: Cache R dependencies
+    #  id: cache-r-deps
+    #  uses: actions/cache@v2
+    #  with:
+    #    path: ${{ env.R_LIBS_USER }}
+    #    key: R-dependency-cache-${{ hashFiles('.github/depends.R') }}
 
     - name: Install R dependencies
-      if: steps.cache-r-deps.outputs.cache-hit != 'true'
+      # if: steps.cache-r-deps.outputs.cache-hit != 'true'
       run: |
         Rscript .github/depends.R
 
