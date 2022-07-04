@@ -40,7 +40,7 @@ def download_rainfall_nomads(Input_folder, path, Alternative_data_point,no_data_
     if not os.path.exists(rainfall_path):
         os.makedirs(rainfall_path)
     list_df=[]  #to store final rainfall dataframes 
-    ADMIN_PATH = 'data/gis_data/phl_admin3_simpl2.geojson'
+    ADMIN_PATH = 'data-raw/gis_data/phl_admin3_simpl2.geojson'
     admin = gpd.read_file(ADMIN_PATH)
     RAINFALL_TIME_STEP=['06', '24']
 
