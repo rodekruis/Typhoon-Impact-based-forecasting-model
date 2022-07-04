@@ -11,5 +11,4 @@ install.packages(c(
     'xgboost',
     'huxtable',
     'readr',
-    'rNOMADS'
 ))
