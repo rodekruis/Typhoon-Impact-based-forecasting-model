@@ -71,7 +71,7 @@ jobs:
 
     - name: Run script
       run: |
-        run-typhoon-model --debug
+        run-typhoon-model --debug --no-azure
       working-directory: ${{ env.running-directory }}
 
     - name: Send mail
