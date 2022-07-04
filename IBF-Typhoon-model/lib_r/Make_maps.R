@@ -117,7 +117,7 @@ Make_maps_avg<-function(php_admin1,php_admin3_,my_track,TYF,Typhoon_stormname,ma
   ph_map2 = tm_shape(php_admin1)+ tm_polygons(border.col = "white",lwd = 0.01,lyt='dotted',alpha =0.2) +
     #tm_shape(typhoon_region) +# tm_borders(lwd = 2,col='red') +
     tm_credits( subtitle,position = c("left", "top"),size = 0.7) +
-    tm_logo('logos/combined_logo.png', height=3, position = c("right", "top"))+
+    tm_logo('data-raw/logos/combined_logo.png', height=3, position = c("right", "top"))+
     tm_layout(legend.show = FALSE)
   
   map1<- tmap_arrange(ph_map,ph_map2,impact_map2,impact_map,nrow=2,ncol = 2,widths = c(.3, .7),heights = c(.3, .7))

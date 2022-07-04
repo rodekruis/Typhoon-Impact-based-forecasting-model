@@ -79,7 +79,7 @@ jobs:
     - name: Run script, typhoon name and remote directory input
       if: ${{ github.event.inputs.typhoon_name != 'Not set' && github.event.inputs.remote_directory != 'Not set' }}
       run: |
-        run-typhoon-model \
+        run-typhoon-model --no-azure \
         --typhoonname ${{ github.event.inputs.typhoon_name }} \
         --remote_directory ${{ github.event.inputs.remote_directory }}
       working-directory: ${{ env.running-directory }}
@@ -87,21 +87,21 @@ jobs:
     - name: Run script, typhoon name input
       if: ${{ github.event.inputs.typhoon_name != 'Not set' && github.event.inputs.remote_directory == 'Not set' }}
       run: |
-        run-typhoon-model \
+        run-typhoon-model --no-azure \
         --typhoonname ${{ github.event.inputs.typhoon_name }}
       working-directory: ${{ env.running-directory }}
 
     - name: Run script, remote directory input
       if: ${{ github.event.inputs.typhoon_name == 'Not set' && github.event.inputs.remote_directory != 'Not set' }}
       run: |
-        run-typhoon-model \
+        run-typhoon-model --no-azure \
         --remote_directory ${{ github.event.inputs.remote_directory }}
       working-directory: ${{ env.running-directory }}
 
     - name: Run script, no input
       if: ${{ github.event.inputs.typhoon_name == 'Not set' && github.event.inputs.remote_directory == 'Not set' }}
       run: |
-        run-typhoon-model
+        run-typhoon-model --no-azure
       working-directory: ${{ env.running-directory }}
 
     - name: Send mail
