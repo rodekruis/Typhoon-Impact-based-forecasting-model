@@ -20,7 +20,9 @@ parts/
 sdist/
 var/
 wheels/
+local
 share/python-wheels/
+analysis/Coding_files_thesis_Nele
 *.egg-info/
 .installed.cfg
 *.egg
@@ -112,7 +114,12 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-
+.vscode
+.vscode-server
+.vs
+.devcontainer
+.ssh
+.devcontainer
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -140,9 +147,6 @@ cython_debug/
 # PyCharm
 .idea/
 
-# Python notebooks
-*.ipynb
-
 # R files
 **/.Rproj.user
 **/*.Rproj
@@ -153,4 +157,14 @@ secrets
 IBF-Typhoon-model/models/other_models/*
 IBF-Typhoon-model/model_trigger.py
 IBF-Typhoon-model/credentials
+IBF-Typhoon-model/data
+IBF-Typhoon-model/documentation/notebooks/src
+IBF-Typhoon-model/documentation/notebooks/archive
+IBF-Typhoon-model/models/output/figures/*
+IBF-Typhoon-model/scr/settings.py
+analyis/Coding_files_thesis_Nele
+Vulnerability assesment
+IBF-Typhoon-model/results
+
+local
 .Rproj.user

@@ -5,10 +5,12 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats
-from scipy.optimize import minimize
+from scipy.optimize import curve_fit
 import matplotlib as mpl
+from statsmodels.stats import diagnostic
 
-INPUT_DIR = Path("../../data/")
+
+INPUT_DIR = Path("../../IBF-Typhoon-model/data")
 OUTPUT_DIR = Path("output/")
 
 DROMIC_REPORT_FILENAME = "2014 - 20 DROMIC Reports_PeopleAffected_DamagedHouses_Consolidated.xlsx"
@@ -82,51 +84,49 @@ df_combined =  df_combined[~df_combined['location'].isin(total_cnames)]
 ```
 
 ```python
+def fit_line(x, y):
 
-def fit_line(x, y, yint_zero = False):
+    def linear_function(x, m, b):
+        return m * x + b
 
-    # likelihood function
-    def mle(params):
-        m, b, sd = params[0], params[1], params[2]
-        yhat = m*x + b # predictions
-        return -np.sum( stats.norm.logpdf(y, loc=yhat, scale=sd) ) 
+    results = curve_fit(linear_function, x, y)
+    m_fit, b_fit = results[0][0], results[0][1]
+    y_fit = m_fit * x + b_fit
+
+    print(f'Best fit slope & y-int: {m_fit:.1f}, {b_fit:.1f}')
+
+    # Report correlation results
+    for stat in ['pearsonr', 'spearmanr']:
+        print(f'\nResults for {stat}')
+        result = getattr(stats, stat)(x, y)
+        print(f'Correlation: {result[0]:.2f}, p-value: {result[1]:.2e}')
+        
+    # Analyze residuals 
+    res = y - y_fit
     
+    #fig, ax = plt.subplots()
+    #ax.hist(res, bins=100)
+    #ax.set_xlabel('Residuals')
     
-    def mle_yint_zero(params):
-        m, sd = params[0], params[1]
-        yhat = m*x  # predictions
-        return -np.sum( stats.norm.logpdf(y, loc=yhat, scale=sd) ) 
+    print('\nResult for shapiro')
+    result = stats.shapiro(res)
+    print(f'Correlation: {result[0]:.2f}, p-value: {result[1]:.2e}')
 
-    if yint_zero:
-        guess = np.array([25, 1])
-        function = mle_yint_zero
-
-    else:
-        guess = np.array([25, 35000, 1])
-        function = mle
     
-    results = minimize(function, guess, method='Nelder-Mead', 
-                       options={'disp': True})
-
-    # Plot histogram of residuals
-    residuals = y - (results.x[0] * y + results.x[1])
+    for stat in ['het_white', 'het_breuschpagan']:
+        print(f'\nResult for {stat}')
+        result = getattr(diagnostic, stat)(res, np.array([np.ones(len(x)), x]).T)
+        print(result)
     
-    fig, ax = plt.subplots()
-    ax.hist(residuals, bins=100) 
-    ax.set_xlabel('residuals')
-    print('Best fit slope:', results.x[0])
-    if not yint_zero:
-        print('Best fit y-int:', results.x[1])
+    return m_fit, b_fit
 
-    return results
 ```
 
 ```python
-
 # Limit events to where there are at least 100 damaged houess / people affected
 # (in reality setting this to 0 has little effect as the fit is dominated by 
 # the large numbers)
-houses_thresh = 100
+houses_thresh = 100 # Don't skip any for now
 people_thresh = 100
 df_to_fit = df_combined[(df_combined['npeople'] >= people_thresh) & 
                       (df_combined['nhouses'] >= houses_thresh)]
@@ -134,38 +134,38 @@ df_to_fit = df_combined[(df_combined['npeople'] >= people_thresh) &
 x = df_to_fit['nhouses']
 y = df_to_fit['npeople']
 
-# Try fitting with a free y intercept and one fixed at 0 (to get a scaling factor)
-print('For linear fit:')
 results_linear = fit_line(x, y)
-print('\nFor linear fit with y int fixed to 0:')
-results_yint_zero = fit_line(x, y, yint_zero=True)
 ```
 
-The best-fit line ha a slope of ~25 (rounding due to uncertainties), with both a free y-intercept and one that is fixed at 0,
-which means that for each severly damaged house there are about 25 people affected. 
-Even though the average household size is around 5, the higher number can explained because we
-expect that for each severely damaged house, there will be more people affected than
-just those residing in the building itself.
+Both Pearson's and Spearman's show a moderate correlation (>0.5) and reject the null hypothesis that there is no correlation.
 
-However, residuals are non-normal so there is quite some heteroscedasticity, It might be worthwhile fitting an exponential
+With Shapiro we do reject the null hypothesis that the residuals are normally distributed.
+
+Last two tests: Null hypothesis homoscedasticity is present is rejected, therefore we find heteroscodasticity. 
 
 ```python
 # Try again but for log-log 
 results_log = fit_line(np.log(x), np.log(y))
 ```
 
-An exponential of the form:
+Pearson's correlation is slightly better, also rejecting the null hypothesis of no correlation. Spearman is unchaged as it should be since it is just the rank.
+
+As previously with Shapiro we do reject the null hypothesis that the residuals are normally distributed.
+
+However, we are not able to reject the null hypothesis of homoscodasticity. 
+
+Thus an exponential of the form:
 ```
-n_people = 150 x n_houses ^ 0.7
+n_people = e ^ 5.7  x n_houses ^ 0.7
 ```
 is probably a better fit, but maybe less practical for interpretation
 
 ```python
 # Plot the data and best-fit line
 
-y_linear = results_linear.x[0] * x_line + results_linear.x[1]
-y_yint_zero = results_yint_zero.x[0] * x_line
-y_log = np.exp(results_log.x[1]) * x_line ** results_log.x[0]
+x_line = np.linspace(100, x.max(), 100)
+y_linear = results_linear[0] * x_line + results_linear[1]
+y_log = np.exp(results_log[1]) * x_line ** results_log[0]
 
 def plot_people_vs_houses(df, log=False, xlims=None, ylims=None):
     x = df['nhouses']
@@ -175,7 +175,6 @@ def plot_people_vs_houses(df, log=False, xlims=None, ylims=None):
     ax.plot(x, y, '.', alpha=0.3, c='Grey')
     x_line = np.linspace(100, x.max(), 100)
     ax.plot(x_line, y_linear, label='linear fit')
-    ax.plot(x_line,  y_yint_zero, label='y-intercept 0')
     ax.plot(x_line,  y_log, label='exponential fit')
     if log:
         ax.set_xscale('log')
@@ -205,12 +204,10 @@ Some things to note:
 # Plot the scaling factor -- i.e. the number you need to multiply the number of 
 # totally damaged houses to get the people affected
 
-y1 = results_linear.x[0] * x_line + results_linear.x[1]
-y2 = results_yint_zero.x[0] * x_line
-y3 = np.exp(results_log.x[1]) * x_line ** results_log.x[0]
+y1 = results_linear[0] * x_line + results_linear[1]
+y3 = np.exp(results_log[1]) * x_line ** results_log[0]
 fig, ax = plt.subplots()
 ax.plot(x_line, y_linear / x_line, label='linear fit')
-ax.plot(x_line, y_yint_zero / x_line, label='y-intercept 0')
 ax.plot(x_line, y_log / x_line, label='exponential fit')
 ax.set_ylim(0, 50)
 ax.legend()
@@ -223,8 +220,7 @@ ax.grid(which='minor')
 
 ## Summary
 
-We perform a liner fit both holding the y-intercept at 0 at allowing it to vary. 
-In both cases we obtain a slope of 25, meaning that for a single totally damaged 
+We perform a liner fit and obtain a slope of ~25, meaning that for a single totally damaged 
 house we expect about 25 affected people. This is more than a typical household size of 5, 
 however this is not unexpected since by the time houses are severely damaged, 
 we expected more people than just the residents of these houess in the nearby community to be affected.
@@ -241,8 +237,4 @@ about 10-20.
 ratio = df_combined['npeople'] / df_combined['nfam']
 ratio = ratio[ratio < 100]
 plt.hist(ratio, bins=np.arange(0.0, 10.0, 0.1))
-```
-
-```python
-
 ```
