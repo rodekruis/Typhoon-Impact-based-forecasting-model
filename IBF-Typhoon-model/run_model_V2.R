@@ -40,14 +40,14 @@ source("lib_r/damage_probability.R")
 
 # ------------------------ import DATA  -----------------------------------
 
-php_admin3 <- geojsonsf::geojson_sf("data/gis_data/phl_admin3_simpl2.geojson")
-php_admin1 <- geojsonsf::geojson_sf("data/gis_data/phl_admin1_gadm_pcode.geojson")
+php_admin3 <- geojsonsf::geojson_sf("data-raw/gis_data/phl_admin3_simpl2.geojson")
+php_admin1 <- geojsonsf::geojson_sf("data-raw/gis_data/phl_admin1_gadm_pcode.geojson")
 php_admin3<-st_make_valid(php_admin3)
 php_admin1<-st_make_valid(php_admin1)
 wshade <- php_admin3
-material_variable2 <- read.csv("data/pre_disaster_indicators/material_variable2.csv")
-data_matrix_new_variables <- read.csv("data/landuse_stormsurge/data_matrix_new_variables.csv")
-geo_variable <- read.csv("data/topography/geo_variable.csv")
+material_variable2 <- read.csv("data-raw/pre_disaster_indicators/material_variable2.csv")
+data_matrix_new_variables <- read.csv("data-raw/landuse_stormsurge/data_matrix_new_variables.csv")
+geo_variable <- read.csv("data-raw/topography/geo_variable.csv")
 wshade <- php_admin3
 
 xgmodel <- readRDS("models/operational/xgboost_regression_v4.RDS", refhook = NULL)
