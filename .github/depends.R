@@ -10,5 +10,6 @@ install.packages(c(
     'ncdf4',
     'xgboost',
     'huxtable',
-    'readr'
+    'readr',
+    'rNOMADS'
 ))
