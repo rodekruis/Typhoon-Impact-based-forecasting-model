@@ -2,8 +2,8 @@ import numpy as np
 import random
 from imblearn.over_sampling import SMOTE
 from imblearn.pipeline import Pipeline
-from sklearn.model_selection import StratifiedKFold, GridSearchCV
-from sklearn.metrics import f1_score
+ 
+ 
 from xgboost import XGBClassifier
 import os
 from sklearn.feature_selection import RFECV

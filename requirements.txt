@@ -58,3 +58,8 @@ seaborn==0.11.2
 azure-keyvault-secrets
 azure-identity
 geocube
+imblearn
+eli5
+xgboost
+pactools
+seaborn

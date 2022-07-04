@@ -25,8 +25,8 @@ from sklearn.feature_selection import (
     f_regression,
     mutual_info_classif,
 )
-import eli5
-from eli5.sklearn import PermutationImportance
+#import eli5
+#from eli5.sklearn import PermutationImportance
 from sklearn.inspection import permutation_importance
 import xgboost as xgb
 import random

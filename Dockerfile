@@ -32,8 +32,6 @@ RUN add-apt-repository ppa:ubuntugis/ppa \
     && apt-get update \
     && apt-get install --no-install-recommends -y \
     python-numpy \
-    gdal-bin \
-    libgdal-dev \
     postgresql-client \
 	libproj-dev \
     libgeos-dev \
