@@ -154,10 +154,12 @@ cython_debug/
 # Custom
 secrets
 **/forecast
+local
 IBF-Typhoon-model/models/other_models/*
 IBF-Typhoon-model/model_trigger.py
 IBF-Typhoon-model/credentials
 IBF-Typhoon-model/data
+IBF-Typhoon-model/rice_area
 IBF-Typhoon-model/documentation/notebooks/src
 IBF-Typhoon-model/documentation/notebooks/archive
 IBF-Typhoon-model/models/output/figures/*
@@ -165,7 +167,6 @@ IBF-Typhoon-model/scr/settings.py
 analyis/Coding_files_thesis_Nele
 Vulnerability assesment
 IBF-Typhoon-model/results
-documentation
-
-local
+PostLandfallAnalysis
+docs
 .Rproj.user
