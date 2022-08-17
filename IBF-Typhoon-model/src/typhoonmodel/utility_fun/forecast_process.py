@@ -23,10 +23,12 @@ from typhoonmodel.utility_fun.settings import get_settings
 from typhoonmodel.utility_fun import track_data_clean, Check_for_active_typhoon, Sendemail, \
     ucl_data, plot_intensity, initialize
 
-if platform == "linux" or platform == "linux2": #check if running on linux or windows os
-    from typhoonmodel.utility_fun import Rainfall_data
-elif platform == "win32":
+#check if running on windows or linux/macOS
+if platform == "win32":
     from typhoonmodel.utility_fun import Rainfall_data_window as Rainfall_data
+else: 
+    from typhoonmodel.utility_fun import Rainfall_data
+
 decoder = Decoder()
 initialize.setup_logger()
 logger = logging.getLogger(__name__)
@@ -52,6 +54,7 @@ class Forecast:
         self.ECMWF_MAX_TRIES = 3
         self.ECMWF_SLEEP = 30  # s
         self.main_path=main_path
+        
         if not typhoonname:
             Activetyphoon = Check_for_active_typhoon.check_active_typhoon()
             if not Activetyphoon:
