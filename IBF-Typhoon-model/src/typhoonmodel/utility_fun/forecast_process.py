@@ -16,12 +16,17 @@ from pybufrkit.decoder import Decoder
 import numpy as np
 from geopandas.tools import sjoin
 import geopandas as gpd
-from shapely.geometry import Point
+import click
+import json
+from shapely import wkb, wkt
+from shapely.geometry import Point, Polygon
 from climada.hazard import Centroids, TropCyclone,TCTracks
 from climada.hazard.tc_tracks_forecast import TCForecast
-from typhoonmodel.utility_fun.settings import get_settings
+from typhoonmodel.utility_fun.settings import *
 from typhoonmodel.utility_fun import track_data_clean, Check_for_active_typhoon, Sendemail, \
     ucl_data, plot_intensity, initialize
+    
+#from typhoonmodel.utility_fun.dynamicDataDb import DatabaseManager    
 
 if platform == "linux" or platform == "linux2": #check if running on linux or windows os
     from typhoonmodel.utility_fun import Rainfall_data
@@ -33,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 class Forecast:
-    def __init__(self,main_path, remote_dir,typhoonname, countryCodeISO3, admin_level, no_azure):
+    def __init__(self,main_path, remote_dir,typhoonname, countryCodeISO3, admin_level):
         self.TyphoonName = typhoonname
         self.admin_level = admin_level
         #self.db = DatabaseManager(leadTimeLabel, countryCodeISO3,admin_level)
@@ -42,13 +47,12 @@ class Forecast:
         #self.levels = SETTINGS[countryCodeISO3]['levels']        
         #Activetyphoon = Check_for_active_typhoon.check_active_typhoon()
         start_time = datetime.now()
-        settings = get_settings(no_azure=no_azure)
-        self.ADMIN_PASSWORD = settings[countryCodeISO3]['PASSWORD']
-        self.API_SERVICE_URL = settings[countryCodeISO3]['IBF_API_URL']
-        self.UCL_PASSWORD = settings[countryCodeISO3]['UCL_PASSWORD']
-        self.UCL_USERNAME = settings[countryCodeISO3]['UCL_USERNAME']
-        self.AZURE_STORAGE_ACCOUNT = settings[countryCodeISO3]['AZURE_STORAGE_ACCOUNT']
-        self.AZURE_CONNECTING_STRING = settings[countryCodeISO3]['AZURE_CONNECTING_STRING']
+        self.ADMIN_PASSWORD = SETTINGS_SECRET[countryCodeISO3]['PASSWORD']
+        self.API_SERVICE_URL = SETTINGS_SECRET[countryCodeISO3]['IBF_API_URL'] 
+        self.UCL_PASSWORD = SETTINGS_SECRET[countryCodeISO3]['UCL_PASSWORD']
+        self.UCL_USERNAME = SETTINGS_SECRET[countryCodeISO3]['UCL_USERNAME']
+        self.AZURE_STORAGE_ACCOUNT = SETTINGS_SECRET[countryCodeISO3]['AZURE_STORAGE_ACCOUNT']
+        self.AZURE_CONNECTING_STRING = SETTINGS_SECRET[countryCodeISO3]['AZURE_CONNECTING_STRING'] 
         self.ECMWF_MAX_TRIES = 3
         self.ECMWF_SLEEP = 30  # s
         self.main_path=main_path
@@ -314,9 +318,7 @@ class Forecast:
             image_filenames = list(Path(Output_folder).glob('*.png'))
             self.data_filenames_list[typhoons]=data_filenames
             self.image_filenames_list[typhoons]=image_filenames
-
-            if no_azure:
-                return
+            
             ##################### upload model output to 510 datalack ##############             
             file_service = FileService(account_name=self.AZURE_STORAGE_ACCOUNT,protocol='https', connection_string=self.AZURE_CONNECTING_STRING)
             file_service.create_share('forecast')
