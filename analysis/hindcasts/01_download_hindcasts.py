@@ -23,7 +23,7 @@ if ret.status_code != 200:
 
 start_date = datetime(2006, 10, 1, 0, 0, 0)
 dspath = 'https://rda.ucar.edu/data/ds330.3/'
-date_list = rrule.rrule(rrule.HOURLY, dtstart=start_date, interval=12)
+date_list = rrule.rrule(rrule.HOURLY, dtstart=start_date, until=datetime.utcnow().date(), interval=12)
 verbose = True
 
 

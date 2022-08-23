@@ -1,17 +1,13 @@
-import sys, os
-import requests
-import getpass
-from datetime import datetime
+import os
 from pathlib import Path
 import re
 
 import pandas as pd
 import xml.etree.ElementTree as ET
-from dateutil import rrule
 
-from constants import savedir
+from constants import save_dir
 
-save_dir = Path(savedir)
+save_dir = Path(save_dir)
 
 filename = "../../IBF-Typhoon-model/data/wind_data/input/typhoon_events.csv"
 df_typhoons = pd.read_csv(filename)
@@ -24,10 +20,6 @@ def xml2csv(filename):
     print(f"{filename}")
     tree = ET.parse(filename)
     root = tree.getroot()
-    try:
-        model_name=root.find('header/generatingApplication/model/name').text
-    except AttributeError:
-        model_name = ''
 
     prod_center=root.find('header/productionCenter').text
     baseTime=root.find('header/baseTime').text
