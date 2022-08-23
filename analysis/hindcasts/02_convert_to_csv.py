@@ -5,6 +5,7 @@ import re
 import pandas as pd
 import xml.etree.ElementTree as ET
 
+
 from constants import save_dir
 
 save_dir = Path(save_dir)
@@ -18,7 +19,11 @@ for cname in ["local", "international"]:
 
 def xml2csv(filename):
     print(f"{filename}")
-    tree = ET.parse(filename)
+    try:
+        tree = ET.parse(filename)
+    except ET.ParseError:
+        print("Error with file, skipping")
+        return
     root = tree.getroot()
 
     prod_center=root.find('header/productionCenter').text
