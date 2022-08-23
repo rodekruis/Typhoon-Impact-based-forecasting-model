@@ -1,13 +1,14 @@
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import xarray as xr
 import pandas as pd
 
+
 def read_in_hindcast(typhoon_name: str, remote_dir: str, local_directory: str):
     # Read in the hindcast csv
-    print(remote_dir)
-    filename = Path(local_directory) / f"{typhoon_name}_all.csv"
+    filename = Path(local_directory) / f"{typhoon_name.lower()}_all.csv"
     forecast_time =  datetime.strptime(remote_dir, "%Y%m%d%H%M%S")
 
     df = pd.read_csv(filename)
@@ -31,7 +32,9 @@ def read_in_hindcast(typhoon_name: str, remote_dir: str, local_directory: str):
             central_pressure=(["time"], group['pressure']),
             lat=(["time"], group["lat"]),
             lon=(["time"], group["lon"]),
-            time_step=(["time"], [time_step] * len(group))
+            time_step=(["time"], [time_step] * len(group)),
+            radius_max_wind = (["time"], [np.nan] * len(group)),
+            environmental_pressure = (["time"], [1010.] * len(group)),
         )
         attrs=dict(
             max_sustained_wind_unit="m/s",
@@ -41,7 +44,11 @@ def read_in_hindcast(typhoon_name: str, remote_dir: str, local_directory: str):
             ensemble_number=ensemble,
             is_ensemble=True,
             forecast_time=forecast_time,
-            basin="W - North West Pacific"
+            basin="W - North West Pacific",
+            sid=typhoon_name,
+            orig_event_flag=False,
+            id_no=None,
+            category=None
         )
         ds = xr.Dataset(data_vars=data_vars, coords=coords, attrs=attrs).set_coords(["lat", "lon"])
         tracks.append(ds)

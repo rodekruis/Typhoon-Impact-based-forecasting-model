@@ -9,7 +9,9 @@ import pandas as pd
 import xml.etree.ElementTree as ET
 from dateutil import rrule
 
-save_dir = Path("/home/turnerm/sync/aa_repo_data/Data/public/exploration/phl/ecmwf_hindcast")
+from constants import savedir
+
+save_dir = Path(savedir)
 
 filename = "../../IBF-Typhoon-model/data/wind_data/input/typhoon_events.csv"
 df_typhoons = pd.read_csv(filename)

@@ -5,8 +5,9 @@ from pathlib import Path
 
 from dateutil import rrule
 
+from constants import save_dir
 
-save_dir = Path("/home/turnerm/sync/aa_repo_data/Data/public/exploration/phl/ecmwf_hindcast")
+save_dir = Path(save_dir)
 
 email = input('email: ')
 pswd = input('password: ')
@@ -21,7 +22,6 @@ if ret.status_code != 200:
     exit(1)
 
 start_date = datetime(2006, 10, 1, 0, 0, 0)
-start_date = datetime(2020, 9, 7, 0, 0, 0)
 dspath = 'https://rda.ucar.edu/data/ds330.3/'
 date_list = rrule.rrule(rrule.HOURLY, dtstart=start_date, interval=12)
 verbose = True
