@@ -21,11 +21,16 @@ logger = logging.getLogger(__name__)
 @click.command()
 @click.option('--path', default='./', help='main directory')
 @click.option('--remote_directory', default=None,
-              help='remote directory for ECMWF forecast data, format: YYYYMMDDhhmmss')
+              help='remote directory for ECMWF forecast data, format: YYYYMMDDhhmmss. In the case of hindcasts,'
+                   'the target timestamp of the forecast run.')
+@click.option('--use-hindcast', is_flag=True, help='Use hindcast instead of latest ECMWF. Need to specify'
+                                                   'local directory and use remote directory for timestamp')
+@click.option('--local-directory', default=None,
+              help='local directory containing with ECMWF hindcasts')
 @click.option('--typhoonname', default=None, help='name for active typhoon')
 @click.option('--no-azure', is_flag=True, help="Don't push to Azure lake")
 @click.option('--debug', is_flag=True, help='setting for DEBUG option')
-def main(path, remote_directory, typhoonname, no_azure, debug):
+def main(path, remote_directory, use_hindcast, local_directory, typhoonname, no_azure, debug):
     initialize.setup_cartopy()
     start_time = datetime.now()
     print('---------------------AUTOMATION SCRIPT STARTED---------------------------------')
@@ -37,7 +42,12 @@ def main(path, remote_directory, typhoonname, no_azure, debug):
         typhoonname = 'MEGI'
         remote_dir = '20220412000000'
         logger.info(f"DEBUGGING piepline for typhoon {typhoonname}")
-    Forecast(path, remote_dir, typhoonname, countryCodeISO3='PHP', admin_level=3, no_azure=no_azure)
+    if use_hindcast:
+        if not remote_directory or not local_directory or not typhoonname:
+            logger.error("If you want to use a hindcast, you need to specify remote directory"
+                         "(for the forecast timestamp), a local directory, and the typhoon name")
+    Forecast(path, remote_dir, typhoonname, countryCodeISO3='PHP', admin_level=3, no_azure=no_azure,
+             use_hindcast=use_hindcast, local_directory=local_directory)
     print('---------------------AUTOMATION SCRIPT FINISHED---------------------------------')
     print(str(datetime.now()))
 

@@ -21,7 +21,7 @@ from climada.hazard import Centroids, TropCyclone,TCTracks
 from climada.hazard.tc_tracks_forecast import TCForecast
 from typhoonmodel.utility_fun.settings import get_settings
 from typhoonmodel.utility_fun import track_data_clean, Check_for_active_typhoon, Sendemail, \
-    ucl_data, plot_intensity, initialize
+    ucl_data, plot_intensity, initialize, read_in_hindcast
 
 if platform == "linux" or platform == "linux2": #check if running on linux or windows os
     from typhoonmodel.utility_fun import Rainfall_data
@@ -33,7 +33,8 @@ logger = logging.getLogger(__name__)
 
 
 class Forecast:
-    def __init__(self,main_path, remote_dir,typhoonname, countryCodeISO3, admin_level, no_azure):
+    def __init__(self,main_path, remote_dir,typhoonname, countryCodeISO3, admin_level, no_azure,
+                 use_hindcast, local_directory):
         self.TyphoonName = typhoonname
         self.admin_level = admin_level
         #self.db = DatabaseManager(leadTimeLabel, countryCodeISO3,admin_level)
@@ -116,29 +117,31 @@ class Forecast:
         self.df_admin=df_admin
         # Sometimes the ECMWF ftp server complains about too many requests
         # This code allows several retries with some sleep time in between
-        n_tries = 0
-        while True:
-            try:
-                logger.info("Downloading ECMWF typhoon tracks")
-                bufr_files = TCForecast.fetch_bufr_ftp(remote_dir=self.remote_dir)
-                fcast = TCForecast()
-                fcast.fetch_ecmwf(files=bufr_files)
-            except ftplib.all_errors as e:
-                n_tries += 1
-                if n_tries >= self.ECMWF_MAX_TRIES:
-                    logger.error(f' Data downloading from ECMWF failed: {e}, '
-                                 f'reached limit of {self.ECMWF_MAX_TRIES} tries, exiting')
-                    sys.exit()
-                logger.error(f' Data downloading from ECMWF failed: {e}, retrying after {self.ECMWF_SLEEP} s')
-                time.sleep(self.ECMWF_SLEEP)
-                continue
-            break
+        if use_hindcast:
+            fcast_data = read_in_hindcast.read_in_hindcast(typhoonname, remote_dir, local_directory)
+        else:
+            n_tries = 0
+            while True:
+                try:
+                    logger.info("Downloading ECMWF typhoon tracks")
+                    bufr_files = TCForecast.fetch_bufr_ftp(remote_dir=self.remote_dir)
+                    fcast = TCForecast()
+                    fcast.fetch_ecmwf(files=bufr_files)
+                except ftplib.all_errors as e:
+                    n_tries += 1
+                    if n_tries >= self.ECMWF_MAX_TRIES:
+                        logger.error(f' Data downloading from ECMWF failed: {e}, '
+                                     f'reached limit of {self.ECMWF_MAX_TRIES} tries, exiting')
+                        sys.exit()
+                    logger.error(f' Data downloading from ECMWF failed: {e}, retrying after {self.ECMWF_SLEEP} s')
+                    time.sleep(self.ECMWF_SLEEP)
+                    continue
+                break
+            fcast_data = [track_data_clean.track_data_clean(tr) for tr in fcast.data if (tr.time.size>1 and tr.name in Activetyphoon)]
 
         #%% filter data downloaded in the above step for active typhoons  in PAR
         # filter tracks with name of current typhoons and drop tracks with only one timestep
-        fcast_data = [track_data_clean.track_data_clean(tr) for tr in fcast.data if (tr.time.size>1 and tr.name in Activetyphoon)]  
         self.fcast_data=fcast_data
-        fcast.data =fcast_data # [tr for tr in fcast.data if tr.name in Activetyphoon]
         self.data_filenames_list={}
         self.image_filenames_list={}
         self.typhhon_wind_data={}
@@ -160,8 +163,8 @@ class Forecast:
             #typhoons='SURIGAE'  # to run it manually for any typhoon 
                         # select windspeed for HRS model
                         
-            fcast.data=[tr for tr in fcast.data if tr.name==typhoons]
-            tr_HRS=[tr for tr in fcast.data if (tr.is_ensemble=='False')]
+            fcast_data=[tr for tr in fcast_data if tr.name==typhoons]
+            tr_HRS=[tr for tr in fcast_data if (tr.is_ensemble=='False')]
 
             if tr_HRS !=[]:
                 HRS_SPEED=(tr_HRS[0].max_sustained_wind.values/0.84).tolist()  ############# 0.84 is conversion factor for ECMWF 10MIN TO 1MIN AVERAGE
@@ -177,18 +180,18 @@ class Forecast:
                 #line_='Rainfall,'+'%sRainfall/' % Input_folder +','+ typhoons + ',' + date_dir #StormName #
                 fname.write(line_+'\n')        
                 # Adjust track time step
-                data_forced=[tr.where(tr.time <= max(tr_HRS[0].time.values),drop=True) for tr in fcast.data]
+                data_forced=[tr.where(tr.time <= max(tr_HRS[0].time.values),drop=True) for tr in fcast_data]
                 # data_forced = [track_data_clean.track_data_force_HRS(tr,HRS_SPEED) for tr in data_forced] # forced with HRS windspeed
                
-                #data_forced= [track_data_clean.track_data_clean(tr) for tr in fcast.data] # taking speed of ENS
+                #data_forced= [track_data_clean.track_data_clean(tr) for tr in fcast_data] # taking speed of ENS
                 # interpolate to 3h steps from the original 6h
-                #fcast.equal_timestep(3)
+                #fcast_equal_timestep(3)
             else:
-                len_ar=np.min([ len(var.lat.values) for var in fcast.data ])
-                lat_ = np.ma.mean( [ var.lat.values[:len_ar] for var in fcast.data ], axis=0 )
-                lon_ = np.ma.mean( [ var.lon.values[:len_ar] for var in fcast.data ], axis=0 )             
-                YYYYMMDDHH =pd.date_range(fcast.data[0].time.values[0], periods=len_ar, freq="H")
-                vmax_ = np.ma.mean( [ var.max_sustained_wind.values[:len_ar] for var in fcast.data ], axis=0 )
+                len_ar=np.min([ len(var.lat.values) for var in fcast_data ])
+                lat_ = np.ma.mean( [ var.lat.values[:len_ar] for var in fcast_data ], axis=0 )
+                lon_ = np.ma.mean( [ var.lon.values[:len_ar] for var in fcast_data ], axis=0 )
+                YYYYMMDDHH =pd.date_range(fcast_data[0].time.values[0], periods=len_ar, freq="H")
+                vmax_ = np.ma.mean( [ var.max_sustained_wind.values[:len_ar] for var in fcast_data ], axis=0 )
                 d = {'YYYYMMDDHH':YYYYMMDDHH,
                      "VMAX":vmax_,
                      "LAT": lat_,
@@ -202,7 +205,7 @@ class Forecast:
                 line_='ecmwf,'+'%secmwf_hrs_track.csv' % self.Input_folder+ ',' +typhoons+','+ self.date_dir   #StormName #
                 #line_='Rainfall,'+'%sRainfall/' % Input_folder +','+ typhoons + ',' + date_dir #StormName #
                 fname.write(line_+'\n') 
-                data_forced=fcast.data
+                data_forced=fcast_data
             landfall_location_={}
             check_flag=0
             for row,data in hrs_track_data.iterrows():
