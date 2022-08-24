@@ -98,7 +98,6 @@ wind_grid <- read.csv(windfield_data) %>%
 
 rainfall_ <- Read_rainfall_v2(wshade)
 
-
 typhoon_hazard <- wind_grid %>%
   left_join(rainfall_, by = "Mun_Code") %>%
   dplyr::mutate(

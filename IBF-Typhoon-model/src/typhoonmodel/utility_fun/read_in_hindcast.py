@@ -5,6 +5,8 @@ import numpy as np
 import xarray as xr
 import pandas as pd
 
+ONE_MIN_TO_TEN_MIN = 0.84
+
 
 def read_in_hindcast(typhoon_name: str, remote_dir: str, local_directory: str):
     # Read in the hindcast csv
@@ -28,7 +30,7 @@ def read_in_hindcast(typhoon_name: str, remote_dir: str, local_directory: str):
              time=(["time"], group["time"]),
         )
         data_vars=dict(
-            max_sustained_wind=(["time"], group['speed']),
+            max_sustained_wind=(["time"], group['speed'] / ONE_MIN_TO_TEN_MIN),
             central_pressure=(["time"], group['pressure']),
             lat=(["time"], group["lat"]),
             lon=(["time"], group["lon"]),
