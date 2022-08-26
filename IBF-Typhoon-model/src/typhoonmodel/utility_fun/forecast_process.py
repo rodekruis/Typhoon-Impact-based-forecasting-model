@@ -119,6 +119,7 @@ class Forecast:
         # This code allows several retries with some sleep time in between
         if use_hindcast:
             fcast_data = read_in_hindcast.read_in_hindcast(typhoonname, remote_dir, local_directory)
+            fcast_data = [track_data_clean.track_data_clean(tr) for tr in fcast_data]
         else:
             n_tries = 0
             while True:
