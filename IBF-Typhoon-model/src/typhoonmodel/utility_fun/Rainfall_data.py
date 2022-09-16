@@ -168,22 +168,25 @@ def zonal_stat_rain(filepath,admin):
 
 
 def create_synthetic_rainfall(Input_folder):
+    # TODO: Why is only rainfall 24 used?
     # TODO: turn this into actual data from the past
     logger.info("Creating synthetic rainfall dataset")
     # Make the 24 h netcdf only
     ds = xr.load_dataset('./data-raw/rainfall_synthetic_1000.nc')
-    rainfall_path = os.path.join(Input_folder, 'rainfall/rainfall_24.nc')
+    rainfall_path = os.path.join(Input_folder, 'rainfall/')
+    if not os.path.exists(rainfall_path):
+        os.makedirs(rainfall_path)
     # TODO: Fix this by deleting old file once I have internet to google it
     try:
-        ds.to_netcdf(rainfall_path)
+        ds.to_netcdf(os.path.join(rainfall_path, "rainfall_24.nc"))
     except PermissionError:
         logger.warning("Can't overwrite old file, skipping")
     # Unclear that this csv is used
-    # ADMIN_PATH = 'data-raw/gis_data/phl_admin3_simpl2.geojson'
-    # admin = gpd.read_file(ADMIN_PATH)
-    # df_rain = pd.DataFrame({
-    #     "max_06h_rain": 250,
-    #     "max_24h_rain": 1000,
-    #     "Mun_Code": admin['adm3_pcode'].values,
-    # })
-    # df_rain.to_csv(os.path.join(Input_folder, "rainfall/rain_data.csv"), index=False)
+    ADMIN_PATH = 'data-raw/gis_data/phl_admin3_simpl2.geojson'
+    admin = gpd.read_file(ADMIN_PATH)
+    df_rain = pd.DataFrame({
+        "max_06h_rain": 250,
+        "max_24h_rain": 1000,
+        "Mun_Code": admin['adm3_pcode'].values,
+    })
+    df_rain.to_csv(os.path.join(Input_folder, "rainfall/rain_data.csv"), index=False)
