@@ -173,7 +173,11 @@ def create_synthetic_rainfall(Input_folder):
     # Make the 24 h netcdf only
     ds = xr.load_dataset('./data-raw/rainfall_synthetic_1000.nc')
     rainfall_path = os.path.join(Input_folder, 'rainfall/rainfall_24.nc')
-    ds.to_netcdf(rainfall_path)
+    # TODO: Fix this by deleting old file once I have internet to google it
+    try:
+        ds.to_netcdf(rainfall_path)
+    except PermissionError:
+        logger.warning("Can't overwrite old file, skipping")
     # Unclear that this csv is used
     # ADMIN_PATH = 'data-raw/gis_data/phl_admin3_simpl2.geojson'
     # admin = gpd.read_file(ADMIN_PATH)

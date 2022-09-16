@@ -175,6 +175,7 @@ class Forecast:
 
             if tr_HRS !=[]:
                 HRS_SPEED=(tr_HRS[0].max_sustained_wind.values/0.84).tolist()  ############# 0.84 is conversion factor for ECMWF 10MIN TO 1MIN AVERAGE
+                HRS_PRESSURE = tr_HRS[0].central_pressure.values
                 dfff=tr_HRS[0].to_dataframe()
                 dfff[['VMAX','LAT','LON']]=dfff[['max_sustained_wind','lat','lon']]
                 dfff['YYYYMMDDHH']=dfff.index.values
@@ -189,7 +190,10 @@ class Forecast:
                 # Adjust track time step
                 data_forced=[tr.where(tr.time <= max(tr_HRS[0].time.values),drop=True) for tr in fcast_data]
                 # Use pressure from high res
-                # data_forced = [track_data_clean.track_data_force_HRS(tr,HRS_SPEED) for tr in data_forced] # forced with HRS windspeed
+                # Setting pressure to high res pressure
+                for tr in data_forced:
+                    tr["central_pressure"] = (('time'), HRS_PRESSURE)
+                    # data_forced = [track_data_clean.track_data_force_HRS(tr,HRS_SPEED) for tr in data_forced] # forced with HRS windspeed
                
                 #data_forced= [track_data_clean.track_data_clean(tr) for tr in fcast_data] # taking speed of ENS
                 # interpolate to 3h steps from the original 6h
