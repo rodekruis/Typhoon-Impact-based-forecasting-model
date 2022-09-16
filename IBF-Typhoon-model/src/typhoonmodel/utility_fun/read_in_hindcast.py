@@ -23,7 +23,8 @@ def read_in_hindcast(typhoon_name: str, remote_dir: str, local_directory: str):
     tracks = []
     for ensemble, group in df.groupby("ensemble"):
 
-        is_ensemble = True if group["mtype"] == "ensembleforecast" else False
+        is_ensemble = False if ensemble == 'none' else True
+        #is_ensemble = True if group["mtype"].values[0] == "ensembleforecast" else False
 
         time_step = (group["time"].values[1] - group["time"].values[0]).astype('timedelta64[h]')
         time_step = pd.to_timedelta(time_step).total_seconds() / 3600
@@ -45,7 +46,7 @@ def read_in_hindcast(typhoon_name: str, remote_dir: str, local_directory: str):
             central_pressure_unit="mb",
             name=typhoon_name.upper(),
             data_provider="ECMWF",
-            ensemble_number=ensemble if is_ensemble else -1,
+            ensemble_number=ensemble,
             is_ensemble=is_ensemble,
             forecast_time=forecast_time,
             basin="W - North West Pacific",

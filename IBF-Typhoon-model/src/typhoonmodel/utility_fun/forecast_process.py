@@ -188,6 +188,7 @@ class Forecast:
                 fname.write(line_+'\n')        
                 # Adjust track time step
                 data_forced=[tr.where(tr.time <= max(tr_HRS[0].time.values),drop=True) for tr in fcast_data]
+                # Use pressure from high res
                 # data_forced = [track_data_clean.track_data_force_HRS(tr,HRS_SPEED) for tr in data_forced] # forced with HRS windspeed
                
                 #data_forced= [track_data_clean.track_data_clean(tr) for tr in fcast_data] # taking speed of ENS

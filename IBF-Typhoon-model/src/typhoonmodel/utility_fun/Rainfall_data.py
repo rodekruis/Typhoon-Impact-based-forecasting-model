@@ -171,7 +171,7 @@ def create_synthetic_rainfall(Input_folder):
     # TODO: turn this into actual data from the past
     logger.info("Creating synthetic rainfall dataset")
     # Make the 24 h netcdf only
-    ds = xr.load_dataset('./data_raw/rainfall_synthetic_1000.csv')
+    ds = xr.load_dataset('./data-raw/rainfall_synthetic_1000.nc')
     rainfall_path = os.path.join(Input_folder, 'rainfall/rainfall_24.nc')
     ds.to_netcdf(rainfall_path)
     # Unclear that this csv is used
