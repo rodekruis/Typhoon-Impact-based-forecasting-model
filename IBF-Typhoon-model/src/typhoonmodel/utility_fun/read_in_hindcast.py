@@ -11,17 +11,19 @@ ONE_MIN_TO_TEN_MIN = 0.84
 def read_in_hindcast(typhoon_name: str, remote_dir: str, local_directory: str):
     # Read in the hindcast csv
     filename = Path(local_directory) / f"{typhoon_name.lower()}_all.csv"
-    forecast_time =  datetime.strptime(remote_dir, "%Y%m%d%H%M%S")
+    forecast_time = datetime.strptime(remote_dir, "%Y%m%d%H%M%S")
 
     df = pd.read_csv(filename)
     for cname in ["time", "forecast_time"]:
         df[cname] = pd.to_datetime(df[cname])
-    df = df[df["mtype"] == "ensembleforecast"]
+    df = df[df["mtype"].isin(["ensembleforecast", "forecast"])]
     df = df[df["forecast_time"] == forecast_time]
 
     # Format into a list of tracks
     tracks = []
     for ensemble, group in df.groupby("ensemble"):
+
+        is_ensemble = True if group["mtype"] == "ensembleforecast" else False
 
         time_step = (group["time"].values[1] - group["time"].values[0]).astype('timedelta64[h]')
         time_step = pd.to_timedelta(time_step).total_seconds() / 3600
@@ -43,8 +45,8 @@ def read_in_hindcast(typhoon_name: str, remote_dir: str, local_directory: str):
             central_pressure_unit="mb",
             name=typhoon_name.upper(),
             data_provider="ECMWF",
-            ensemble_number=ensemble,
-            is_ensemble=True,
+            ensemble_number=ensemble if is_ensemble else -1,
+            is_ensemble=is_ensemble,
             forecast_time=forecast_time,
             basin="W - North West Pacific",
             sid=typhoon_name,
