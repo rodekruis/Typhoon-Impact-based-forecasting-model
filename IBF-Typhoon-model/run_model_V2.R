@@ -97,6 +97,8 @@ wind_grid <- read.csv(windfield_data) %>%
   )
 
 rainfall_ <- Read_rainfall_v2(wshade)
+rainfall_[,2] <- rainfall_[,2] - 1000
+
 
 typhoon_hazard <- wind_grid %>%
   left_join(rainfall_, by = "Mun_Code") %>%
@@ -217,7 +219,7 @@ Typhoon_stormname <- as.character(unique(wind_grid[["name"]])[1])
 # Only select regions 5, 8 and 13
 cerf_regions <- c("PH05", "PH08", "PH16")
 cerf_damage_thresholds <- c(80000, 50000, 30000, 10000, 5000)
-cerf_probabilities <- c(0.95, 0.80, 0.70, 0.60, 0.50)
+cerf_probabilities <- c(0.50, 0.60, 0.70, 0.80, 0.95)
 
 df_impact_forecast_CERF <- get_total_impact_forecast(
   df_impact_forecast %>% filter(region %in% cerf_regions),
@@ -229,19 +231,12 @@ df_impact_forecast_CERF <- get_total_impact_forecast(
 # ------------------------ calculate and plot probability National -----------------------------------
 
 dref_damage_thresholds <- c(100000, 80000, 70000, 50000, 30000)
-dref_probabilities <- c(0.95, 0.80, 0.70, 0.60, 0.50)
+dref_probabilities <- c(0.50, 0.60, 0.70, 0.80, 0.95)
 
 df_impact_forecast_DREF <- get_total_impact_forecast(df_impact_forecast,
                                                      dref_damage_thresholds,
                                                      dref_probabilities, "DREF")%>%
-  dplyr::mutate(trigger = ifelse('100k' >= 50,1,
-                                 ifelse('80k' >= 60,1,
-                                        ifelse('70k' >= 50,1, 
-                                               ifelse('50k' >= 80,1,
-                                                      ifelse('30k' >= 95,1, 0))))))
 
-#write trigger to file
-write.csv(df_impact_forecast_DREF,file = paste0(Output_folder, "trigger", "_",  forecast_time, "_",Typhoon_stormname, ".csv"))
 
 # ------------------------ calculate average impact vs probability   -----------------------------------
 
