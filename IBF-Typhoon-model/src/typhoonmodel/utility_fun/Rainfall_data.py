@@ -165,4 +165,16 @@ def zonal_stat_rain(filepath,admin):
     # Obtain list with maximum 6h rainfall
     maximum_6h = [max(x.values()) for x in final]
     return pd.DataFrame(maximum_6h)
-    
+
+
+def create_synthetic_rainfall(Input_folder):
+    # TODO: turn this into actual data from the past
+    logger.info("Creating synthetic rainfall dataset")
+    ADMIN_PATH = 'data-raw/gis_data/phl_admin3_simpl2.geojson'
+    admin = gpd.read_file(ADMIN_PATH)
+    df_rain = pd.DataFrame({
+        "max_06h_rain": 250,
+        "max_24h_rain": 1000,
+        "Mun_Code": admin['adm3_pcode'].values,
+    })
+    df_rain.to_csv(os.path.join(Input_folder, "rainfall/rain_data.csv"), index=False)

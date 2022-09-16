@@ -46,6 +46,7 @@ def main(path, remote_directory, use_hindcast, local_directory, typhoonname, no_
         if not remote_directory or not local_directory or not typhoonname:
             logger.error("If you want to use a hindcast, you need to specify remote directory"
                          "(for the forecast timestamp), a local directory, and the typhoon name")
+        logger.info(f"Running on hindcast {typhoonname}")
     Forecast(path, remote_dir, typhoonname, countryCodeISO3='PHP', admin_level=3, no_azure=no_azure,
              use_hindcast=use_hindcast, local_directory=local_directory)
     print('---------------------AUTOMATION SCRIPT FINISHED---------------------------------')

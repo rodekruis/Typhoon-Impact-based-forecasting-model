@@ -76,29 +76,34 @@ class Forecast:
         self.Output_folder = Output_folder
         
         #download NOAA rainfall
-        try:
-            #Rainfall_data_window.download_rainfall_nomads(Input_folder,path,Alternative_data_point)
-            Rainfall_data.download_rainfall_nomads(self.Input_folder,self.main_path,self.Alternative_data_point)
-            rainfall_error=False
-            self.rainfall_data=pd.read_csv(os.path.join(self.Input_folder, "rainfall/rain_data.csv"))
-        except:
-            traceback.print_exc()
-            #logger.warning(f'Rainfall download failed, performing download in R script')
-            logger.info(f'Rainfall download failed, performing download in R script')
-            rainfall_error=True
-            self.rainfall_data=[]
-        ###### download UCL data
-          
-        try:
-            ucl_data.create_ucl_metadata(self.main_path, 
-            self.UCL_USERNAME,self.UCL_PASSWORD)
-            ucl_data.process_ucl_data(self.main_path,
-            self.Input_folder,self.UCL_USERNAME,self.UCL_PASSWORD)
-        except:
-            logger.info(f'UCL download failed')        
+        if use_hindcast:
+            Rainfall_data.create_synthetic_rainfall(self.Input_folder)
+            rainfall_error = False
+        else:
+            try:
+                #Rainfall_data_window.download_rainfall_nomads(Input_folder,path,Alternative_data_point)
+                Rainfall_data.download_rainfall_nomads(self.Input_folder,self.main_path,self.Alternative_data_point)
+                rainfall_error=False
+                self.rainfall_data=pd.read_csv(os.path.join(self.Input_folder, "rainfall/rain_data.csv"))
+            except:
+                traceback.print_exc()
+                #logger.warning(f'Rainfall download failed, performing download in R script')
+                logger.info(f'Rainfall download failed, performing download in R script')
+                rainfall_error=True
+                self.rainfall_data=[]
+            ###### download UCL data
+
+            try:
+                ucl_data.create_ucl_metadata(self.main_path,
+                self.UCL_USERNAME,self.UCL_PASSWORD)
+                ucl_data.process_ucl_data(self.main_path,
+                self.Input_folder,self.UCL_USERNAME,self.UCL_PASSWORD)
+            except:
+                logger.info(f'UCL download failed')
 
 
         ##Create grid points to calculate Winfield
+        logger.info("Creating windfield")
         cent = Centroids()
         cent.set_raster_from_pnt_bounds((118,6,127,19), res=0.05)
         cent.check()
@@ -118,6 +123,7 @@ class Forecast:
         # Sometimes the ECMWF ftp server complains about too many requests
         # This code allows several retries with some sleep time in between
         if use_hindcast:
+            logger.info("Reading in hindcast data")
             fcast_data = read_in_hindcast.read_in_hindcast(typhoonname, remote_dir, local_directory)
             fcast_data = [track_data_clean.track_data_clean(tr) for tr in fcast_data]
         else:
