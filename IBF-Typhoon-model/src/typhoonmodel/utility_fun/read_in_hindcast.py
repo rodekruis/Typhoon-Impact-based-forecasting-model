@@ -24,7 +24,6 @@ def read_in_hindcast(typhoon_name: str, remote_dir: str, local_directory: str):
     for ensemble, group in df.groupby("ensemble"):
 
         is_ensemble = False if ensemble == 'none' else True
-        #is_ensemble = True if group["mtype"].values[0] == "ensembleforecast" else False
 
         time_step = (group["time"].values[1] - group["time"].values[0]).astype('timedelta64[h]')
         time_step = pd.to_timedelta(time_step).total_seconds() / 3600
