@@ -174,6 +174,8 @@ class Forecast:
             tr_HRS=[tr for tr in fcast_data if (tr.is_ensemble=='False')]
 
             if tr_HRS !=[]:
+                # Make HRS track same length as the others
+                tr_HRS = [tr.where(tr.time <= max(fcast_data[0].time.values),drop=True) for tr in tr_HRS]
                 HRS_SPEED=(tr_HRS[0].max_sustained_wind.values/0.84).tolist()  ############# 0.84 is conversion factor for ECMWF 10MIN TO 1MIN AVERAGE
                 HRS_PRESSURE = tr_HRS[0].central_pressure.values
                 dfff=tr_HRS[0].to_dataframe()
@@ -188,12 +190,14 @@ class Forecast:
                 #line_='Rainfall,'+'%sRainfall/' % Input_folder +','+ typhoons + ',' + date_dir #StormName #
                 fname.write(line_+'\n')        
                 # Adjust track time step
-                data_forced=[tr.where(tr.time <= max(tr_HRS[0].time.values),drop=True) for tr in fcast_data]
+                data_forced = fcast_data
+                # data_forced=[tr.where(tr.time <= max(tr_HRS[0].time.values),drop=True) for tr in fcast_data]
                 # Use pressure from high res
+                # TODO: need to make both time variables equal, check how they differ
                 # Setting pressure to high res pressure
                 for tr in data_forced:
                     tr["central_pressure"] = (('time'), HRS_PRESSURE)
-                    # data_forced = [track_data_clean.track_data_force_HRS(tr,HRS_SPEED) for tr in data_forced] # forced with HRS windspeed
+                    data_forced = [track_data_clean.track_data_force_HRS(tr,HRS_SPEED) for tr in data_forced] # forced with HRS windspeed
                
                 #data_forced= [track_data_clean.track_data_clean(tr) for tr in fcast_data] # taking speed of ENS
                 # interpolate to 3h steps from the original 6h
