@@ -52,10 +52,10 @@ def ecmwf_data_download(Input_folder,filepatern):
     if not os.path.exists(os.path.join(Input_folder,'ecmwf/')):
         os.makedirs(os.path.join(Input_folder,'ecmwf/'))
     path_ecmwf=os.path.join(Input_folder,'ecmwf/')
-    ftp=FTP("dissemination.ecmwf.int")
+    ftp=FTP("diss.ecmwf.int")
     ftp.login("wmo","essential")
-    ftp=FTP("dissemination.ecmwf.int")
-    ftp.login("wmo","essential")
+   
+ 
     sub_folders=ftp.nlst()
     sub_folder = [sub_folder for sub_folder in sub_folders if sub_folder.endswith(("000000", "120000"))]# and link.endswith(('.html', '.xml'))]
     ftp.cwd(os.path.join(ftp.pwd(),sub_folder[-1]))

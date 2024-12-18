@@ -36,7 +36,7 @@ def check_active_typhoon():
     Get events from GDACS
     for Tropical Cyclone Advisory Domain(TCAD) 4°N 114°E, 28°N 114°E, 28°N 145°E and 4°N 145°N.
     """
-    TCDA=np.array([[145, 28], [145, 4], [114, 5], [114, 28],[145, 28]])  # TCDA area
+    TCDA=np.array([[145, 28], [145, 2], [114, 3], [114, 28],[145, 28]])  # TCDA area
     #PAR=np.array([[145, 35], [145, 5], [115, 5], [115, 35],[145, 35]])  # PAR area
     Pacific_basin=['wp','nwp','NWP','west pacific','north west pacific','northwest pacific']     
     polygon = Polygon(TCDA) # create polygon

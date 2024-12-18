@@ -10,7 +10,7 @@ from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.inspection import permutation_importance
 
-from pactools.grid_search import GridSearchCVProgressBar
+
 from sklearn.model_selection import RandomizedSearchCV
 import os
 import matplotlib.pyplot as plt

@@ -26,12 +26,9 @@ import pandas as pd
 from datetime import datetime
 from datetime import timedelta
 
-#path='C:/Users/ATeklesadik/OneDrive - Rode Kruis/Documents/documents/Typhoon-Impact-based-forecasting-model/'
-##Path='home/fbf/'
+from typhoonmodel.utility_fun.settings import *
 
-#sys.path.insert(0, path+'lib')
-#os.chdir(path)
-#from settings import fTP_LOGIN, fTP_PASSWORD, uCL_USERNAME, uCL_PASSWORD
+
 Pacific_basin=['wp','nwp','NWP','west pacific','north west pacific','northwest pacific'] 
 
 dict2={'WH':'windpast','GH':'gustpast','WF':'wind',
@@ -39,14 +36,14 @@ dict2={'WH':'windpast','GH':'gustpast','WF':'wind',
     'WP2':'2_TSprob','WP3':'3_TSprob','WP4':'4_TSprob',
     'WP5':'5_TSprob','WP6':'6_TSprob','WP7':'7_TSprob'}
 
-def create_ucl_metadata(path,uCL_USERNAME,uCL_PASSWORD):
+def create_ucl_metadata():
     mytsr_username=uCL_USERNAME
     mytsr_password=uCL_PASSWORD
     tsrlink='https://www.tropicalstormrisk.com/business/checkclientlogin.php?script=true'
     try:
-        os.remove(os.path.join(path,"forecast/RodeKruis.xml"))        
-        os.remove(os.path.join(path,"forecast/batch_ucl_metadata_download.bat"))
-        os.remove(os.path.join(path,"forecast/batch_ucl_download.bat"))
+        os.remove(os.path.join(MAIN_DIRECTORY,"forecast/RodeKruis.xml"))        
+        os.remove(os.path.join(MAIN_DIRECTORY,"forecast/batch_ucl_metadata_download.bat"))
+        os.remove(os.path.join(MAIN_DIRECTORY,"forecast/batch_ucl_download.bat"))
         
     except:
         print("failed to remove old metadata files")
@@ -73,7 +70,7 @@ def create_ucl_metadata(path,uCL_USERNAME,uCL_PASSWORD):
     # p = subprocess.Popen(["sh","./batch_step1.sh"])
     # stdout, stderr = p.communicate()  
     
-def download_ucl_data(path,Input_folder,uCL_USERNAME,uCL_PASSWORD):
+def download_ucl_data():
     """
     download ucl data
     """
@@ -88,10 +85,10 @@ def download_ucl_data(path,Input_folder,uCL_USERNAME,uCL_PASSWORD):
     fname=open(os.path.join(path,"forecast/batch_ucl_download.bat"),'w')  
     fname.write(':: runfile'+'\n')
     TSRPRODUCT_FILENAMEs={}    
-    ucl_path=relpath(Input_folder, os.path.join(path,'forecast/')).replace('\\','/')
+    ucl_path=relpath(Input_folder, os.path.join(MAIN_DIRECTORY,'forecast/')).replace('\\','/')
     
     try:
-        tree = ET2.parse(os.path.join(path,'forecast/RodeKruis.xml'),parser=parser2)
+        tree = ET2.parse(os.path.join(MAIN_DIRECTORY,'forecast/RodeKruis.xml'),parser=parser2)
         root = tree.getroot()
         update=root.find('ActiveStorms/LatestUpdate').text
         print(update)    
@@ -140,7 +137,7 @@ def download_ucl_data(path,Input_folder,uCL_USERNAME,uCL_PASSWORD):
     return update
 #%%
 
-def extract_ucl_data(Input_folder):
+def extract_ucl_data():
     filname1=[]
     filname1_={}    
     zip_files = [f for f in listdir(os.path.join(Input_folder,'UCL/')) if '.zip' in f]
@@ -162,7 +159,8 @@ def extract_ucl_data(Input_folder):
     return filname1_
                 
 #%%                
-def process_ucl_data(path,Input_folder,uCL_USERNAME,uCL_PASSWORD):
+def process_ucl_data():
+    path=MAIN_DIRECTORY
     update=download_ucl_data(path,Input_folder,uCL_USERNAME,uCL_PASSWORD)
     time.sleep(10)
     php_admin3 = gpd.read_file(path+'data-raw/phl_admin3_simpl2.geojson')

@@ -5,6 +5,7 @@ import xarray as xr
 import pandas as pd
 from climada.hazard.tc_tracks import estimate_roci,estimate_rmw
 def track_data_clean(forcast_df):
+   
     track = xr.Dataset(
         data_vars={
             'max_sustained_wind': ('time', pd.Series(forcast_df.max_sustained_wind.values).interpolate().tolist()),
@@ -12,8 +13,9 @@ def track_data_clean(forcast_df):
             'central_pressure': ('time', pd.Series(forcast_df.central_pressure.values).interpolate().tolist()),
             'lat': ('time', pd.Series(forcast_df.lat.values).interpolate().tolist()),
             'lon': ('time', pd.Series(forcast_df.lon.values).interpolate().tolist()),
-            'radius_max_wind': ('time', pd.Series(forcast_df.radius_max_wind.values).interpolate().tolist()),
-            #'radius_max_wind':('time', estimate_rmw(forcast_df.radius_max_wind.values, forcast_df.central_pressure.values)),  
+            #'radius_max_wind': ('time', pd.Series(forcast_df.radius_max_wind.values).interpolate().tolist()),
+            'max_radius':('time', pd.Series(forcast_df.max_radius.values).interpolate().tolist()),  
+            'radius_max_wind': ('time', pd.Series(estimate_rmw(forcast_df.radius_max_wind.values, forcast_df.central_pressure.values)).interpolate().tolist()),
             #'radius_oci':('time', estimate_roci(forcast_df.radius_max_wind.values, forcast_df.central_pressure.values)), 
             #'time_step':('time', forcast_df.time_step.values),
             'time_step':('time', np.full(len(forcast_df.time.values),0.5).tolist())

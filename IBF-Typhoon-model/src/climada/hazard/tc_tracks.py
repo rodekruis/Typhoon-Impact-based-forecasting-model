@@ -46,7 +46,7 @@ import pandas as pd
 import scipy.io.matlab as matlab
 from shapely.geometry import Point, LineString, MultiLineString
 import shapely.ops
-from sklearn.neighbors import DistanceMetric
+from sklearn.metrics import DistanceMetric
 import statsmodels.api as sm
 import xarray as xr
 
@@ -131,7 +131,7 @@ Knapp, K.R., Kruk, M.C. (2010): Quantifying Interagency Differences in Tropical 
 Wind Speed Estimates. Monthly Weather Review 138(4): 1459–1473.
 https://library.wmo.int/index.php?lvl=notice_display&id=135"""
 
-DEF_ENV_PRESSURE = 1010
+DEF_ENV_PRESSURE = 1006
 """Default environmental pressure"""
 
 BASIN_ENV_PRESSURE = {
