@@ -27,10 +27,11 @@ from typhoonmodel.utility_fun import track_data_clean, Check_for_active_typhoon,
     
 from typhoonmodel.utility_fun.dynamicDataDb import DatabaseManager    
 
-if platform == "linux" or platform == "linux2": #check if running on linux or windows os
-    from typhoonmodel.utility_fun import Rainfall_data
-elif platform == "win32":
+#check if running on windows or linux/macOS
+if platform == "win32":
     from typhoonmodel.utility_fun import Rainfall_data_window as Rainfall_data
+else: 
+    from typhoonmodel.utility_fun import Rainfall_data
 decoder = Decoder()
 initialize.setup_logger()
 logger = logging.getLogger(__name__)
